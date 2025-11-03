@@ -30,6 +30,7 @@ interface Assinatura {
   valor: string;
   diaCobranca: number;
   mesCobranca?: number;
+  anoAdesao?: number;
   tipo: 'ASSINATURA' | 'CONTRATO - ALUGUEL' | 'CONTRATO - PERSONALIZADO';
   categoriaPersonalizada?: string;
   tipoPagamento: TipoPagamento;
@@ -93,49 +94,73 @@ const calcularGastosPorCategoria = (lista: Gasto[] = []) => {
   }, {} as Record<string, number>);
 };
 
-const verificarAssinaturasAnuaisProximas = (assinaturas: Assinatura[]) => {
+const calcularProximoVencimentoMensal = (assinatura: Assinatura): { dias: number; ehProximo: boolean } | null => {
+  if (assinatura.periodoCobranca !== 'MENSAL') {
+    return null;
+  }
+
   const hoje = new Date();
-  return (assinaturas || []).filter((a) => {
-    if (a?.periodoCobranca !== 'ANUAL' || !a.mesCobranca) return false;
-    let data = new Date(hoje.getFullYear(), (a.mesCobranca || 1) - 1, a.diaCobranca ?? 1);
-    if (data < hoje) data = new Date(hoje.getFullYear() + 1, hoje.getMonth(), a?.diaCobranca ?? 1);
-    const diffDias = Math.ceil((data.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
-    return diffDias >= 0 && diffDias <= 30;
-  });
+  const diaHoje = hoje.getDate();
+  const diaCobranca = assinatura.diaCobranca;
+
+  let diasRestantes;
+  if (diaCobranca >= diaHoje) {
+    diasRestantes = diaCobranca - diaHoje;
+  } else {
+    const ultimoDiaDoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+    diasRestantes = (ultimoDiaDoMes - diaHoje) + diaCobranca;
+  }
+
+  return { dias: diasRestantes, ehProximo: diasRestantes <= 10 };
 };
 
-const detectarCategoria = (descricao: string): string => {
-  const d = (descricao || '')
-    .normalize('NFD').replace(/\p{Diacritic}/gu, '') // remove acentos
-    .toLowerCase();
+const calcularProximoVencimentoAnual = (assinatura: Assinatura): { data: Date; dias: number; meses: number; texto: string; ehProximo: boolean } | null => {
+  if (assinatura.periodoCobranca !== 'ANUAL' || !assinatura.mesCobranca || !assinatura.anoAdesao) {
+    return null;
+  }
 
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  let proximoVencimento = new Date(hoje.getFullYear(), assinatura.mesCobranca - 1, assinatura.diaCobranca);
+  if (proximoVencimento < hoje) {
+    proximoVencimento.setFullYear(hoje.getFullYear() + 1);
+  }
+
+  const diffTime = proximoVencimento.getTime() - hoje.getTime();
+  const diffDiasTotal = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  let meses = 0;
+  let dias = diffDiasTotal;
+
+  if (diffDiasTotal > 30) {
+    meses = Math.floor(diffDiasTotal / 30.44); // Média de dias no mês
+    dias = Math.round(diffDiasTotal % 30.44);
+  }
+
+  let texto = '';
+  if (meses > 0) texto += `${meses} mes${meses > 1 ? 'es' : ''}`;
+  if (dias > 0) texto += `${texto ? ' e ' : ''}${dias} dia${dias > 1 ? 's' : ''}`;
+  if (!texto) texto = 'hoje';
+  else texto = `em ${texto}`;
+
+  return { data: proximoVencimento, dias: diffDiasTotal, meses, texto, ehProximo: diffDiasTotal <= 30 };
+};
+
+const CATEGORIAS_GASTO = ['ALIMENTAÇÃO', 'TRANSPORTE', 'LAZER', 'SAÚDE', 'MORADIA', 'EDUCAÇÃO', 'COMPRAS', 'IMPREVISTO', 'OUTROS'] as const;
+
+const detectarCategoria = (descricao: string): typeof CATEGORIAS_GASTO[number] => {
+  const d = (descricao || '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
   const match = (palavras: string[]) => palavras.some(k => d.includes(k));
-
-  if (match(['almoco','ifood','lanche','comida','salgado','doce','docinho','cafe','jantar','restaurante','padaria','mercado','pizza','hamburguer','acai','cerveja']))
-    return 'ALIMENTAÇÃO';
-  if (match(['uber','taxi','99','gasolina','onibus','metro','estacionamento','pedagio','passagem']))
-    return 'TRANSPORTE';
-  if (match(['cinema','teatro','show','festa','bar','jogo','game','passeio']))
-    return 'LAZER';
-  if (match(['farmacia','remedio','consulta','medico','dentista','exame','hospital','academia']))
-    return 'SAÚDE';
-  if (match(['luz','agua','internet','gas','iptu']))
-    return 'MORADIA';
-  if (match(['curso','faculdade','escola','livro','aula','treinamento']))
-    return 'EDUCAÇÃO';
-  if (match(['loja','roupa','sapato','shopping','presente','mercadolivre','amazon','shopee']))
-    return 'COMPRAS';
-  return 'IMPREVISTO';
-};
-
-// --- FUNÇÃO QUE ESTAVA FALTANDO ---
-const diasAteProximaCobranca = (assinatura: Assinatura) => {
-  if (assinatura.periodoCobranca !== 'ANUAL' || !assinatura.mesCobranca) return 0;
-  const hoje = new Date();
-  let data = new Date(hoje.getFullYear(), (assinatura.mesCobranca || 1) - 1, assinatura.diaCobranca ?? 1);
-  if (data < hoje) data = new Date(hoje.getFullYear() + 1, hoje.getMonth(), assinatura.diaCobranca ?? 1);
-  const diffDias = Math.ceil((data.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
-  return diffDias;
+  if (d.startsWith('imprevisto')) return 'IMPREVISTO';
+  if (match(['almoco','ifood','lanche','comida','salgado','doce','docinho','cafe','jantar','restaurante','padaria','mercado','pizza','hamburguer','acai','cerveja'])) return 'ALIMENTAÇÃO';
+  if (match(['uber','taxi','99','gasolina','onibus','metro','estacionamento','pedagio','passagem'])) return 'TRANSPORTE';
+  if (match(['cinema','teatro','show','festa','bar','jogo','game','passeio'])) return 'LAZER';
+  if (match(['farmacia','remedio','consulta','medico','dentista','exame','hospital','academia'])) return 'SAÚDE';
+  if (match(['luz','agua','internet','gas','iptu'])) return 'MORADIA';
+  if (match(['curso','faculdade','escola','livro','aula','treinamento'])) return 'EDUCAÇÃO';
+  if (match(['loja','roupa','sapato','shopping','presente','mercadolivre','amazon','shopee'])) return 'COMPRAS';
+  return 'OUTROS';
 };
 // ---------------------------------
 
@@ -171,8 +196,10 @@ export default function LifeTracker() {
   // --- Edição de gastos e receitas ---
   const [editingGastoId, setEditingGastoId] = React.useState<number | null>(null);
   const [editingReceitaId, setEditingReceitaId] = React.useState<number | null>(null);
+  const [editingAssinaturaId, setEditingAssinaturaId] = React.useState<number | null>(null);
   // --- Sugestões de cartões ---
   const [sugestoesCartao, setSugestoesCartao] = React.useState<string[]>([]);
+  const [sugestaoAtivaIndex, setSugestaoAtivaIndex] = React.useState(-1);
 
 
   const startEditCard = (c: Cartao) => {
@@ -223,7 +250,7 @@ export default function LifeTracker() {
 
   const [novaAssinatura, setNovaAssinatura] = React.useState<Assinatura>({
     id: 0, nome: '', valor: '', diaCobranca: 1, tipo: 'ASSINATURA',
-    categoriaPersonalizada: '', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null, periodoCobranca: 'MENSAL', mesCobranca: new Date().getMonth() + 1
+    categoriaPersonalizada: '', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null, periodoCobranca: 'MENSAL', mesCobranca: new Date().getMonth() + 1, anoAdesao: new Date().getFullYear()
   });
 
   const [novoObjetivo, setNovoObjetivo] = React.useState<Objetivo>({
@@ -311,8 +338,18 @@ export default function LifeTracker() {
   );
 
   const porCategoria = React.useMemo(() => calcularGastosPorCategoria(gastos), [gastos]);
-  const anuaisProximas = React.useMemo(() => verificarAssinaturasAnuaisProximas(assinaturas), [assinaturas]);
   const anuaisTodos = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'ANUAL'), [assinaturas]);
+  const anuaisProximas = React.useMemo(() => anuaisTodos.filter(a => {
+    const vencimento = calcularProximoVencimentoAnual(a);
+    return vencimento?.ehProximo ?? false;
+  }), [anuaisTodos]);
+
+  // Assinaturas anuais que vencem no mês atual
+  const anuaisVencendoMes = React.useMemo(() => anuaisTodos.filter(a => {
+    const vencimento = calcularProximoVencimentoAnual(a);
+    return vencimento ? isSameMonth(vencimento.data.toISOString()) : false;
+  }), [anuaisTodos]);
+
 
   const totalAssinMensal = React.useMemo(
     () => assinaturas
@@ -327,13 +364,29 @@ export default function LifeTracker() {
     [assinaturas]
   );
 
+  const totalAssinAnualMesCorrente = React.useMemo(
+    () => anuaisVencendoMes.reduce((acc, a) => acc + toNum(a.valor), 0),
+    [anuaisVencendoMes]
+  );
+
+  const totalAssinAnualMesCorrenteCredito = React.useMemo(
+    () => anuaisVencendoMes.filter(a => a.tipoPagamento === 'CRÉDITO').reduce((acc, a) => acc + toNum(a.valor), 0),
+    [anuaisVencendoMes]
+  );
+
+  const totalAnualAssinaturas = React.useMemo(() => {
+    return assinaturas.reduce((acc, a) => {
+      return acc + (toNum(a.valor) * (a.periodoCobranca === 'MENSAL' ? 12 : 1));
+    }, 0);
+  }, [assinaturas]);
+
   // --- BLOCO PREVISAO_MES CORRIGIDO ---
   const previsaoMes = React.useMemo(() => ({
     aluguel: totalAluguelMensal,
-    assinaturas: totalAssinMensal,
-    credito: gastosCreditoMes,
-    total: totalAluguelMensal + totalAssinMensal + gastosCreditoMes
-  }), [totalAluguelMensal, totalAssinMensal, gastosCreditoMes]);
+    assinaturas: totalAssinMensal + totalAssinAnualMesCorrente,
+    credito: gastosCreditoMes + totalAssinAnualMesCorrenteCredito,
+    total: totalAluguelMensal + totalAssinMensal + totalAssinAnualMesCorrente + gastosCreditoMes
+  }), [totalAluguelMensal, totalAssinMensal, gastosCreditoMes, totalAssinAnualMesCorrente, totalAssinAnualMesCorrenteCredito]);
   // ------------------------------------
 
   // Listas derivadas para modais
@@ -413,7 +466,6 @@ export default function LifeTracker() {
       alert('Por favor, selecione um cartão para o gasto de crédito.');
       return;
     }
-    const catAuto = detectarCategoria(novoGasto.descricao);
     const cartaoNome = novoGasto.tipoPagamento === 'CRÉDITO'
       ? (cartoes.find(c => c.id === novoGasto.cartaoId)?.nome ?? null)
       : null;
@@ -421,7 +473,6 @@ export default function LifeTracker() {
     setGastos(g => [...g, {
       ...novoGasto,
       id: Date.now(),
-      categoria: catAuto || novoGasto.categoria || 'OUTROS',
       cartaoId: novoGasto.tipoPagamento === 'CRÉDITO' ? novoGasto.cartaoId : null,
       cartaoNome
     }]);
@@ -477,6 +528,23 @@ export default function LifeTracker() {
     setReceitas(r => r.filter(receita => receita.id !== id));
   };
 
+  const iniciarEdicaoAssinatura = (assinatura: Assinatura) => {
+    setEditingAssinaturaId(assinatura.id);
+    setNovaAssinatura({ ...assinatura });
+  };
+
+  const cancelarEdicaoAssinatura = () => {
+    setEditingAssinaturaId(null);
+    setNovaAssinatura({ id: 0, nome: '', valor: '', diaCobranca: 1, tipo: 'ASSINATURA', categoriaPersonalizada: '', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null, periodoCobranca: 'MENSAL', mesCobranca: new Date().getMonth() + 1, anoAdesao: new Date().getFullYear() });
+  };
+
+  const salvarEdicaoAssinatura = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!window.confirm('Salvar as alterações nesta assinatura?')) return;
+    setAssinaturas(assinaturas => assinaturas.map(a => a.id === editingAssinaturaId ? { ...novaAssinatura, id: a.id } : a));
+    cancelarEdicaoAssinatura();
+  };
+
   const adicionarReceita = (e: React.FormEvent) => {
     e.preventDefault();
     setReceitas(r => [...r, { ...novaReceita, id: Date.now() }]);
@@ -489,6 +557,7 @@ export default function LifeTracker() {
     // Garante que o nome seja capitalizado para consistência
     const cartaoFinal = { ...novoCartao, nome: novoCartao.nome.trim().toUpperCase(), id: Date.now() };
     setCartoes(prev => [...prev, cartaoFinal]);
+    setSugestoesCartao([]);
     setNovoCartao({ nome: '', limite: '', diaVencimento: 1 });
   };
 
@@ -506,7 +575,7 @@ export default function LifeTracker() {
     }]);
     setNovaAssinatura({
       id: 0, nome: '', valor: '', diaCobranca: 1, tipo: 'ASSINATURA',
-      categoriaPersonalizada: '', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null, periodoCobranca: 'MENSAL', mesCobranca: new Date().getMonth() + 1
+      categoriaPersonalizada: '', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null, periodoCobranca: 'MENSAL', mesCobranca: new Date().getMonth() + 1, anoAdesao: new Date().getFullYear()
     });
   };
 
@@ -577,9 +646,21 @@ export default function LifeTracker() {
             </div>
             <div className="p-4 rounded-2xl shadow bg-white">
               <div className="text-sm opacity-60">Crédito Disponível</div>
-              <div className={`text-xl font-medium ${getCorValor(creditoDisponivel, configuracoes.credito)}`}>
-                {fmt(creditoDisponivel)} <span className="opacity-60">/ {fmt(totalLimite)}</span>
+              <div className={`text-xl font-semibold ${getCorValor(creditoDisponivel, configuracoes.credito)}`}>
+                {fmt(creditoDisponivel)}
               </div>
+              <div className="text-xs opacity-60">Total de {fmt(totalLimite)}</div>
+              {cartoes.length > 0 && (
+                <ul className="mt-2 space-y-1 text-xs">
+                  {creditByCard.map(({ cartao, disponivel }) => (
+                    <li key={cartao.id} className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full inline-block ${getCorCartao(cartao.nome).bg}`}></span>
+                      <span className="flex-1 truncate">{cartao.nome}</span>
+                      <span className="font-medium">{fmt(disponivel)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             <div className="p-4 rounded-2xl shadow bg-white">
               <div className="text-sm opacity-60">Gastos (Crédito)</div>
@@ -639,26 +720,63 @@ export default function LifeTracker() {
           <section className="p-4 rounded-2xl shadow bg-white">
             <h2 className="text-lg font-medium mb-3">Assinaturas anuais</h2>
             {anuaisTodos.length === 0 ? (
-              <p className="text-sm opacity-60">Nenhuma assinatura anual cadastrada</p>
+              <p className="text-sm opacity-60">Nenhuma assinatura anual.</p>
             ) : (
               <ul className="text-sm divide-y">
                 {anuaisTodos.map(a => {
-                  const dias = diasAteProximaCobranca(a);
-                  const critico = dias <= 30;
+                  const vencimento = calcularProximoVencimentoAnual(a);
+                  if (!vencimento) return null;
+
                   return (
                     <li key={a.id} className="py-2 flex items-center justify-between">
                       <div>
-                        <div className="font-medium">{a.nome}</div>
+                        <div className="font-medium">
+                          {vencimento.ehProximo && <span className="mr-2" title="Vencimento próximo!">⚠️</span>}
+                          {a.nome}
+                        </div>
                         <div className="opacity-60 text-xs">                          
                           Vence dia {String(a.diaCobranca).padStart(2,'0')}{a.mesCobranca ? `/${String(a.mesCobranca).padStart(2,'0')}`: ''} • {a.tipoPagamento}
                           {a.cartaoId ? ` • ${cartoes.find(c => c.id === a.cartaoId)?.nome ?? ''}` : ''}
                         </div>
                       </div>
-                      <div className={`font-semibold ${critico ? 'text-red-600' : ''}`}>{fmt(toNum(a.valor))}{critico ? ` • em ${dias} dias` : ''}</div>
+                      <div className={`font-semibold ${vencimento.ehProximo ? 'text-red-600' : ''}`}>{fmt(toNum(a.valor))} • {vencimento.texto}</div>
                     </li>
                   );
                 })}
               </ul>
+            )}
+          </section>
+
+          {/* Objetivos */}
+          <section className="p-4 rounded-2xl shadow bg-white">
+            <h2 className="text-lg font-medium mb-3">Objetivos</h2>
+            {objetivos.length === 0 ? (
+              <p className="text-sm opacity-60">Nenhum objetivo cadastrado</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {objetivos.map(o => {
+                  const necessario = toNum(o.valorNecessario);
+                  const progressoBase = necessario > 0 ? Math.min(100, Math.round((o.valorAtual / necessario) * 100)) : 0;
+                  const progresso = (o.status === 'QUITADO - EM PROGRESSO' || o.status === 'QUITADO - FINALIZADO') ? 100 : progressoBase;
+                  const quitado = o.status.startsWith('QUITADO');
+                  return (
+                    <div key={o.id} className={`p-3 rounded-xl border ${quitado ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
+                      <div className="flex items-start justify-between">
+                        <div className="font-medium text-sm">{o.nome}</div>
+                        <div className={`text-xs px-2 py-0.5 rounded-full ${quitado ? 'bg-green-200 text-green-800' : 'bg-gray-200'}`}>{o.status}</div>
+                      </div>
+                      <div className="text-xs opacity-70 mt-1">Meta: {fmt(necessario)}</div>
+                      <div className="h-2 bg-gray-200 rounded mt-2">
+                        <div className={`h-2 rounded ${quitado ? 'bg-green-500' : 'bg-black'}`} style={{ width: `${progresso}%` }} />
+                      </div>
+                      <div className="flex items-center justify-between text-xs mt-1">
+                        <div>{fmt(o.valorAtual)}</div>
+                        <div>{progresso}%</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </section>
 
@@ -669,7 +787,7 @@ export default function LifeTracker() {
         <section className="p-4 rounded-2xl shadow bg-white space-y-4">
           <h2 className="text-lg font-medium">{editingGastoId ? 'Alterar Gasto' : 'Lançar Gasto'}</h2>
           <form
-            className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end"
+            className="grid grid-cols-1 md:grid-cols-8 gap-4 items-end"
             onSubmit={editingGastoId ? salvarEdicaoGasto : adicionarGasto}
             key={`gasto-form-${editingGastoId || 'novo'}`}
           >
@@ -678,16 +796,15 @@ export default function LifeTracker() {
               <input
                 className="w-full p-2 border rounded-lg"
                 value={novoGasto.descricao}
-                onChange={(e) => setNovoGasto({ ...novoGasto, descricao: e.target.value })}
+                onChange={(e) => {
+                  const desc = e.target.value;
+                  const catAuto = detectarCategoria(desc);
+                  setNovoGasto({ ...novoGasto, descricao: desc, categoria: catAuto });
+                }}
                 placeholder="ex: almoço ifood"
               />
-              {novoGasto.descricao && (
-                <p className="text-xs mt-1 text-green-700">
-                  Categoria detectada: <b>{detectarCategoria(novoGasto.descricao)}</b>
-                </p>
-              )}
             </div>
-            <div>
+            <div className="md:col-span-1">
               <label className="text-xs opacity-70">Valor (R$)</label>
               <input
                 type="number" step="0.01" min="0"
@@ -696,7 +813,7 @@ export default function LifeTracker() {
                 onChange={(e) => setNovoGasto({ ...novoGasto, valor: e.target.value })}
               />
             </div>
-            <div>
+            <div className="md:col-span-1">
               <label className="text-xs opacity-70">Data</label>
               <input
                 type="date"
@@ -705,7 +822,15 @@ export default function LifeTracker() {
                 onChange={(e) => setNovoGasto({ ...novoGasto, data: e.target.value })}
               />
             </div>
-            <div>
+            <div className="md:col-span-2">
+              <label className="text-xs opacity-70">Categoria</label>
+              <select className="w-full p-2 border rounded-lg"
+                value={novoGasto.categoria}
+                onChange={(e) => setNovoGasto({ ...novoGasto, categoria: e.target.value })}>
+                {CATEGORIAS_GASTO.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="md:col-span-2">
               <label className="text-xs opacity-70">Pagamento</label>
               <select
                 className="w-full p-2 border rounded-lg"
@@ -720,7 +845,7 @@ export default function LifeTracker() {
               </select>
             </div>
             {novoGasto.tipoPagamento === 'CRÉDITO' && (
-              <div>
+              <div className="md:col-span-2">
                 <label className="text-xs opacity-70">Cartão</label>
                 <select
                   required
@@ -733,7 +858,7 @@ export default function LifeTracker() {
                 </select>
               </div>
             )}
-            <div className="flex gap-2">
+            <div className="flex gap-2 md:col-start-8">
               <button className="w-full px-3 py-2 rounded-lg bg-black text-white text-sm">
                 {editingGastoId ? 'Salvar' : 'Adicionar'}
               </button>
@@ -851,21 +976,25 @@ export default function LifeTracker() {
 
       {tab === 'assinaturas' && (
         <section className="p-4 rounded-2xl shadow bg-white space-y-4">
-          <h2 className="text-lg font-medium">Assinaturas e Contratos</h2>
-          <form className="grid grid-cols-1 md:grid-cols-8 gap-3 items-end" onSubmit={adicionarAssinatura}>
-            <div className="md:col-span-2">
+          <h2 className="text-lg font-medium">{editingAssinaturaId ? 'Alterar Assinatura/Contrato' : 'Adicionar Assinatura/Contrato'}</h2>
+          <form
+            className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end"
+            onSubmit={editingAssinaturaId ? salvarEdicaoAssinatura : adicionarAssinatura}
+            key={`assinatura-form-${editingAssinaturaId || 'novo'}`}
+          >
+            <div className="md:col-span-4">
               <label className="text-xs opacity-70">Nome</label>
               <input className="w-full p-2 border rounded-lg"
                 value={novaAssinatura.nome}
                 onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, nome: e.target.value })} />
             </div>
-            <div>
+            <div className="md:col-span-2">
               <label className="text-xs opacity-70">Valor (R$)</label>
               <input type="number" step="0.01" min="0" className="w-full p-2 border rounded-lg"
                 value={novaAssinatura.valor}
                 onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, valor: e.target.value })} />
             </div>
-            <div className="flex gap-2">
+            <div className="md:col-span-3 grid grid-cols-3 gap-2">
               <div>
                 <label className="text-xs opacity-70">Dia</label>
                 <input type="number" min="1" max="31" className="w-full p-2 border rounded-lg"
@@ -884,8 +1013,15 @@ export default function LifeTracker() {
                   </select>
                 </div>
               )}
+              {novaAssinatura.periodoCobranca === 'ANUAL' && (
+                <div>
+                  <label className="text-xs opacity-70">Ano Adesão</label>
+                  <input type="number" min="2000" max="2100" className="w-full p-2 border rounded-lg"
+                    value={novaAssinatura.anoAdesao} onChange={(e) => setNovaAssinatura({ ...novaAssinatura, anoAdesao: Number(e.target.value) })} />
+                </div>
+              )}
             </div>
-            <div>
+            <div className="md:col-span-3">
               <label className="text-xs opacity-70">Tipo</label>
               <select className="w-full p-2 border rounded-lg"
                 value={novaAssinatura.tipo}
@@ -896,14 +1032,14 @@ export default function LifeTracker() {
               </select>
             </div>
             {novaAssinatura.tipo === 'CONTRATO - PERSONALIZADO' && (
-              <div>
+              <div className="md:col-span-3">
                 <label className="text-xs opacity-70">Categoria do contrato</label>
                 <input className="w-full p-2 border rounded-lg"
                   value={novaAssinatura.categoriaPersonalizada || ''}
                   onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, categoriaPersonalizada: e.target.value })} />
               </div>
             )}
-            <div>
+            <div className="md:col-span-2">
               <label className="text-xs opacity-70">Periodicidade</label>
               <select className="w-full p-2 border rounded-lg"
                 value={novaAssinatura.periodoCobranca}
@@ -912,7 +1048,7 @@ export default function LifeTracker() {
                 <option value="ANUAL">ANUAL</option>
               </select>
             </div>
-            <div>
+            <div className="md:col-span-2">
               <label className="text-xs opacity-70">Pagamento</label>
               <select className="w-full p-2 border rounded-lg"
                 value={novaAssinatura.tipoPagamento}
@@ -926,7 +1062,7 @@ export default function LifeTracker() {
               </select>
             </div>
             {novaAssinatura.tipoPagamento === 'CRÉDITO' && (
-              <div>
+              <div className="md:col-span-3">
                 <label className="text-xs opacity-70">Cartão</label>
                 <select className="w-full p-2 border rounded-lg"
                   value={novaAssinatura.cartaoId ?? ''}
@@ -936,8 +1072,13 @@ export default function LifeTracker() {
                 </select>
               </div>
             )}
-            <div className="md:col-span-8">
-              <button className="px-3 py-2 rounded-lg bg-black text-white text-sm">Adicionar</button>
+            <div className="md:col-span-2 flex gap-2">
+              <button className="px-3 py-2 rounded-lg bg-black text-white text-sm w-full">
+                {editingAssinaturaId ? 'Salvar' : 'Adicionar'}
+              </button>
+              {editingAssinaturaId && (
+                <button type="button" onClick={cancelarEdicaoAssinatura} className="px-3 py-2 rounded-lg bg-gray-200 text-sm">Cancelar</button>
+              )}
             </div>
           </form>
 
@@ -955,22 +1096,36 @@ export default function LifeTracker() {
                     <th>Tipo</th>
                     <th>Período</th>
                     <th>Pagamento</th>
+                    <th className="text-right">Valor Anual</th>
                   </tr>
                 </thead>
                 <tbody>
                   {assinaturas.slice().reverse().map(a => (
-                    <tr key={a.id} className="border-t">
-                      <td className="py-2">{a.nome}</td>
+                    <tr key={a.id} className="border-t text-sm">
+                      <td className="py-2">
+                        {a.periodoCobranca === 'MENSAL' && calcularProximoVencimentoMensal(a)?.ehProximo && <span className="mr-2" title="Vencimento próximo!">⚠️</span>}
+                        {a.periodoCobranca === 'ANUAL' && calcularProximoVencimentoAnual(a)?.ehProximo && <span className="mr-2" title="Vencimento próximo!">⚠️</span>}
+                        {a.nome}
+                      </td>
                       <td>{fmt(toNum(a.valor))}</td>
                       <td>{a.periodoCobranca === 'ANUAL' ? `${String(a.diaCobranca).padStart(2,'0')}/${String(a.mesCobranca).padStart(2,'0')}` : `Dia ${a.diaCobranca}`}</td>
                       <td>{a.tipo}{a.categoriaPersonalizada ? ` · ${a.categoriaPersonalizada}` : ''}</td>
                       <td>{a.periodoCobranca}</td>
                       <td>{a.tipoPagamento}{a.cartaoNome ? ` · ${a.cartaoNome}` : ''}</td>
+                      <td className="text-right">{fmt(toNum(a.valor) * (a.periodoCobranca === 'MENSAL' ? 12 : 1))}</td>
+                      <td className="pl-4 w-px">
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => iniciarEdicaoAssinatura(a)} className="text-xs text-blue-600 hover:underline">Alterar</button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             )}
+            <div className="mt-4 text-right font-semibold">
+              Valor Total Anual de Assinaturas: {fmt(totalAnualAssinaturas)}
+            </div>
           </div>
         </section>
       )}
@@ -1054,25 +1209,46 @@ export default function LifeTracker() {
       {tab === 'cartoes' && (
         <section className="p-4 rounded-2xl shadow bg-white space-y-4">
           <h2 className="text-lg font-medium">Cartões de Crédito</h2>
-          <form className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end" onSubmit={adicionarCartao} onFocus={() => setSugestoesCartao([])}>
+          <form className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end" onSubmit={adicionarCartao}>
             <div className="relative">
               <label className="text-xs opacity-70">Nome</label>
               <input className="w-full p-2 border rounded-lg"
                 value={novoCartao.nome}
                 onChange={(e) => {
                   const valor = e.target.value;
-                  setNovoCartao({ ...novoCartao, nome: valor });
+                  setNovoCartao({ ...novoCartao, nome: valor.toUpperCase() });
                   if (valor.trim()) {
-                    setSugestoesCartao(SUGESTOES_BANCOS.filter(b => b.startsWith(valor.toUpperCase())));
+                    const sugestoes = SUGESTOES_BANCOS.filter(b => b.startsWith(valor.toUpperCase()));
+                    setSugestoesCartao(sugestoes);
+                    setSugestaoAtivaIndex(sugestoes.length > 0 ? 0 : -1);
                   } else {
                     setSugestoesCartao([]);
                   }
                 }}
-                onFocus={(e) => { e.stopPropagation(); if (e.target.value) setSugestoesCartao(SUGESTOES_BANCOS.filter(b => b.startsWith(e.target.value.toUpperCase()))); }}
+                onBlur={() => setTimeout(() => setSugestoesCartao([]), 150)}
+                onKeyDown={(e) => {
+                  if (sugestoesCartao.length > 0) {
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      setSugestaoAtivaIndex(prev => (prev + 1) % sugestoesCartao.length);
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setSugestaoAtivaIndex(prev => (prev - 1 + sugestoesCartao.length) % sugestoesCartao.length);
+                    } else if (e.key === 'Enter' || e.key === 'Tab') {
+                      if (sugestaoAtivaIndex > -1) {
+                        e.preventDefault();
+                        setNovoCartao(c => ({...c, nome: sugestoesCartao[sugestaoAtivaIndex]}));
+                        setSugestoesCartao([]);
+                      }
+                    } else if (e.key === 'Escape') {
+                      setSugestoesCartao([]);
+                    }
+                  }
+                }}
                  />
               {sugestoesCartao.length > 0 && (
                 <ul className="absolute z-10 w-full bg-white border rounded-lg mt-1 shadow-lg max-h-40 overflow-y-auto">
-                  {sugestoesCartao.map(s => <li key={s} className="p-2 hover:bg-gray-100 cursor-pointer" onMouseDown={() => { setNovoCartao(c => ({...c, nome: s})); setSugestoesCartao([]); }}>{s}</li>)}
+                  {sugestoesCartao.map((s, index) => <li key={s} className={`p-2 cursor-pointer ${sugestaoAtivaIndex === index ? 'bg-gray-200' : 'hover:bg-gray-100'}`} onMouseDown={() => { setNovoCartao(c => ({...c, nome: s})); setSugestoesCartao([]); }}>{s}</li>)}
                 </ul>
               )}
             </div>
@@ -1285,7 +1461,12 @@ export default function LifeTracker() {
                     <tbody>
                       {mensaisList.map(a => (
                         <tr key={a.id} className="border-t">
-                          <td className="py-1">{a.nome}</td>
+                          <td className="py-1">
+                            {calcularProximoVencimentoMensal(a)?.ehProximo && (
+                              <span className="mr-2" title="Vencimento próximo!">⚠️</span>
+                            )}
+                            {a.nome}
+                          </td>
                           <td>{fmt(toNum(a.valor))}</td>
                           <td>{a.diaCobranca}</td>
                           <td>{a.tipoPagamento}{a.tipoPagamento === 'CRÉDITO' && a.cartaoId ? ` • ${a.cartaoNome ?? ''}` : ''}</td>
@@ -1339,7 +1520,12 @@ export default function LifeTracker() {
                       <tr key={l.id} className="border-t">
                         <td className="py-1">{l.data.toString().startsWith('Invalid') ? l.data.toString() : (new Date(l.data)).toLocaleDateString()}</td>
                         <td>{l.descricao}</td>
-                        <td>{l.cartaoNome}</td>
+                        <td>
+                          <span className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full inline-block ${getCorCartao(l.cartaoNome || '').bg}`}></span>
+                            {l.cartaoNome}
+                          </span>
+                        </td>
                         <td>{fmt(l.valor)}</td>
                       </tr>
                     ))}
