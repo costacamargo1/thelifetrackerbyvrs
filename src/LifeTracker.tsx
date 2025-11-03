@@ -11,15 +11,14 @@ type StatusObj =
   | 'DISTANTE'
   | 'QUITADO - EM PROGRESSO'
   | 'QUITADO - FINALIZADO';
-
-interface Gasto {
+interface Gasto { // ... (sem alterações na interface)
   id: number;
   descricao: string;
   valor: string;           // mantemos string nos forms
   categoria: string;
   data: string;            // yyyy-mm-dd
   tipoPagamento: TipoPagamento;
-  cartaoId: number | null;
+  cartaoId: number | null; // Será `number` para crédito, `null` para débito
   cartaoNome?: string | null;
 }
 
@@ -30,6 +29,7 @@ interface Assinatura {
   nome: string;
   valor: string;
   diaCobranca: number;
+  mesCobranca?: number;
   tipo: 'ASSINATURA' | 'CONTRATO - ALUGUEL' | 'CONTRATO - PERSONALIZADO';
   categoriaPersonalizada?: string;
   tipoPagamento: TipoPagamento;
@@ -38,11 +38,38 @@ interface Assinatura {
   periodoCobranca: Periodo;
 }
 interface Objetivo { id: number; nome: string; valorNecessario: string; valorAtual: number; status: StatusObj; }
-interface Cartao { id: number; nome: string; limite: string; diaVencimento: number; padrao: boolean; }
+interface Cartao { id: number; nome: string; limite: string; diaVencimento: number; }
+interface Configuracoes {
+  credito: {
+    alerta: string;
+    critico: string;
+    positivo: string;
+  };
+  saldo: {
+    alerta: string;
+    critico: string;
+    positivo: string;
+  };
+}
+
 
 /** =========================
  * Helpers
  * ========================= */
+const getCorCartao = (nomeCartao: string): { bg: string; text: string } => {
+  const nome = (nomeCartao || '').toLowerCase();
+
+  if (nome.includes('nubank')) return { bg: 'bg-purple-600', text: 'text-white' };
+  if (nome.includes('santander')) return { bg: 'bg-red-600', text: 'text-white' };
+  if (nome.includes('caixa')) return { bg: 'bg-blue-700', text: 'text-white' };
+  if (nome.includes('inter')) return { bg: 'bg-orange-500', text: 'text-white' };
+  if (nome.includes('bradesco')) return { bg: 'bg-red-700', text: 'text-white' };
+  if (nome.includes('itau') || nome.includes('itaú')) return { bg: 'bg-orange-400', text: 'text-black' };
+  if (nome.includes('c6')) return { bg: 'bg-gray-800', text: 'text-white' };
+  if (nome.includes('bb') || nome.includes('brasil')) return { bg: 'bg-yellow-400', text: 'text-blue-800' };
+
+  return { bg: 'bg-gray-200', text: 'text-black' };
+};
 const fmt = (n: number) =>
   n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 2 });
 
@@ -69,8 +96,8 @@ const calcularGastosPorCategoria = (lista: Gasto[] = []) => {
 const verificarAssinaturasAnuaisProximas = (assinaturas: Assinatura[]) => {
   const hoje = new Date();
   return (assinaturas || []).filter((a) => {
-    if (a?.periodoCobranca !== 'ANUAL') return false;
-    let data = new Date(hoje.getFullYear(), hoje.getMonth(), a?.diaCobranca ?? 1);
+    if (a?.periodoCobranca !== 'ANUAL' || !a.mesCobranca) return false;
+    let data = new Date(hoje.getFullYear(), (a.mesCobranca || 1) - 1, a.diaCobranca ?? 1);
     if (data < hoje) data = new Date(hoje.getFullYear() + 1, hoje.getMonth(), a?.diaCobranca ?? 1);
     const diffDias = Math.ceil((data.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
     return diffDias >= 0 && diffDias <= 30;
@@ -103,41 +130,50 @@ const detectarCategoria = (descricao: string): string => {
 
 // --- FUNÇÃO QUE ESTAVA FALTANDO ---
 const diasAteProximaCobranca = (assinatura: Assinatura) => {
-  if (assinatura.periodoCobranca !== 'ANUAL') return 0;
+  if (assinatura.periodoCobranca !== 'ANUAL' || !assinatura.mesCobranca) return 0;
   const hoje = new Date();
-  let data = new Date(hoje.getFullYear(), hoje.getMonth(), assinatura.diaCobranca ?? 1);
+  let data = new Date(hoje.getFullYear(), (assinatura.mesCobranca || 1) - 1, assinatura.diaCobranca ?? 1);
   if (data < hoje) data = new Date(hoje.getFullYear() + 1, hoje.getMonth(), assinatura.diaCobranca ?? 1);
   const diffDias = Math.ceil((data.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
   return diffDias;
 };
 // ---------------------------------
 
+const SUGESTOES_BANCOS = ['NUBANK', 'SANTANDER', 'CAIXA', 'C6', 'ITAÚ', 'BRADESCO', 'INTER', 'BANCO DO BRASIL'];
+
 /** =========================
  * Componente principal
  * ========================= */
 export default function LifeTracker() {
   // Abas
-  const [tab, setTab] = React.useState<'dashboard' | 'gastos' | 'receitas' | 'assinaturas' | 'objetivos' | 'cartoes' | 'dividas'>('dashboard');
+  const [tab, setTab] = React.useState<'dashboard' | 'gastos' | 'receitas' | 'assinaturas' | 'objetivos' | 'cartoes' | 'dividas' | 'configuracoes'>('dashboard');
 
   // Modais e ordenação de listas
   const [showMensaisModal, setShowMensaisModal] = React.useState(false);
   const [mensaisSort, setMensaisSort] = React.useState<'nome' | 'valor' | 'vencimento'>('vencimento');
   const [mensaisQuery, setMensaisQuery] = React.useState('');
   const [showCreditoMesModal, setShowCreditoMesModal] = React.useState(false);
-  const now = new Date();
 
   // Estados
   const [gastos, setGastos] = React.useState<Gasto[]>([]);
   const [receitas, setReceitas] = React.useState<Receita[]>([]);
   const [assinaturas, setAssinaturas] = React.useState<Assinatura[]>([]);
   const [objetivos, setObjetivos] = React.useState<Objetivo[]>([]);
-  const [cartoes, setCartoes] = React.useState<Cartao[]>([
-    { id: 1, nome: 'NUBANK', limite: '1000', diaVencimento: 10, padrao: true },
-  ]);
+  const [cartoes, setCartoes] = React.useState<Cartao[]>([]);
   const [dividas, setDividas] = React.useState<Divida[]>([]);
+  const [configuracoes, setConfiguracoes] = React.useState<Configuracoes>({
+    credito: { alerta: '2500', critico: '1000', positivo: '5000' },
+    saldo: { alerta: '500', critico: '100', positivo: '2000' },
+  });
   // --- Edição de cartões ---
   const [editingCardId, setEditingCardId] = React.useState<number | null>(null);
   const [editCardDraft, setEditCardDraft] = React.useState<Cartao | null>(null);
+  // --- Edição de gastos e receitas ---
+  const [editingGastoId, setEditingGastoId] = React.useState<number | null>(null);
+  const [editingReceitaId, setEditingReceitaId] = React.useState<number | null>(null);
+  // --- Sugestões de cartões ---
+  const [sugestoesCartao, setSugestoesCartao] = React.useState<string[]>([]);
+
 
   const startEditCard = (c: Cartao) => {
     setEditingCardId(c.id);
@@ -152,16 +188,10 @@ export default function LifeTracker() {
   const saveEditCard = () => {
     if (!editCardDraft) return;
     setCartoes(prev => {
-      // Se marcar como padrão, desmarca os demais
-      const base = editCardDraft.padrao ? prev.map(x => ({ ...x, padrao: false })) : prev;
-      return base.map(x => x.id === editCardDraft.id ? { ...editCardDraft } : x);
+      return prev.map(x => x.id === editCardDraft.id ? { ...editCardDraft } : x);
     });
     setEditingCardId(null);
     setEditCardDraft(null);
-  };
-
-  const setDefaultCard = (id: number) => {
-    setCartoes(prev => prev.map(c => ({ ...c, padrao: c.id === id })));
   };
 
   const deleteCard = (id: number) => {
@@ -171,12 +201,7 @@ export default function LifeTracker() {
 
     // Remover cartão e, se era padrão, definir o primeiro restante como padrão
         setCartoes(prev => {
-          const rest = prev.filter(c => c.id !== id);
-          if (toDelete.padrao && rest.length > 0) {
-            // marca o primeiro como padrão
-            rest[0] = { ...(rest[0] as Cartao), padrao: true };
-          }
-          return rest;
+          return prev.filter(c => c.id !== id);
         });
 
     // Para não quebrar referências: zera cartaoId dos gastos que apontavam para ele (mantém cartaoNome como histórico)
@@ -189,7 +214,7 @@ export default function LifeTracker() {
   // Forms
   const [novoGasto, setNovoGasto] = React.useState<Gasto>({
     id: 0, descricao: '', valor: '', data: new Date().toISOString().slice(0,10),
-    categoria: 'ALIMENTAÇÃO', tipoPagamento: 'DÉBITO', cartaoId: null, cartaoNome: null
+    categoria: 'ALIMENTAÇÃO', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null
   });
 
   const [novaReceita, setNovaReceita] = React.useState<Receita>({
@@ -198,16 +223,14 @@ export default function LifeTracker() {
 
   const [novaAssinatura, setNovaAssinatura] = React.useState<Assinatura>({
     id: 0, nome: '', valor: '', diaCobranca: 1, tipo: 'ASSINATURA',
-    categoriaPersonalizada: '', tipoPagamento: 'DÉBITO', cartaoId: null, cartaoNome: null, periodoCobranca: 'MENSAL'
+    categoriaPersonalizada: '', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null, periodoCobranca: 'MENSAL', mesCobranca: new Date().getMonth() + 1
   });
 
   const [novoObjetivo, setNovoObjetivo] = React.useState<Objetivo>({
     id: 0, nome: '', valorNecessario: '', valorAtual: 0, status: 'EM PROGRESSO'
   } as unknown as Objetivo);
 
-  const [novoCartao, setNovoCartao] = React.useState<Cartao>({
-    id: 0, nome: '', limite: '', diaVencimento: 1, padrao: false
-  });
+  const [novoCartao, setNovoCartao] = React.useState<Omit<Cartao, 'id'>>({ nome: '', limite: '', diaVencimento: 1 });
 
   const [novaDivida, setNovaDivida] = React.useState<Divida>({
     id: 0, pessoa: '', valor: '', descricao: ''
@@ -223,8 +246,12 @@ export default function LifeTracker() {
     setReceitas(load<Receita[]>('receitas', []));
     setAssinaturas(load<Assinatura[]>('assinaturas', []));
     setObjetivos(load<Objetivo[]>('objetivos', []));
-    setCartoes(load<Cartao[]>('cartoes', cartoes));
+    setCartoes(load<Cartao[]>('cartoes', []));
     setDividas(load<Divida[]>('dividas', []));
+    setConfiguracoes(load<Configuracoes>('configuracoes', {
+      credito: { alerta: '2500', critico: '1000', positivo: '5000' },
+      saldo: { alerta: '500', critico: '100', positivo: '2000' },
+    }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -234,6 +261,7 @@ export default function LifeTracker() {
   React.useEffect(() => { localStorage.setItem('objetivos', JSON.stringify(objetivos)); }, [objetivos]);
   React.useEffect(() => { localStorage.setItem('cartoes', JSON.stringify(cartoes)); }, [cartoes]);
   React.useEffect(() => { localStorage.setItem('dividas', JSON.stringify(dividas)); }, [dividas]);
+  React.useEffect(() => { localStorage.setItem('configuracoes', JSON.stringify(configuracoes)); }, [configuracoes]);
 
   // Derivados
   const totalReceitas = React.useMemo(
@@ -263,7 +291,7 @@ export default function LifeTracker() {
 
   const creditoDisponivel = React.useMemo(
     () => Math.max(0, totalLimite - gastosCreditoMes),
-    [totalLimite, gastosCreditoMes]
+    [totalLimite, gastosCreditoMes] // gastosCreditoMes já inclui assinaturas
   );
 
   const gastosTotal = React.useMemo(
@@ -320,38 +348,40 @@ export default function LifeTracker() {
 
   // Lista detalhada de gastos de crédito do mês (gastos + assinaturas mensais no crédito)
   const creditGastosMesList = React.useMemo(() => {
+    const now = new Date();
     const gastosList = gastos
       .filter(g => g.tipoPagamento === 'CRÉDITO' && isSameMonth(g.data))
       .map(g => ({
-        id: g.id,
+        id: `gasto-${g.id}`,
         tipo: 'gasto' as const,
         data: g.data,
         descricao: g.descricao,
         valor: toNum(g.valor),
-        cartaoId: g.cartaoId ?? (cartoes.find(c => c.padrao)?.id ?? 0),
-        cartaoNome: g.cartaoNome ?? cartoes.find(c => c.id === g.cartaoId)?.nome ?? cartoes.find(c => c.padrao)?.nome ?? ''
+        cartaoId: g.cartaoId,
+        cartaoNome: g.cartaoNome ?? cartoes.find(c => c.id === g.cartaoId)?.nome ?? 'Não encontrado'
       }));
 
     const assinList = assinMensais
       .filter(a => a.tipoPagamento === 'CRÉDITO')
       .map(a => ({
-        id: 100000 + a.id,
+        id: `assinatura-${a.id}`,
         tipo: 'assinatura' as const,
         data: new Date(now.getFullYear(), now.getMonth(), a.diaCobranca ?? 1),
         descricao: a.nome + ' (assinatura)',
         valor: toNum(a.valor),
-        cartaoId: a.cartaoId ?? (cartoes.find(c => c.padrao)?.id ?? 0),
-        cartaoNome: cartoes.find(c => c.id === a.cartaoId)?.nome ?? cartoes.find(c => c.padrao)?.nome ?? ''
+        cartaoId: a.cartaoId,
+        cartaoNome: cartoes.find(c => c.id === a.cartaoId)?.nome ?? 'Não encontrado'
       }));
 
     return [...gastosList, ...assinList].sort((a, b) => (new Date(a.data)).getTime() - (new Date(b.data)).getTime());
-  }, [gastos, assinMensais, cartoes, now]);
+  }, [gastos, assinMensais, cartoes]);
 
   // Resumo por cartão (mês atual)
   const creditByCard = React.useMemo(() => {
     const map = new Map<number, number>();
     creditGastosMesList.forEach(x => {
-      const id = x.cartaoId ?? (cartoes.find(c => c.padrao)?.id ?? 0);
+      const id = x.cartaoId;
+      if (!id) return;
       map.set(id, (map.get(id) ?? 0) + x.valor);
     });
     return cartoes.map(c => ({
@@ -379,25 +409,72 @@ export default function LifeTracker() {
   // Ações
   const adicionarGasto = (e: React.FormEvent) => {
     e.preventDefault();
+    if (novoGasto.tipoPagamento === 'CRÉDITO' && !novoGasto.cartaoId) {
+      alert('Por favor, selecione um cartão para o gasto de crédito.');
+      return;
+    }
     const catAuto = detectarCategoria(novoGasto.descricao);
     const cartaoNome = novoGasto.tipoPagamento === 'CRÉDITO'
-      ? (cartoes.find(c => c.id === (novoGasto.cartaoId ?? (cartoes.find(c => c.padrao)?.id ?? 0)))?.nome ?? null)
+      ? (cartoes.find(c => c.id === novoGasto.cartaoId)?.nome ?? null)
       : null;
 
     setGastos(g => [...g, {
       ...novoGasto,
       id: Date.now(),
       categoria: catAuto || novoGasto.categoria || 'OUTROS',
-      cartaoId: novoGasto.tipoPagamento === 'CRÉDITO'
-        ? (novoGasto.cartaoId ?? (cartoes.find(c => c.padrao)?.id ?? null))
-        : null,
+      cartaoId: novoGasto.tipoPagamento === 'CRÉDITO' ? novoGasto.cartaoId : null,
       cartaoNome
     }]);
 
     setNovoGasto({
       id: 0, descricao: '', valor: '', data: new Date().toISOString().slice(0,10),
-      categoria: 'ALIMENTAÇÃO', tipoPagamento: 'DÉBITO', cartaoId: null, cartaoNome: null
+      categoria: 'ALIMENTAÇÃO', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null
     });
+  };
+
+  const iniciarEdicaoGasto = (gasto: Gasto) => {
+    setEditingGastoId(gasto.id);
+    setNovoGasto({ ...gasto });
+  };
+
+  const cancelarEdicaoGasto = () => {
+    setEditingGastoId(null);
+    setNovoGasto({
+      id: 0, descricao: '', valor: '', data: new Date().toISOString().slice(0,10),
+      categoria: 'ALIMENTAÇÃO', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null
+    });
+  };
+
+  const salvarEdicaoGasto = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!window.confirm('Salvar as alterações neste gasto?')) return;
+    setGastos(gastos => gastos.map(g => g.id === editingGastoId ? { ...novoGasto, id: g.id } : g));
+    cancelarEdicaoGasto();
+  };
+
+  const iniciarEdicaoReceita = (receita: Receita) => {
+    setEditingReceitaId(receita.id);
+    setNovaReceita({ ...receita });
+  };
+
+  const cancelarEdicaoReceita = () => {
+    setEditingReceitaId(null);
+    setNovaReceita({ id: 0, descricao: '', valor: '', data: new Date().toISOString().slice(0,10) });
+  };
+
+  const salvarEdicaoReceita = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!window.confirm('Salvar as alterações nesta receita?')) return;
+    setReceitas(receitas => receitas.map(r => r.id === editingReceitaId ? { ...novaReceita, id: r.id } : r));
+    cancelarEdicaoReceita();
+  };
+
+  const removerGasto = (id: number) => {
+    setGastos(g => g.filter(gasto => gasto.id !== id));
+  };
+
+  const removerReceita = (id: number) => {
+    setReceitas(r => r.filter(receita => receita.id !== id));
   };
 
   const adicionarReceita = (e: React.FormEvent) => {
@@ -408,12 +485,11 @@ export default function LifeTracker() {
 
   const adicionarCartao = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!novoCartao.nome || !novoCartao.limite) return;
-    setCartoes(prev => {
-      const base = novoCartao.padrao ? prev.map(c => ({ ...c, padrao: false })) : prev;
-      return [...base, { ...novoCartao, id: Date.now() }];
-    });
-    setNovoCartao({ id: 0, nome: '', limite: '', diaVencimento: 1, padrao: false });
+    if (!novoCartao.nome.trim() || !novoCartao.limite) return;
+    // Garante que o nome seja capitalizado para consistência
+    const cartaoFinal = { ...novoCartao, nome: novoCartao.nome.trim().toUpperCase(), id: Date.now() };
+    setCartoes(prev => [...prev, cartaoFinal]);
+    setNovoCartao({ nome: '', limite: '', diaVencimento: 1 });
   };
 
   const adicionarAssinatura = (e: React.FormEvent) => {
@@ -422,15 +498,15 @@ export default function LifeTracker() {
       ...novaAssinatura,
       id: Date.now(),
       cartaoNome: novaAssinatura.tipoPagamento === 'CRÉDITO'
-        ? (cartoes.find(c => c.id === (novaAssinatura.cartaoId ?? (cartoes.find(c => c.padrao)?.id ?? 0)))?.nome ?? null)
+        ? (cartoes.find(c => c.id === novaAssinatura.cartaoId)?.nome ?? null)
         : null,
       cartaoId: novaAssinatura.tipoPagamento === 'CRÉDITO'
-        ? (novaAssinatura.cartaoId ?? (cartoes.find(c => c.padrao)?.id ?? null))
+        ? novaAssinatura.cartaoId
         : null
     }]);
     setNovaAssinatura({
       id: 0, nome: '', valor: '', diaCobranca: 1, tipo: 'ASSINATURA',
-      categoriaPersonalizada: '', tipoPagamento: 'DÉBITO', cartaoId: null, cartaoNome: null, periodoCobranca: 'MENSAL'
+      categoriaPersonalizada: '', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null, periodoCobranca: 'MENSAL', mesCobranca: new Date().getMonth() + 1
     });
   };
 
@@ -452,6 +528,16 @@ export default function LifeTracker() {
     e.preventDefault();
     setDividas(d => [...d, { ...novaDivida, id: Date.now() }]);
     setNovaDivida({ id: 0, pessoa: '', valor: '', descricao: '' });
+  };
+  
+  const getCorValor = (valor: number, config: Configuracoes['credito'] | Configuracoes['saldo']) => {
+    const critico = toNum(config.critico);
+    const alerta = toNum(config.alerta);
+    const positivo = toNum(config.positivo);
+    if (valor <= critico) return 'text-red-600';
+    if (valor <= alerta) return 'text-orange-500';
+    if (valor >= positivo) return 'text-green-600';
+    return ''; // Cor padrão (preto)
   };
 
   // UI helpers
@@ -477,6 +563,7 @@ export default function LifeTracker() {
           <TabButton id="objetivos">Objetivos</TabButton>
           <TabButton id="cartoes">Cartões</TabButton>
           <TabButton id="dividas">Dívidas</TabButton>
+          <TabButton id="configuracoes">Configurações</TabButton>
         </div>
       </header>
 
@@ -486,11 +573,11 @@ export default function LifeTracker() {
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="p-4 rounded-2xl shadow bg-white">
               <div className="text-sm opacity-60">Saldo (Dinheiro)</div>
-              <div className="text-2xl font-semibold">{fmt(saldo)}</div>
+              <div className={`text-2xl font-semibold ${getCorValor(saldo, configuracoes.saldo)}`}>{fmt(saldo)}</div>
             </div>
             <div className="p-4 rounded-2xl shadow bg-white">
               <div className="text-sm opacity-60">Crédito Disponível</div>
-              <div className="text-xl font-medium">
+              <div className={`text-xl font-medium ${getCorValor(creditoDisponivel, configuracoes.credito)}`}>
                 {fmt(creditoDisponivel)} <span className="opacity-60">/ {fmt(totalLimite)}</span>
               </div>
             </div>
@@ -562,8 +649,8 @@ export default function LifeTracker() {
                     <li key={a.id} className="py-2 flex items-center justify-between">
                       <div>
                         <div className="font-medium">{a.nome}</div>
-                        <div className="opacity-60">
-                          Vence dia {a.diaCobranca?.toString().padStart(2, '0')} • {a.tipoPagamento}
+                        <div className="opacity-60 text-xs">                          
+                          Vence dia {String(a.diaCobranca).padStart(2,'0')}{a.mesCobranca ? `/${String(a.mesCobranca).padStart(2,'0')}`: ''} • {a.tipoPagamento}
                           {a.cartaoId ? ` • ${cartoes.find(c => c.id === a.cartaoId)?.nome ?? ''}` : ''}
                         </div>
                       </div>
@@ -580,8 +667,12 @@ export default function LifeTracker() {
 
       {tab === 'gastos' && (
         <section className="p-4 rounded-2xl shadow bg-white space-y-4">
-          <h2 className="text-lg font-medium">Lançar gasto</h2>
-          <form className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end" onSubmit={adicionarGasto}>
+          <h2 className="text-lg font-medium">{editingGastoId ? 'Alterar Gasto' : 'Lançar Gasto'}</h2>
+          <form
+            className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end"
+            onSubmit={editingGastoId ? salvarEdicaoGasto : adicionarGasto}
+            key={`gasto-form-${editingGastoId || 'novo'}`}
+          >
             <div className="md:col-span-2">
               <label className="text-xs opacity-70">Descrição</label>
               <input
@@ -619,11 +710,10 @@ export default function LifeTracker() {
               <select
                 className="w-full p-2 border rounded-lg"
                 value={novoGasto.tipoPagamento}
-                onChange={(e) => setNovoGasto({
-                  ...novoGasto,
-                  tipoPagamento: e.target.value as TipoPagamento,
-                  cartaoId: e.target.value === 'CRÉDITO' ? (cartoes.find(c => c.padrao)?.id ?? null) : null
-                })}
+                onChange={(e) => {
+                  const tipo = e.target.value as TipoPagamento;
+                  setNovoGasto({ ...novoGasto, tipoPagamento: tipo, cartaoId: tipo === 'CRÉDITO' ? (novoGasto.cartaoId || cartoes[0]?.id || null) : null });
+                }}
               >
                 <option value="DÉBITO">DÉBITO (PIX/Dinheiro/à vista)</option>
                 <option value="CRÉDITO">CRÉDITO (cartão)</option>
@@ -633,16 +723,23 @@ export default function LifeTracker() {
               <div>
                 <label className="text-xs opacity-70">Cartão</label>
                 <select
+                  required
                   className="w-full p-2 border rounded-lg"
                   value={novoGasto.cartaoId ?? ''}
                   onChange={(e) => setNovoGasto({ ...novoGasto, cartaoId: e.target.value ? Number(e.target.value) : null })}
                 >
-                  {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome}{c.padrao ? ' (padrão)' : ''}</option>)}
+                  <option value="">Selecione...</option>
+                  {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                 </select>
               </div>
             )}
-            <div>
-              <button className="w-full px-3 py-2 rounded-lg bg-black text-white text-sm">Adicionar</button>
+            <div className="flex gap-2">
+              <button className="w-full px-3 py-2 rounded-lg bg-black text-white text-sm">
+                {editingGastoId ? 'Salvar' : 'Adicionar'}
+              </button>
+              {editingGastoId && (
+                <button type="button" onClick={cancelarEdicaoGasto} className="px-3 py-2 rounded-lg bg-gray-200 text-sm">Cancelar</button>
+              )}
             </div>
           </form>
 
@@ -658,17 +755,22 @@ export default function LifeTracker() {
                     <th>Descrição</th>
                     <th>Categoria</th>
                     <th>Pagamento</th>
-                    <th className="text-right">Valor</th>
+                    <th className="text-right pr-4">Valor</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {gastos.slice().reverse().map(g => (
                     <tr key={g.id} className="border-t">
-                      <td className="py-2">{g.data}</td>
+                      <td className="py-2 pr-2">{g.data}</td>
                       <td>{g.descricao}</td>
                       <td>{g.categoria}</td>
                       <td>{g.tipoPagamento}{g.cartaoNome ? ` · ${g.cartaoNome}` : ''}</td>
-                      <td className="text-right">{fmt(toNum(g.valor))}</td>
+                      <td className="text-right pr-4">{fmt(toNum(g.valor))}</td>
+                      <td className="flex gap-2">
+                        <button type="button" onClick={() => iniciarEdicaoGasto(g)} className="text-xs text-blue-600 hover:underline">Alterar</button>
+                        <button type="button" onClick={() => removerGasto(g.id)} className="text-xs text-red-600 hover:underline">Remover</button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -680,8 +782,12 @@ export default function LifeTracker() {
 
       {tab === 'receitas' && (
         <section className="p-4 rounded-2xl shadow bg-white space-y-4">
-          <h2 className="text-lg font-medium">Lançar receita</h2>
-          <form className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end" onSubmit={adicionarReceita}>
+          <h2 className="text-lg font-medium">{editingReceitaId ? 'Alterar Receita' : 'Lançar Receita'}</h2>
+          <form
+            className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end"
+            onSubmit={editingReceitaId ? salvarEdicaoReceita : adicionarReceita}
+            key={`receita-form-${editingReceitaId || 'novo'}`}
+          >
             <div className="md:col-span-2">
               <label className="text-xs opacity-70">Descrição</label>
               <input
@@ -709,8 +815,13 @@ export default function LifeTracker() {
                 onChange={(e) => setNovaReceita({ ...novaReceita, data: e.target.value })}
               />
             </div>
-            <div>
-              <button className="w-full px-3 py-2 rounded-lg bg-black text-white text-sm">Adicionar</button>
+            <div className="flex gap-2">
+              <button className="w-full px-3 py-2 rounded-lg bg-black text-white text-sm">
+                {editingReceitaId ? 'Salvar' : 'Adicionar'}
+              </button>
+              {editingReceitaId && (
+                <button type="button" onClick={cancelarEdicaoReceita} className="px-3 py-2 rounded-lg bg-gray-200 text-sm">Cancelar</button>
+              )}
             </div>
           </form>
 
@@ -721,9 +832,15 @@ export default function LifeTracker() {
             ) : (
               <ul className="text-sm space-y-1">
                 {receitas.slice().reverse().map(r => (
-                  <li key={r.id} className="flex justify-between border-t py-2">
-                    <span>{r.data} · {r.descricao}</span>
-                    <span>{fmt(toNum(r.valor))}</span>
+                  <li key={r.id} className="flex justify-between items-center border-t py-2">
+                    <div>{r.data} · {r.descricao}</div>
+                    <div className="flex items-center gap-4">
+                      <span>{fmt(toNum(r.valor))}</span>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => iniciarEdicaoReceita(r)} className="text-xs text-blue-600 hover:underline">Alterar</button>
+                        <button type="button" onClick={() => removerReceita(r.id)} className="text-xs text-red-600 hover:underline">Remover</button>
+                      </div>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -735,7 +852,7 @@ export default function LifeTracker() {
       {tab === 'assinaturas' && (
         <section className="p-4 rounded-2xl shadow bg-white space-y-4">
           <h2 className="text-lg font-medium">Assinaturas e Contratos</h2>
-          <form className="grid grid-cols-1 md:grid-cols-7 gap-3 items-end" onSubmit={adicionarAssinatura}>
+          <form className="grid grid-cols-1 md:grid-cols-8 gap-3 items-end" onSubmit={adicionarAssinatura}>
             <div className="md:col-span-2">
               <label className="text-xs opacity-70">Nome</label>
               <input className="w-full p-2 border rounded-lg"
@@ -748,11 +865,25 @@ export default function LifeTracker() {
                 value={novaAssinatura.valor}
                 onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, valor: e.target.value })} />
             </div>
-            <div>
-              <label className="text-xs opacity-70">Dia de cobrança</label>
-              <input type="number" min="1" max="28" className="w-full p-2 border rounded-lg"
-                value={novaAssinatura.diaCobranca}
-                onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, diaCobranca: Number(e.target.value || 1) })} />
+            <div className="flex gap-2">
+              <div>
+                <label className="text-xs opacity-70">Dia</label>
+                <input type="number" min="1" max="31" className="w-full p-2 border rounded-lg"
+                  value={novaAssinatura.diaCobranca}
+                  onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, diaCobranca: Number(e.target.value || 1) })} />
+              </div>
+              {novaAssinatura.periodoCobranca === 'ANUAL' && (
+                <div>
+                  <label className="text-xs opacity-70">Mês</label>
+                  <select className="w-full p-2 border rounded-lg"
+                    value={novaAssinatura.mesCobranca}
+                    onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, mesCobranca: Number(e.target.value || 1) })}>
+                    {Array.from({length: 12}, (_, i) => i + 1).map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
             <div>
               <label className="text-xs opacity-70">Tipo</label>
@@ -788,7 +919,7 @@ export default function LifeTracker() {
                 onChange={(e)=>setNovaAssinatura({
                   ...novaAssinatura,
                   tipoPagamento: e.target.value as TipoPagamento,
-                  cartaoId: e.target.value === 'CRÉDITO' ? (cartoes.find(c => c.padrao)?.id ?? null) : null
+                  cartaoId: e.target.value === 'CRÉDITO' ? (novaAssinatura.cartaoId || cartoes[0]?.id || null) : null
                 })}>
                 <option value="DÉBITO">DÉBITO</option>
                 <option value="CRÉDITO">CRÉDITO</option>
@@ -800,11 +931,12 @@ export default function LifeTracker() {
                 <select className="w-full p-2 border rounded-lg"
                   value={novaAssinatura.cartaoId ?? ''}
                   onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, cartaoId: e.target.value ? Number(e.target.value) : null })}>
-                  {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome}{c.padrao ? ' (padrão)' : ''}</option>)}
+                  <option value="">Selecione...</option>
+                  {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                 </select>
               </div>
             )}
-            <div className="md:col-span-7">
+            <div className="md:col-span-8">
               <button className="px-3 py-2 rounded-lg bg-black text-white text-sm">Adicionar</button>
             </div>
           </form>
@@ -819,7 +951,7 @@ export default function LifeTracker() {
                   <tr className="text-left opacity-60">
                     <th className="py-2">Nome</th>
                     <th>Valor</th>
-                    <th>Dia</th>
+                    <th>Vencimento</th>
                     <th>Tipo</th>
                     <th>Período</th>
                     <th>Pagamento</th>
@@ -830,7 +962,7 @@ export default function LifeTracker() {
                     <tr key={a.id} className="border-t">
                       <td className="py-2">{a.nome}</td>
                       <td>{fmt(toNum(a.valor))}</td>
-                      <td>{a.diaCobranca}</td>
+                      <td>{a.periodoCobranca === 'ANUAL' ? `${String(a.diaCobranca).padStart(2,'0')}/${String(a.mesCobranca).padStart(2,'0')}` : `Dia ${a.diaCobranca}`}</td>
                       <td>{a.tipo}{a.categoriaPersonalizada ? ` · ${a.categoriaPersonalizada}` : ''}</td>
                       <td>{a.periodoCobranca}</td>
                       <td>{a.tipoPagamento}{a.cartaoNome ? ` · ${a.cartaoNome}` : ''}</td>
@@ -922,12 +1054,27 @@ export default function LifeTracker() {
       {tab === 'cartoes' && (
         <section className="p-4 rounded-2xl shadow bg-white space-y-4">
           <h2 className="text-lg font-medium">Cartões de Crédito</h2>
-          <form className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end" onSubmit={adicionarCartao}>
-            <div>
+          <form className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end" onSubmit={adicionarCartao} onFocus={() => setSugestoesCartao([])}>
+            <div className="relative">
               <label className="text-xs opacity-70">Nome</label>
               <input className="w-full p-2 border rounded-lg"
                 value={novoCartao.nome}
-                onChange={(e)=>setNovoCartao({ ...novoCartao, nome: e.target.value })} />
+                onChange={(e) => {
+                  const valor = e.target.value;
+                  setNovoCartao({ ...novoCartao, nome: valor });
+                  if (valor.trim()) {
+                    setSugestoesCartao(SUGESTOES_BANCOS.filter(b => b.startsWith(valor.toUpperCase())));
+                  } else {
+                    setSugestoesCartao([]);
+                  }
+                }}
+                onFocus={(e) => { e.stopPropagation(); if (e.target.value) setSugestoesCartao(SUGESTOES_BANCOS.filter(b => b.startsWith(e.target.value.toUpperCase()))); }}
+                 />
+              {sugestoesCartao.length > 0 && (
+                <ul className="absolute z-10 w-full bg-white border rounded-lg mt-1 shadow-lg max-h-40 overflow-y-auto">
+                  {sugestoesCartao.map(s => <li key={s} className="p-2 hover:bg-gray-100 cursor-pointer" onMouseDown={() => { setNovoCartao(c => ({...c, nome: s})); setSugestoesCartao([]); }}>{s}</li>)}
+                </ul>
+              )}
             </div>
             <div>
               <label className="text-xs opacity-70">Limite (R$)</label>
@@ -940,12 +1087,7 @@ export default function LifeTracker() {
               <input type="number" min="1" max="28" className="w-full p-2 border rounded-lg"
                 value={novoCartao.diaVencimento}
                 onChange={(e)=>setNovoCartao({ ...novoCartao, diaVencimento: Number(e.target.value || 1) })} />
-            </div>
-            <div className="flex items-center gap-2">
-              <input id="cart-padrao" type="checkbox"
-                checked={novoCartao.padrao} onChange={(e)=>setNovoCartao({ ...novoCartao, padrao: e.target.checked })} />
-              <label htmlFor="cart-padrao" className="text-xs">Definir como padrão</label>
-            </div>
+            </div>            
             <div>
               <button className="w-full px-3 py-2 rounded-lg bg-black text-white text-sm">Adicionar</button>
             </div>
@@ -987,12 +1129,6 @@ export default function LifeTracker() {
                   value={editCardDraft.diaVencimento}
                   onChange={(e)=>setEditCardDraft({ ...(editCardDraft as Cartao), diaVencimento: Number(e.target.value || 1) })} />
               </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox"
-                  checked={!!editCardDraft.padrao}
-                  onChange={(e)=>setEditCardDraft({ ...(editCardDraft as Cartao), padrao: e.target.checked })} />
-                <span className="opacity-70">Definir como padrão</span>
-              </label>
             </div>
             <div className="flex gap-2 pt-2">
               <button type="button" className="px-3 py-2 rounded bg-black text-white text-xs" onClick={saveEditCard}>Salvar</button>
@@ -1005,12 +1141,9 @@ export default function LifeTracker() {
       return (
         <div key={c.id} className="p-4 rounded-2xl border bg-white">
           <div className="flex items-center justify-between">
-            <div className="font-medium">{c.nome}</div>
-            <div className="flex items-center gap-2">
-              {c.padrao && <span className="text-xs px-2 py-1 rounded bg-black text-white">padrão</span>}
-              {!c.padrao && (
-                <button type="button" className="text-xs underline" onClick={()=>setDefaultCard(c.id)}>definir padrão</button>
-              )}
+            <div className="font-medium flex items-center gap-2">
+              <span className={`w-4 h-4 rounded-full inline-block ${getCorCartao(c.nome).bg}`}></span>
+              {c.nome}
             </div>
           </div>
           <div className="text-sm opacity-70 mt-1">Venc.: dia {c.diaVencimento}</div>
@@ -1080,6 +1213,53 @@ export default function LifeTracker() {
         </section>
       )}
 
+      {tab === 'configuracoes' && (
+        <section className="p-4 rounded-2xl shadow bg-white space-y-6">
+          <h2 className="text-lg font-medium">Configurações</h2>
+
+          <div className="p-4 border rounded-xl">
+            <h3 className="font-medium mb-2">Cores do Dashboard</h3>
+            <p className="text-sm opacity-70 mb-4">Defina os valores para que os indicadores de "Saldo" e "Crédito Disponível" mudem de cor.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-semibold text-sm mb-2">Saldo (Dinheiro)</h4>
+                <div className="space-y-2">
+                  <label className="flex flex-col text-sm">
+                    <span className="opacity-60">Fica <b className="text-orange-500">laranja</b> abaixo de (R$):</span>
+                    <input type="number" step="0.01" className="p-2 border rounded-lg" value={configuracoes.saldo.alerta} onChange={e => setConfiguracoes(c => ({ ...c, saldo: { ...c.saldo, alerta: e.target.value } }))} />
+                  </label>
+                  <label className="flex flex-col text-sm">
+                    <span className="opacity-60">Fica <b className="text-red-600">vermelho</b> abaixo de (R$):</span>
+                    <input type="number" step="0.01" className="p-2 border rounded-lg" value={configuracoes.saldo.critico} onChange={e => setConfiguracoes(c => ({ ...c, saldo: { ...c.saldo, critico: e.target.value } }))} />
+                  </label>
+                  <label className="flex flex-col text-sm">
+                    <span className="opacity-60">Fica <b className="text-green-600">verde</b> acima de (R$):</span>
+                    <input type="number" step="0.01" className="p-2 border rounded-lg" value={configuracoes.saldo.positivo} onChange={e => setConfiguracoes(c => ({ ...c, saldo: { ...c.saldo, positivo: e.target.value } }))} />
+                  </label>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm mb-2">Crédito Disponível</h4>
+                <div className="space-y-2">
+                  <label className="flex flex-col text-sm">
+                    <span className="opacity-60">Fica <b className="text-orange-500">laranja</b> abaixo de (R$):</span>
+                    <input type="number" step="0.01" className="p-2 border rounded-lg" value={configuracoes.credito.alerta} onChange={e => setConfiguracoes(c => ({ ...c, credito: { ...c.credito, alerta: e.target.value } }))} />
+                  </label>
+                  <label className="flex flex-col text-sm">
+                    <span className="opacity-60">Fica <b className="text-red-600">vermelho</b> abaixo de (R$):</span>
+                    <input type="number" step="0.01" className="p-2 border rounded-lg" value={configuracoes.credito.critico} onChange={e => setConfiguracoes(c => ({ ...c, credito: { ...c.credito, critico: e.target.value } }))} />
+                  </label>
+                  <label className="flex flex-col text-sm">
+                    <span className="opacity-60">Fica <b className="text-green-600">verde</b> acima de (R$):</span>
+                    <input type="number" step="0.01" className="p-2 border rounded-lg" value={configuracoes.credito.positivo} onChange={e => setConfiguracoes(c => ({ ...c, credito: { ...c.credito, positivo: e.target.value } }))} />
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Modal: Assinaturas Mensais */}
       {showMensaisModal && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowMensaisModal(false)}>
@@ -1108,7 +1288,7 @@ export default function LifeTracker() {
                           <td className="py-1">{a.nome}</td>
                           <td>{fmt(toNum(a.valor))}</td>
                           <td>{a.diaCobranca}</td>
-                          <td>{a.tipoPagamento}{a.tipoPagamento === 'CRÉDITO' && a.cartaoId ? ` • ${cartoes.find(c=>c.id===a.cartaoId)?.nome ?? ''}` : ''}</td>
+                          <td>{a.tipoPagamento}{a.tipoPagamento === 'CRÉDITO' && a.cartaoId ? ` • ${a.cartaoNome ?? ''}` : ''}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1127,7 +1307,7 @@ export default function LifeTracker() {
                           <td className="py-1">{a.nome}</td>
                           <td>{fmt(toNum(a.valor))}</td>
                           <td>{a.diaCobranca}</td>
-                          <td>{a.tipoPagamento}{a.tipoPagamento === 'CRÉDITO' && a.cartaoId ? ` • ${cartoes.find(c=>c.id===a.cartaoId)?.nome ?? ''}` : ''}</td>
+                          <td>{a.tipoPagamento}{a.tipoPagamento === 'CRÉDITO' && a.cartaoId ? ` • ${a.cartaoNome ?? ''}` : ''}</td>
                         </tr>
                       ))}
                     </tbody>
