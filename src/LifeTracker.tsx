@@ -159,14 +159,14 @@ export default function LifeTracker() {
     if (!window.confirm(`Remover o cartão "${toDelete.nome}"? Seus gastos antigos permanecem, apenas deixam de apontar para este cartão.`)) return;
 
     // Remover cartão e, se era padrão, definir o primeiro restante como padrão
-    setCartoes(prev => {
-      const rest = prev.filter(c => c.id !== id);
-      if (toDelete.padrao && rest.length > 0) {
-        // marca o primeiro como padrão
-        rest[0] = { ...rest[0], padrao: true };
-      }
-      return rest;
-    });
+        setCartoes(prev => {
+          const rest = prev.filter(c => c.id !== id);
+          if (toDelete.padrao && rest.length > 0) {
+            // marca o primeiro como padrão
+            rest[0] = { ...(rest[0] as Cartao), padrao: true };
+          }
+          return rest;
+        });
 
     // Para não quebrar referências: zera cartaoId dos gastos que apontavam para ele (mantém cartaoNome como histórico)
     setGastos(prev => prev.map(g => g.cartaoId === id ? { ...g, cartaoId: null } : g));
@@ -288,17 +288,12 @@ export default function LifeTracker() {
     [assinaturas]
   );
 
-  const previsaoMes = React.useMemo(() => {
-    // Assinaturas pagas no CRÉDITO (mensais) contam na previsão do cartão do mês
-    const assinaturasCredito = assinaturas
-      .filter(a => a.periodoCobranca === 'MENSAL' && a.tipoPagamento === 'CRÉDITO')
-      .reduce((s, a) => s + toNum(a.valor), 0);
+  const previsaoMes = React.useMemo(() => ({
 
-    const creditoPrev = gastosCreditoMes + assinaturasCredito;
 
-    return {
-      
-// Listas derivadas para modais
+  }), [totalAluguelMensal, totalAssinMensal, gastosCreditoMes]);
+
+  // Listas derivadas para modais
   const assinMensais = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'MENSAL' && a.tipo === 'ASSINATURA'), [assinaturas]);
   const alugueisMensais = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'MENSAL' && a.tipo === 'CONTRATO - ALUGUEL'), [assinaturas]);
 
