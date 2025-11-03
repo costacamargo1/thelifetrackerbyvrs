@@ -1,6 +1,12 @@
 import React from 'react';
 
-import Cards from './components/Cards';
+import Nubank from './components/assets/icons/card-nubank.svg';
+import Itau from './components/assets/icons/card-itau.svg';
+import Bradesco from './components/assets/icons/card-bradesco.svg';
+import BB from './components/assets/icons/card-bb.svg';
+import Caixa from './components/assets/icons/card-caixa.svg';
+import Santander from './components/assets/icons/card-santander.svg';
+import C6 from './components/assets/icons/card-c6.svg';
 
 
 /** =========================
@@ -60,20 +66,21 @@ interface Configuracoes {
 /** =========================
  * Helpers
  * ========================= */
-const getCorCartao = (nomeCartao: string): { bg: string; text: string } => {
+const getDadosCartao = (nomeCartao: string): { bg: string; text: string; imagem: string | null } => {
   const nome = (nomeCartao || '').toLowerCase();
 
-  if (nome.includes('nubank')) return { bg: 'bg-purple-600', text: 'text-white' };
-  if (nome.includes('santander')) return { bg: 'bg-red-600', text: 'text-white' };
-  if (nome.includes('caixa')) return { bg: 'bg-blue-700', text: 'text-white' };
-  if (nome.includes('inter')) return { bg: 'bg-orange-500', text: 'text-white' };
-  if (nome.includes('bradesco')) return { bg: 'bg-red-700', text: 'text-white' };
-  if (nome.includes('itau') || nome.includes('itaú')) return { bg: 'bg-orange-400', text: 'text-black' };
-  if (nome.includes('c6')) return { bg: 'bg-gray-800', text: 'text-white' };
-  if (nome.includes('bb') || nome.includes('brasil')) return { bg: 'bg-yellow-400', text: 'text-blue-800' };
+  if (nome.includes('nubank')) return { bg: 'bg-purple-600', text: 'text-white', imagem: Nubank };
+  if (nome.includes('santander')) return { bg: 'bg-red-600', text: 'text-white', imagem: Santander };
+  if (nome.includes('caixa')) return { bg: 'bg-blue-700', text: 'text-white', imagem: Caixa };
+  if (nome.includes('inter')) return { bg: 'bg-orange-500', text: 'text-white', imagem: null }; // Não temos imagem para o Inter ainda
+  if (nome.includes('bradesco')) return { bg: 'bg-red-700', text: 'text-white', imagem: Bradesco };
+  if (nome.includes('itau') || nome.includes('itaú')) return { bg: 'bg-orange-400', text: 'text-black', imagem: Itau };
+  if (nome.includes('c6')) return { bg: 'bg-gray-800', text: 'text-white', imagem: C6 };
+  if (nome.includes('bb') || nome.includes('brasil')) return { bg: 'bg-yellow-400', text: 'text-blue-800', imagem: BB };
 
-  return { bg: 'bg-gray-200', text: 'text-black' };
+  return { bg: 'bg-gray-200', text: 'text-black', imagem: null };
 };
+
 const fmt = (n: number) =>
   n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 2 });
 
@@ -1281,6 +1288,7 @@ export default function LifeTracker() {
       const usadoMes = gastos.filter(g => g.tipoPagamento === 'CRÉDITO' && g.cartaoId === c.id && isSameMonth(g.data))
                              .reduce((acc, g) => acc + toNum(g.valor), 0);
       const disp = Math.max(0, toNum(c.limite) - usadoMes);
+      const dadosCartao = getDadosCartao(c.nome);
       const isEditing = editingCardId === c.id;
 
       if (isEditing && editCardDraft) {
@@ -1293,7 +1301,7 @@ export default function LifeTracker() {
             <div className="grid grid-cols-2 gap-2 text-sm">
               <label className="flex flex-col">
                 <span className="opacity-60">Nome</span>
-                <input className="p-2 border rounded"
+                <input className="p-2 border rounded-lg"
                   value={editCardDraft.nome}
                   onChange={(e)=>setEditCardDraft({ ...(editCardDraft as Cartao), nome: e.target.value })} />
               </label>
@@ -1305,7 +1313,7 @@ export default function LifeTracker() {
               </label>
               <label className="flex flex-col">
                 <span className="opacity-60">Dia de vencimento</span>
-                <input type="number" min="1" max="28" className="p-2 border rounded"
+                <input type="number" min="1" max="28" className="p-2 border rounded-lg"
                   value={editCardDraft.diaVencimento}
                   onChange={(e)=>setEditCardDraft({ ...(editCardDraft as Cartao), diaVencimento: Number(e.target.value || 1) })} />
               </label>
@@ -1319,17 +1327,22 @@ export default function LifeTracker() {
       }
 
       return (
-        <div key={c.id} className="p-4 rounded-2xl border bg-white">
-          <div className="flex items-center justify-between">
-            <div className="font-medium flex items-center gap-2">
-              <span className={`w-4 h-4 rounded-full inline-block ${getCorCartao(c.nome).bg}`}></span>
-              {c.nome}
+        <div key={c.id} className="p-4 rounded-2xl border bg-white flex flex-col">
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <div className="font-medium flex items-center gap-2">
+                <span className={`w-4 h-4 rounded-full inline-block ${dadosCartao.bg}`}></span>
+                {c.nome}
+              </div>
             </div>
+            <div className="text-sm opacity-70 mt-1">Venc.: dia {c.diaVencimento}</div>
+            {dadosCartao.imagem && (
+              <img src={dadosCartao.imagem} alt={c.nome} className="w-24 h-auto my-3" />
+            )}
+            <div className="mt-2 text-sm">Limite: {fmt(toNum(c.limite))}</div>
+            <div className="mt-1 text-sm">Usado (mês): {fmt(usadoMes)}</div>
+            <div className="mt-1 text-sm">Disponível: {fmt(disp)}</div>
           </div>
-          <div className="text-sm opacity-70 mt-1">Venc.: dia {c.diaVencimento}</div>
-          <div className="mt-2 text-sm">Limite: {fmt(toNum(c.limite))}</div>
-          <div className="mt-1 text-sm">Usado (mês): {fmt(usadoMes)}</div>
-          <div className="mt-1 text-sm">Disponível: {fmt(disp)}</div>
           <div className="flex gap-2 mt-3">
             <button type="button" className="px-2 py-1 rounded bg-gray-900 text-white text-xs" onClick={()=>startEditCard(c)}>Editar</button>
             <button type="button" className="px-2 py-1 rounded bg-red-600 text-white text-xs" onClick={()=>deleteCard(c.id)}>Remover</button>
