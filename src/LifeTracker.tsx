@@ -108,6 +108,13 @@ export default function LifeTracker() {
   // Abas
   const [tab, setTab] = React.useState<'dashboard' | 'gastos' | 'receitas' | 'assinaturas' | 'objetivos' | 'cartoes' | 'dividas'>('dashboard');
 
+  // Modais e ordenação de listas
+  const [showMensaisModal, setShowMensaisModal] = React.useState(false);
+  const [mensaisSort, setMensaisSort] = React.useState<'nome' | 'valor' | 'vencimento'>('vencimento');
+  const [mensaisQuery, setMensaisQuery] = React.useState('');
+  const [showCreditoMesModal, setShowCreditoMesModal] = React.useState(false);
+  const now = new Date();
+
   // Estados
   const [gastos, setGastos] = React.useState<Gasto[]>([]);
   const [receitas, setReceitas] = React.useState<Receita[]>([]);
@@ -266,6 +273,7 @@ export default function LifeTracker() {
 
   const porCategoria = React.useMemo(() => calcularGastosPorCategoria(gastos), [gastos]);
   const anuaisProximas = React.useMemo(() => verificarAssinaturasAnuaisProximas(assinaturas), [assinaturas]);
+  const anuaisTodos = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'ANUAL'), [assinaturas]);
 
   const totalAssinMensal = React.useMemo(
     () => assinaturas
@@ -280,7 +288,81 @@ export default function LifeTracker() {
     [assinaturas]
   );
 
-  const previsaoMes = React.useMemo(() => ({
+  const previsaoMes = React.useMemo(() => {
+    // Assinaturas pagas no CRÉDITO (mensais) contam na previsão do cartão do mês
+    const assinaturasCredito = assinaturas
+      .filter(a => a.periodoCobranca === 'MENSAL' && a.tipoPagamento === 'CRÉDITO')
+      .reduce((s, a) => s + toNum(a.valor), 0);
+
+    const creditoPrev = gastosCreditoMes + assinaturasCredito;
+
+    return {
+      
+// Listas derivadas para modais
+  const assinMensais = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'MENSAL' && a.tipo === 'ASSINATURA'), [assinaturas]);
+  const alugueisMensais = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'MENSAL' && a.tipo === 'CONTRATO - ALUGUEL'), [assinaturas]);
+
+  // Assinaturas mensais pagas no crédito também contam como gasto de crédito do mês
+  const assinaturasCreditoMensal = React.useMemo(
+    () => assinMensais.filter(a => a.tipoPagamento === 'CRÉDITO').reduce((s, a) => s + toNum(a.valor), 0),
+    [assinMensais]
+  );
+
+  // Lista detalhada de gastos de crédito do mês (gastos + assinaturas mensais no crédito)
+  const creditGastosMesList = React.useMemo(() => {
+    const gastosList = gastos
+      .filter(g => g.tipoPagamento === 'CRÉDITO' && isSameMonth(g.data))
+      .map(g => ({
+        id: g.id,
+        tipo: 'gasto' as const,
+        data: g.data,
+        descricao: g.descricao,
+        valor: toNum(g.valor),
+        cartaoId: g.cartaoId ?? (cartoes.find(c => c.padrao)?.id ?? 0),
+        cartaoNome: g.cartaoNome ?? cartoes.find(c => c.id === g.cartaoId)?.nome ?? cartoes.find(c => c.padrao)?.nome ?? ''
+      }));
+
+    const assinList = assinMensais
+      .filter(a => a.tipoPagamento === 'CRÉDITO')
+      .map(a => ({
+        id: 100000 + a.id,
+        tipo: 'assinatura' as const,
+        data: new Date(now.getFullYear(), now.getMonth(), a.diaCobranca ?? 1),
+        descricao: a.nome + ' (assinatura)',
+        valor: toNum(a.valor),
+        cartaoId: a.cartaoId ?? (cartoes.find(c => c.padrao)?.id ?? 0),
+        cartaoNome: cartoes.find(c => c.id === a.cartaoId)?.nome ?? cartoes.find(c => c.padrao)?.nome ?? ''
+      }));
+
+    return [...gastosList, ...assinList].sort((a, b) => a.data.getTime() - b.data.getTime());
+  }, [gastos, assinMensais, cartoes]);
+
+  // Resumo por cartão (mês atual)
+  const creditByCard = React.useMemo(() => {
+    const map = new Map<number, number>();
+    creditGastosMesList.forEach(x => {
+      const id = x.cartaoId ?? (cartoes.find(c => c.padrao)?.id ?? 0);
+      map.set(id, (map.get(id) ?? 0) + x.valor);
+    });
+    return cartoes.map(c => ({
+      cartao: c,
+      usado: map.get(c.id) ?? 0,
+      disponivel: Math.max(0, toNum(c.limite) - (map.get(c.id) ?? 0))
+    }));
+  }, [creditGastosMesList, cartoes]);
+
+  // Ordenação e filtro da lista de assinaturas mensais
+  const mensaisList = React.useMemo(() => {
+    const q = mensaisQuery.trim().toLowerCase();
+    const base = assinMensais.filter(a => a.nome.toLowerCase().includes(q));
+    const sort = [...base].sort((a, b) => {
+      if (mensaisSort === 'nome') return a.nome.localeCompare(b.nome);
+      if (mensaisSort === 'valor') return toNum(a.valor) - toNum(b.valor);
+      // vencimento
+      return (a.diaCobranca ?? 0) - (b.diaCobranca ?? 0);
+    });
+    return sort;
+  }, [assinMensais, mensaisQuery, mensaisSort]);
     aluguel: totalAluguelMensal,
     assinaturas: totalAssinMensal,
     credito: gastosCreditoMes,
@@ -410,7 +492,7 @@ export default function LifeTracker() {
               <div className="text-xl font-medium">{fmt(gastosCredito)}</div>
             </div>
             <div className="p-4 rounded-2xl shadow bg-white">
-              <div className="text-sm opacity-60">Gastos (Débito)</div>
+              <div className="text-sm opacity-60">Gastos (Dinheiro)</div>
               <div className="text-xl font-medium">{fmt(gastosDebito)}</div>
             </div>
             <div className="p-4 rounded-2xl shadow bg-white">
@@ -427,14 +509,14 @@ export default function LifeTracker() {
                 <div className="opacity-60">Aluguel</div>
                 <div className="text-lg font-semibold">{fmt(previsaoMes.aluguel)}</div>
               </div>
-              <div className="p-3 rounded-xl bg-gray-50 border">
+              <button type="button" onClick={() => setShowMensaisModal(true)} className="p-3 rounded-xl bg-gray-50 border text-left cursor-pointer hover:ring-2 hover:ring-black/10 transition">
                 <div className="opacity-60">Assinaturas Mensais</div>
                 <div className="text-lg font-semibold">{fmt(previsaoMes.assinaturas)}</div>
-              </div>
-              <div className="p-3 rounded-xl bg-gray-50 border">
+              </button>
+              <button type="button" onClick={() => setShowCreditoMesModal(true)} className="p-3 rounded-xl bg-gray-50 border text-left cursor-pointer hover:ring-2 hover:ring-black/10 transition">
                 <div className="opacity-60">Gastos em Crédito (mês)</div>
                 <div className="text-lg font-semibold">{fmt(previsaoMes.credito)}</div>
-              </div>
+              </button>
               <div className="p-3 rounded-xl bg-gray-900 text-white">
                 <div className="opacity-80">TOTAL PREVISTO</div>
                 <div className="text-lg font-semibold">{fmt(previsaoMes.total)}</div>
@@ -460,18 +542,34 @@ export default function LifeTracker() {
           </section>
 
           {/* Alertas anuais */}
+          
+          {/* Assinaturas anuais */}
           <section className="p-4 rounded-2xl shadow bg-white">
-            <h2 className="text-lg font-medium mb-3">Assinaturas anuais próximas (30 dias)</h2>
-            {anuaisProximas.length === 0 ? (
-              <p className="text-sm opacity-60">Nenhuma por agora</p>
+            <h2 className="text-lg font-medium mb-3">Assinaturas anuais</h2>
+            {anuaisTodos.length === 0 ? (
+              <p className="text-sm opacity-60">Nenhuma assinatura anual cadastrada</p>
             ) : (
-              <ul className="text-sm list-disc pl-5">
-                {anuaisProximas.map((a) => (
-                  <li key={a.id}>{a.nome} — dia {a.diaCobranca}</li>
-                ))}
+              <ul className="text-sm divide-y">
+                {anuaisTodos.map(a => {
+                  const dias = diasAteProximaCobranca(a);
+                  const critico = dias <= 30;
+                  return (
+                    <li key={a.id} className="py-2 flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">{a.nome}</div>
+                        <div className="opacity-60">
+                          Vence dia {a.diaCobranca?.toString().padStart(2, '0')} • {a.tipoPagamento}
+                          {a.cartaoId ? ` • ${cartoes.find(c => c.id === a.cartaoId)?.nome ?? ''}` : ''}
+                        </div>
+                      </div>
+                      <div className={`font-semibold ${critico ? 'text-red-600' : ''}`}>{fmt(a.valor)}{critico ? ` • em ${dias} dias` : ''}</div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>
+
         </>
       )}
 
@@ -976,6 +1074,224 @@ export default function LifeTracker() {
           )}
         </section>
       )}
+
+      {/* Modal: Assinaturas Mensais */}
+      {showMensaisModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowMensaisModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-3xl p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Assinaturas Mensais</h3>
+              <button className="px-3 py-1 rounded bg-black text-white" onClick={() => setShowMensaisModal(false)} type="button">Fechar</button>
+            </div>
+            <div className="flex gap-2 mb-3">
+              <input value={mensaisQuery} onChange={e=>setMensaisQuery(e.target.value)} placeholder="Buscar por nome..." className="border rounded px-2 py-1 flex-1" />
+              <select value={mensaisSort} onChange={e=>setMensaisSort(e.target.value as any)} className="border rounded px-2 py-1">
+                <option value="vencimento">Ordenar por vencimento</option>
+                <option value="nome">Ordenar por nome</option>
+                <option value="valor">Ordenar por valor</option>
+              </select>
+            </div>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <div className="font-medium mb-2">Assinaturas</div>
+                {mensaisList.length === 0 ? <p className="text-sm opacity-60">Nenhuma</p> : (
+                  <table className="w-full text-sm">
+                    <thead className="text-left opacity-60"><tr><th>Nome</th><th>Valor</th><th>Dia</th><th>Pagamento</th></tr></thead>
+                    <tbody>
+                      {mensaisList.map(a => (
+                        <tr key={a.id} className="border-t">
+                          <td className="py-1">{a.nome}</td>
+                          <td>{fmt(a.valor)}</td>
+                          <td>{a.diaCobranca}</td>
+                          <td>{a.tipoPagamento}{a.tipoPagamento === 'CRÉDITO' && a.cartaoId ? ` • ${cartoes.find(c=>c.id===a.cartaoId)?.nome ?? ''}` : ''}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                <div className="mt-2 text-right text-sm font-semibold">Total: {fmt(mensaisList.reduce((s,a)=>s + toNum(a.valor), 0))}</div>
+              </div>
+              <div>
+                <div className="font-medium mb-2">Contratos (Aluguel)</div>
+                {alugueisMensais.length === 0 ? <p className="text-sm opacity-60">Nenhum</p> : (
+                  <table className="w-full text-sm">
+                    <thead className="text-left opacity-60"><tr><th>Nome</th><th>Valor</th><th>Dia</th><th>Pagamento</th></tr></thead>
+                    <tbody>
+                      {alugueisMensais.map(a => (
+                        <tr key={a.id} className="border-t">
+                          <td className="py-1">{a.nome}</td>
+                          <td>{fmt(a.valor)}</td>
+                          <td>{a.diaCobranca}</td>
+                          <td>{a.tipoPagamento}{a.tipoPagamento === 'CRÉDITO' && a.cartaoId ? ` • ${cartoes.find(c=>c.id===a.cartaoId)?.nome ?? ''}` : ''}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                <div className="mt-2 text-right text-sm font-semibold">Total: {fmt(alugueisMensais.reduce((s,a)=>s + toNum(a.valor), 0))}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Gastos em Crédito (mês) */}
+      {showCreditoMesModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowCreditoMesModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-4xl p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Gastos em Crédito (mês)</h3>
+              <button className="px-3 py-1 rounded bg-black text-white" onClick={() => setShowCreditoMesModal(false)} type="button">Fechar</button>
+            </div>
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="md:col-span-2">
+                <table className="w-full text-sm">
+                  <thead className="text-left opacity-60">
+                    <tr><th>Data</th><th>Descrição</th><th>Cartão</th><th>Valor</th></tr>
+                  </thead>
+                  <tbody>
+                    {creditGastosMesList.map(l => (
+                      <tr key={l.id} className="border-t">
+                        <td className="py-1">{l.data.toLocaleDateString()}</td>
+                        <td>{l.descricao}</td>
+                        <td>{l.cartaoNome}</td>
+                        <td>{fmt(l.valor)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="md:col-span-1">
+                <div className="font-medium mb-2">Resumo por cartão</div>
+                <ul className="text-sm space-y-2">
+                  {creditByCard.map(r => (
+                    <li key={r.cartao.id} className="p-2 rounded border flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">{r.cartao.nome}</div>
+                        <div className="opacity-60">Limite {fmt(r.cartao.limite)}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold">{fmt(r.usado)}</div>
+                        <div className="opacity-60">Restante {fmt(r.disponivel)}</div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
     </div>
   );
 }
+      {/* Modal: Assinaturas Mensais */}
+      {showMensaisModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowMensaisModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-3xl p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Assinaturas Mensais</h3>
+              <button className="px-3 py-1 rounded bg-black text-white" onClick={() => setShowMensaisModal(false)} type="button">Fechar</button>
+            </div>
+            <div className="flex gap-2 mb-3">
+              <input value={mensaisQuery} onChange={e=>setMensaisQuery(e.target.value)} placeholder="Buscar por nome..." className="border rounded px-2 py-1 flex-1" />
+              <select value={mensaisSort} onChange={e=>setMensaisSort(e.target.value as any)} className="border rounded px-2 py-1">
+                <option value="vencimento">Ordenar por vencimento</option>
+                <option value="nome">Ordenar por nome</option>
+                <option value="valor">Ordenar por valor</option>
+              </select>
+            </div>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <div className="font-medium mb-2">Assinaturas</div>
+                {mensaisList.length === 0 ? <p className="text-sm opacity-60">Nenhuma</p> : (
+                  <table className="w-full text-sm">
+                    <thead className="text-left opacity-60"><tr><th>Nome</th><th>Valor</th><th>Dia</th><th>Pagamento</th></tr></thead>
+                    <tbody>
+                      {mensaisList.map(a => (
+                        <tr key={a.id} className="border-t">
+                          <td className="py-1">{a.nome}</td>
+                          <td>{fmt(a.valor)}</td>
+                          <td>{a.diaCobranca}</td>
+                          <td>{a.tipoPagamento}{a.tipoPagamento === 'CRÉDITO' && a.cartaoId ? ` • ${cartoes.find(c=>c.id===a.cartaoId)?.nome ?? ''}` : ''}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                <div className="mt-2 text-right text-sm font-semibold">Total: {fmt(mensaisList.reduce((s,a)=>s + toNum(a.valor), 0))}</div>
+              </div>
+              <div>
+                <div className="font-medium mb-2">Contratos (Aluguel)</div>
+                {alugueisMensais.length === 0 ? <p className="text-sm opacity-60">Nenhum</p> : (
+                  <table className="w-full text-sm">
+                    <thead className="text-left opacity-60"><tr><th>Nome</th><th>Valor</th><th>Dia</th><th>Pagamento</th></tr></thead>
+                    <tbody>
+                      {alugueisMensais.map(a => (
+                        <tr key={a.id} className="border-t">
+                          <td className="py-1">{a.nome}</td>
+                          <td>{fmt(a.valor)}</td>
+                          <td>{a.diaCobranca}</td>
+                          <td>{a.tipoPagamento}{a.tipoPagamento === 'CRÉDITO' && a.cartaoId ? ` • ${cartoes.find(c=>c.id===a.cartaoId)?.nome ?? ''}` : ''}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                <div className="mt-2 text-right text-sm font-semibold">Total: {fmt(alugueisMensais.reduce((s,a)=>s + toNum(a.valor), 0))}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Gastos em Crédito (mês) */}
+      {showCreditoMesModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowCreditoMesModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-4xl p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Gastos em Crédito (mês)</h3>
+              <button className="px-3 py-1 rounded bg-black text-white" onClick={() => setShowCreditoMesModal(false)} type="button">Fechar</button>
+            </div>
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="md:col-span-2">
+                <table className="w-full text-sm">
+                  <thead className="text-left opacity-60">
+                    <tr><th>Data</th><th>Descrição</th><th>Cartão</th><th>Valor</th></tr>
+                  </thead>
+                  <tbody>
+                    {creditGastosMesList.map(l => (
+                      <tr key={l.id} className="border-t">
+                        <td className="py-1">{l.data.toLocaleDateString()}</td>
+                        <td>{l.descricao}</td>
+                        <td>{l.cartaoNome}</td>
+                        <td>{fmt(l.valor)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="md:col-span-1">
+                <div className="font-medium mb-2">Resumo por cartão</div>
+                <ul className="text-sm space-y-2">
+                  {creditByCard.map(r => (
+                    <li key={r.cartao.id} className="p-2 rounded border flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">{r.cartao.nome}</div>
+                        <div className="opacity-60">Limite {fmt(r.cartao.limite)}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold">{fmt(r.usado)}</div>
+                        <div className="opacity-60">Restante {fmt(r.disponivel)}</div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
