@@ -1,0 +1,5 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="160" height="100" viewBox="0 0 160 100">
+  <rect rx="12" ry="12" width="160" height="100" fill="#FF7A00"/>
+  <rect x="10" y="12" width="48" height="32" rx="6" fill="#ffffff22"/>
+  <text x="20" y="70" font-family="Inter, Arial, sans-serif" font-weight="700" font-size="18" fill="#111">Itaú</text>
+</svg>

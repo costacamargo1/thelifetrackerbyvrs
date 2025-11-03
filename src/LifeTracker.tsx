@@ -1,5 +1,8 @@
 import React from 'react';
 
+import Cards from './components/Cards';
+
+
 /** =========================
  * Tipos básicos
  * ========================= */
@@ -169,6 +172,7 @@ const SUGESTOES_BANCOS = ['NUBANK', 'SANTANDER', 'CAIXA', 'C6', 'ITAÚ', 'BRADES
 /** =========================
  * Componente principal
  * ========================= */
+
 export default function LifeTracker() {
   // Abas
   const [tab, setTab] = React.useState<'dashboard' | 'gastos' | 'receitas' | 'assinaturas' | 'objetivos' | 'cartoes' | 'dividas' | 'configuracoes'>('dashboard');
