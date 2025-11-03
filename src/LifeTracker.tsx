@@ -665,7 +665,7 @@ export default function LifeTracker() {
                 <ul className="mt-2 space-y-1 text-xs">
                   {creditByCard.map(({ cartao, disponivel }) => (
                     <li key={cartao.id} className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full inline-block ${getCorCartao(cartao.nome).bg}`}></span>
+                      <span className={`w-2 h-2 rounded-full inline-block ${getDadosCartao(cartao.nome).bg}`}></span>
                       <span className="flex-1 truncate">{cartao.nome}</span>
                       <span className="font-medium">{fmt(disponivel)}</span>
                     </li>
@@ -1539,7 +1539,7 @@ export default function LifeTracker() {
                         <td>{l.descricao}</td>
                         <td>
                           <span className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full inline-block ${getCorCartao(l.cartaoNome || '').bg}`}></span>
+                            <span className={`w-2 h-2 rounded-full inline-block ${getDadosCartao(l.cartaoNome || '').bg}`}></span>
                             {l.cartaoNome}
                           </span>
                         </td>
