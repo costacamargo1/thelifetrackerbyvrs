@@ -787,11 +787,11 @@ export default function LifeTracker() {
         <section className="p-4 rounded-2xl shadow bg-white space-y-4">
           <h2 className="text-lg font-medium">{editingGastoId ? 'Alterar Gasto' : 'Lançar Gasto'}</h2>
           <form
-            className="grid grid-cols-1 md:grid-cols-8 gap-4 items-end"
+            className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end"
             onSubmit={editingGastoId ? salvarEdicaoGasto : adicionarGasto}
             key={`gasto-form-${editingGastoId || 'novo'}`}
           >
-            <div className="md:col-span-2">
+            <div className="md:col-span-4">
               <label className="text-xs opacity-70">Descrição</label>
               <input
                 className="w-full p-2 border rounded-lg"
@@ -813,24 +813,7 @@ export default function LifeTracker() {
                 onChange={(e) => setNovoGasto({ ...novoGasto, valor: e.target.value })}
               />
             </div>
-            <div className="md:col-span-1">
-              <label className="text-xs opacity-70">Data</label>
-              <input
-                type="date"
-                className="w-full p-2 border rounded-lg"
-                value={novoGasto.data}
-                onChange={(e) => setNovoGasto({ ...novoGasto, data: e.target.value })}
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-xs opacity-70">Categoria</label>
-              <select className="w-full p-2 border rounded-lg"
-                value={novoGasto.categoria}
-                onChange={(e) => setNovoGasto({ ...novoGasto, categoria: e.target.value })}>
-                {CATEGORIAS_GASTO.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div className="md:col-span-2">
+            <div className="md:col-span-3">
               <label className="text-xs opacity-70">Pagamento</label>
               <select
                 className="w-full p-2 border rounded-lg"
@@ -845,7 +828,7 @@ export default function LifeTracker() {
               </select>
             </div>
             {novoGasto.tipoPagamento === 'CRÉDITO' && (
-              <div className="md:col-span-2">
+              <div className="md:col-span-3">
                 <label className="text-xs opacity-70">Cartão</label>
                 <select
                   required
@@ -858,7 +841,24 @@ export default function LifeTracker() {
                 </select>
               </div>
             )}
-            <div className="flex gap-2 md:col-start-8">
+            <div className="md:col-span-2">
+              <label className="text-xs opacity-70">Categoria</label>
+              <select className="w-full p-2 border rounded-lg"
+                value={novoGasto.categoria}
+                onChange={(e) => setNovoGasto({ ...novoGasto, categoria: e.target.value })}>
+                {CATEGORIAS_GASTO.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-xs opacity-70">Data</label>
+              <input
+                type="date"
+                className="w-full p-2 border rounded-lg"
+                value={novoGasto.data}
+                onChange={(e) => setNovoGasto({ ...novoGasto, data: e.target.value })}
+              />
+            </div>
+            <div className="flex gap-2 md:col-span-2">
               <button className="w-full px-3 py-2 rounded-lg bg-black text-white text-sm">
                 {editingGastoId ? 'Salvar' : 'Adicionar'}
               </button>
