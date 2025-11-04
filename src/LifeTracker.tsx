@@ -29,6 +29,9 @@ interface Gasto { // ... (sem alterações na interface)
   tipoPagamento: TipoPagamento;
   cartaoId: number | null; // Será `number` para crédito, `null` para débito
   cartaoNome?: string | null;
+  parcelaAtual?: number;
+  parcelasTotal?: number;
+  parcelaId?: string; // Para agrupar gastos de uma mesma compra parcelada
 }
 
 interface Receita { id: number; descricao: string; valor: string; data: string; }
@@ -252,7 +255,8 @@ export default function LifeTracker() {
   // Forms
   const [novoGasto, setNovoGasto] = React.useState<Gasto>({
     id: 0, descricao: '', valor: '', data: new Date().toISOString().slice(0,10),
-    categoria: 'ALIMENTAÇÃO', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null
+    categoria: 'ALIMENTAÇÃO', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null,
+    parcelasTotal: 1
   });
 
   const [novaReceita, setNovaReceita] = React.useState<Receita>({
@@ -328,8 +332,8 @@ export default function LifeTracker() {
   );
 
   const creditoDisponivel = React.useMemo(
-    () => Math.max(0, totalLimite - gastosCreditoMes),
-    [totalLimite, gastosCreditoMes] // gastosCreditoMes já inclui assinaturas
+    () => Math.max(0, totalLimite - gastosCredito),
+    [totalLimite, gastosCredito]
   );
 
   const gastosTotal = React.useMemo(
@@ -361,6 +365,26 @@ export default function LifeTracker() {
     return vencimento ? isSameMonth(vencimento.data.toISOString()) : false;
   }), [anuaisTodos]);
 
+  // Compras parceladas ativas
+  const comprasParceladasAtivas = React.useMemo(() => {
+    const parcelados = gastos.filter(g => g.parcelaId);
+    const grouped = parcelados.reduce((acc, g) => {
+      if (!g.parcelaId) return acc;
+      if (!acc[g.parcelaId]) {
+        acc[g.parcelaId] = {
+          descricao: g.descricao,
+          valorTotal: toNum(g.valor) * (g.parcelasTotal || 1),
+          parcelasPagas: 0,
+          parcelasTotal: g.parcelasTotal || 0,
+          valorParcela: toNum(g.valor),
+        };
+      }
+      acc[g.parcelaId].parcelasPagas = Math.max(acc[g.parcelaId].parcelasPagas, g.parcelaAtual || 0);
+      return acc;
+    }, {} as Record<string, { descricao: string; valorTotal: number; parcelasPagas: number; parcelasTotal: number; valorParcela: number }>);
+
+    return Object.values(grouped).filter(g => g.parcelasPagas < g.parcelasTotal);
+  }, [gastos]);
 
   const totalAssinMensal = React.useMemo(
     () => assinaturas
@@ -477,20 +501,41 @@ export default function LifeTracker() {
       alert('Por favor, selecione um cartão para o gasto de crédito.');
       return;
     }
-    const cartaoNome = novoGasto.tipoPagamento === 'CRÉDITO'
-      ? (cartoes.find(c => c.id === novoGasto.cartaoId)?.nome ?? null)
-      : null;
 
-    setGastos(g => [...g, {
-      ...novoGasto,
-      id: Date.now(),
-      cartaoId: novoGasto.tipoPagamento === 'CRÉDITO' ? novoGasto.cartaoId : null,
-      cartaoNome
-    }]);
+    const parcelas = novoGasto.tipoPagamento === 'CRÉDITO' ? (novoGasto.parcelasTotal || 1) : 1;
+    const valorParcela = toNum(novoGasto.valor) / parcelas;
+    const parcelaId = parcelas > 1 ? `${Date.now()}` : undefined;
+
+    const novosGastos: Gasto[] = [];
+    const dataInicial = new Date(novoGasto.data + 'T12:00:00'); // Evita problemas de fuso
+
+    for (let i = 0; i < parcelas; i++) {
+      const dataParcela = new Date(dataInicial);
+      dataParcela.setMonth(dataInicial.getMonth() + i);
+
+      const cartaoNome = novoGasto.tipoPagamento === 'CRÉDITO'
+        ? (cartoes.find(c => c.id === novoGasto.cartaoId)?.nome ?? null)
+        : null;
+
+      novosGastos.push({
+        ...novoGasto,
+        id: Date.now() + i,
+        valor: String(valorParcela.toFixed(2)),
+        data: dataParcela.toISOString().slice(0, 10),
+        cartaoId: novoGasto.tipoPagamento === 'CRÉDITO' ? novoGasto.cartaoId : null,
+        cartaoNome,
+        parcelaId,
+        parcelaAtual: parcelas > 1 ? i + 1 : undefined,
+        parcelasTotal: parcelas > 1 ? parcelas : undefined,
+      });
+    }
+
+    setGastos(g => [...g, ...novosGastos]);
 
     setNovoGasto({
       id: 0, descricao: '', valor: '', data: new Date().toISOString().slice(0,10),
-      categoria: 'ALIMENTAÇÃO', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null
+      categoria: 'ALIMENTAÇÃO', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null,
+      parcelasTotal: 1
     });
   };
 
@@ -503,7 +548,8 @@ export default function LifeTracker() {
     setEditingGastoId(null);
     setNovoGasto({
       id: 0, descricao: '', valor: '', data: new Date().toISOString().slice(0,10),
-      categoria: 'ALIMENTAÇÃO', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null
+      categoria: 'ALIMENTAÇÃO', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null,
+      parcelasTotal: 1
     });
   };
 
@@ -710,23 +756,47 @@ export default function LifeTracker() {
             </div>
           </section>
 
-          {/* Gastos por categoria */}
-          <section className="p-4 rounded-2xl shadow bg-white">
-            <h2 className="text-lg font-medium mb-3">Gastos por categoria</h2>
-            {Object.keys(porCategoria).length === 0 ? (
-              <p className="text-sm opacity-60">Sem lançamentos</p>
-            ) : (
-              <ul className="text-sm space-y-1">
-                {Object.entries(porCategoria).map(([cat, total]) => (
-                  <li key={cat} className="flex justify-between">
-                    <span>{cat}</span>
-                    <span>{fmt(total)}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Gastos por categoria */}
+            <section className="p-4 rounded-2xl shadow bg-white">
+              <h2 className="text-lg font-medium mb-3">Gastos por categoria</h2>
+              {Object.keys(porCategoria).length === 0 ? (
+                <p className="text-sm opacity-60">Sem lançamentos</p>
+              ) : (
+                <ul className="text-sm space-y-1">
+                  {Object.entries(porCategoria).map(([cat, total]) => (
+                    <li key={cat} className="flex justify-between">
+                      <span>{cat}</span>
+                      <span>{fmt(total)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            {/* Compras Parceladas Ativas */}
+            <section className="p-4 rounded-2xl shadow bg-white">
+              <h2 className="text-lg font-medium mb-3">Compras Parceladas Ativas</h2>
+              {comprasParceladasAtivas.length === 0 ? (
+                <p className="text-sm opacity-60">Nenhuma compra parcelada ativa.</p>
+              ) : (
+                <ul className="text-sm divide-y">
+                  {comprasParceladasAtivas.map((p, i) => (
+                    <li key={i} className="py-2">
+                      <div className="flex justify-between">
+                        <span className="font-medium">{p.descricao}</span>
+                        <span className="font-semibold">{fmt(p.valorTotal)}</span>
+                      </div>
+                      <div className="text-xs opacity-70">
+                        {p.parcelasPagas} de {p.parcelasTotal} pagas ({fmt(p.valorParcela)}/mês)
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </div>
+
           {/* Assinaturas anuais */}
           <section className="p-4 rounded-2xl shadow bg-white">
             <h2 className="text-lg font-medium mb-3">Assinaturas anuais</h2>
@@ -798,11 +868,11 @@ export default function LifeTracker() {
         <section className="p-4 rounded-2xl shadow bg-white space-y-4">
           <h2 className="text-lg font-medium">{editingGastoId ? 'Alterar Gasto' : 'Lançar Gasto'}</h2>
           <form
-            className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end"
+            className="grid grid-cols-1 md:grid-cols-10 gap-4 items-end"
             onSubmit={editingGastoId ? salvarEdicaoGasto : adicionarGasto}
             key={`gasto-form-${editingGastoId || 'novo'}`}
           >
-            <div className="md:col-span-4">
+            <div className="md:col-span-3">
               <label className="text-xs opacity-70">Descrição</label>
               <input
                 className="w-full p-2 border rounded-lg"
@@ -815,7 +885,7 @@ export default function LifeTracker() {
                 placeholder="ex: almoço ifood"
               />
             </div>
-            <div className="md:col-span-1">
+            <div>
               <label className="text-xs opacity-70">Valor (R$)</label>
               <input
                 type="number" step="0.01" min="0"
@@ -824,7 +894,7 @@ export default function LifeTracker() {
                 onChange={(e) => setNovoGasto({ ...novoGasto, valor: e.target.value })}
               />
             </div>
-            <div className="md:col-span-3">
+            <div className="md:col-span-2">
               <label className="text-xs opacity-70">Pagamento</label>
               <select
                 className="w-full p-2 border rounded-lg"
@@ -839,7 +909,7 @@ export default function LifeTracker() {
               </select>
             </div>
             {novoGasto.tipoPagamento === 'CRÉDITO' && (
-              <div className="md:col-span-3">
+              <div className="md:col-span-2">
                 <label className="text-xs opacity-70">Cartão</label>
                 <select
                   required
@@ -852,6 +922,17 @@ export default function LifeTracker() {
                 </select>
               </div>
             )}
+            {novoGasto.tipoPagamento === 'CRÉDITO' && (
+              <div>
+                <label className="text-xs opacity-70">Parcelas</label>
+                <input
+                  type="number" min="1" max="24"
+                  className="w-full p-2 border rounded-lg"
+                  value={novoGasto.parcelasTotal || 1}
+                  onChange={(e) => setNovoGasto({ ...novoGasto, parcelasTotal: Number(e.target.value) || 1 })}
+                />
+              </div>
+            )}
             <div className="md:col-span-2">
               <label className="text-xs opacity-70">Categoria</label>
               <select className="w-full p-2 border rounded-lg"
@@ -860,7 +941,7 @@ export default function LifeTracker() {
                 {CATEGORIAS_GASTO.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
-            <div className="md:col-span-2">
+            <div>
               <label className="text-xs opacity-70">Data</label>
               <input
                 type="date"
@@ -869,7 +950,7 @@ export default function LifeTracker() {
                 onChange={(e) => setNovoGasto({ ...novoGasto, data: e.target.value })}
               />
             </div>
-            <div className="flex gap-2 md:col-span-2">
+            <div className="flex gap-2">
               <button className="w-full px-3 py-2 rounded-lg bg-black text-white text-sm">
                 {editingGastoId ? 'Salvar' : 'Adicionar'}
               </button>
@@ -899,7 +980,10 @@ export default function LifeTracker() {
                   {gastos.slice().reverse().map(g => (
                     <tr key={g.id} className="border-t">
                       <td className="py-2 pr-2">{g.data}</td>
-                      <td>{g.descricao}</td>
+                      <td>
+                        {g.descricao}
+                        {g.parcelasTotal && g.parcelasTotal > 1 && <span className="text-xs opacity-60 ml-1">({g.parcelaAtual}/{g.parcelasTotal})</span>}
+                      </td>
                       <td>{g.categoria}</td>
                       <td>{g.tipoPagamento}{g.cartaoNome ? ` · ${g.cartaoNome}` : ''}</td>
                       <td className="text-right pr-4">{fmt(toNum(g.valor))}</td>
@@ -1009,8 +1093,8 @@ export default function LifeTracker() {
               <div>
                 <label className="text-xs opacity-70">Dia</label>
                 <input type="number" min="1" max="31" className="w-full p-2 border rounded-lg"
-                  value={novaAssinatura.diaCobranca}
-                  onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, diaCobranca: Number(e.target.value || 1) })} />
+                  value={novaAssinatura.diaCobranca || ''}
+                  onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, diaCobranca: Number(e.target.value) })} />
               </div>
               {novaAssinatura.periodoCobranca === 'ANUAL' && (
                 <div>
@@ -1272,8 +1356,8 @@ export default function LifeTracker() {
             <div>
               <label className="text-xs opacity-70">Dia de vencimento</label>
               <input type="number" min="1" max="28" className="w-full p-2 border rounded-lg"
-                value={novoCartao.diaVencimento}
-                onChange={(e)=>setNovoCartao({ ...novoCartao, diaVencimento: Number(e.target.value || 1) })} />
+                value={novoCartao.diaVencimento || ''}
+                onChange={(e)=>setNovoCartao({ ...novoCartao, diaVencimento: Number(e.target.value) })} />
             </div>            
             <div>
               <button className="w-full px-3 py-2 rounded-lg bg-black text-white text-sm">Adicionar</button>
