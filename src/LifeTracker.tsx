@@ -663,7 +663,7 @@ const previsaoMes = React.useMemo(() => ({
         descricao: g.descricao,
         valor: toNum(g.valor),
         cartaoId: g.cartaoId,
-        cartaoNome: g.cartaoNome ?? cartoes.find(c => c.id === g.cartaoId)?.nome
+        cartaoNome: g.cartaoNome ?? cartoes.find(c => c.id === g.cartaoId)?.nome ?? '' // Ensure it's always a string
       }));
  
     const assinList = assinMensais
@@ -675,7 +675,7 @@ const previsaoMes = React.useMemo(() => ({
         descricao: a.nome + ' (assinatura)',
         valor: toNum(a.valor),
         cartaoId: a.cartaoId,
-        cartaoNome: cartoes.find(c => c.id === a.cartaoId)?.nome
+        cartaoNome: cartoes.find(c => c.id === a.cartaoId)?.nome ?? '' // Ensure it's always a string
       }));
 
     return [...gastosList, ...assinList].sort((a, b) => (new Date(a.data)).getTime() - (new Date(b.data)).getTime());
