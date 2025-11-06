@@ -169,8 +169,9 @@ const removerAssinatura = (id: number) => {
   const toRemove = assinaturas.find(a => a.id === id);
   if (!toRemove) return;
   if (!window.confirm(`Remover "${toRemove.nome}"?`)) return;
+
   setAssinaturas(prev => prev.filter(a => a.id !== id));
-};
+}; // <-- esta chave e ponto e vírgula faltavam aqui!
 
 const pagarParcelaAcordo = (id: number) => {
   setAssinaturas(prev => prev.map(a => {
@@ -398,9 +399,12 @@ export default function LifeTracker() {
 
   const saveEditCard = () => {
     if (!editCardDraft) return;
-    setCartoes(prev => {
-      return prev.map(x => x.id === editCardDraft.id ? { ...editCardDraft } : x);
-    });
+setCartoes((prev: Cartao[]) =>
+  prev.map(x => x.id === editCardDraft.id
+    ? { ...editCardDraft, nome: editCardDraft.nome ?? "" } // força string
+    : x
+  )
+);
     setEditingCardId(null);
     setEditCardDraft(null);
   };
@@ -442,7 +446,17 @@ export default function LifeTracker() {
     id: 0, nome: '', valorNecessario: '', valorAtual: 0, status: 'EM PROGRESSO'
   } as unknown as Objetivo);
 
-  const [novoCartao, setNovoCartao] = React.useState<Omit<Cartao, 'id'>>({ nome: '', limite: '', diaVencimento: 1 });
+  interface NovoCartaoDraft {
+  nome: string;
+  limite: string;
+  diaVencimento: number;
+}
+const [novoCartao, setNovoCartao] = React.useState<NovoCartaoDraft>({
+  nome: '',
+  limite: '',
+  diaVencimento: 1,
+});
+
 
   const [novaDivida, setNovaDivida] = React.useState<Divida>({
     id: 0, pessoa: '', valor: '', descricao: ''
@@ -812,7 +826,7 @@ const previsaoMes = React.useMemo(() => ({
     if (!novoCartao.nome.trim() || !novoCartao.limite) return;
     // Garante que o nome seja capitalizado para consistência
     const cartaoFinal = { ...novoCartao, nome: novoCartao.nome.trim().toUpperCase(), id: Date.now() };
-    setCartoes(prev => [...prev, cartaoFinal]);
+    setCartoes((prev: Cartao[]) => [...prev, cartaoFinal]);
     setSugestoesCartao([]);
     setNovoCartao({ nome: '', limite: '', diaVencimento: 1 });
   };
