@@ -382,10 +382,11 @@ export default function LifeTracker() {
   };
 
   const saveEditCard = () => {
-    if (!editCardDraft) return; // já tem
+    if (!editCardDraft) return;
+    const cardToSave = editCardDraft; // Capture non-null value
     setCartoes((prev: Cartao[]) =>
-      prev.map(x => x.id === editCardDraft.id
-        ? { ...editCardDraft, nome: editCardDraft.nome ?? "" } // Use editCardDraft from outer scope
+      prev.map(x => x.id === cardToSave.id
+        ? { ...cardToSave, nome: cardToSave.nome ?? "" }
         : x
       )
     );
@@ -664,7 +665,7 @@ const previsaoMes = React.useMemo(() => ({
         cartaoId: g.cartaoId,
         cartaoNome: g.cartaoNome ?? cartoes.find(c => c.id === g.cartaoId)?.nome ?? 'Não encontrado'
       }));
-
+ 
     const assinList = assinMensais
       .filter(a => a.tipoPagamento === 'CRÉDITO')
       .map(a => ({
@@ -1766,7 +1767,7 @@ const previsaoMes = React.useMemo(() => ({
                       if (sugestaoAtivaIndex > -1) {
                         e.preventDefault();
                         if (sugestoesCartao[sugestaoAtivaIndex]) {
-                          setNovoCartao(c => ({...c, nome: sugestoesCartao[sugestaoAtivaIndex]}));
+                          setNovoCartao(c => ({...c, nome: sugestoesCartao[sugestaoAtivaIndex] ?? ''}));
                       }
                       setSugestoesCartao([]);
                       }
