@@ -381,13 +381,18 @@ export default function LifeTracker() {
     setEditCardDraft(null);
   };
 
-  const saveEditCard = () => {
-    if (!editCardDraft) return;
-    const cardToSave = editCardDraft; // Capture non-null value
+const saveEditCard = () => {
+  if (!editCardDraft || !editCardDraft.nome) return;
+  const cardToSave: Cartao = {
+    id: editCardDraft.id,
+    nome: editCardDraft.nome,
+    limite: editCardDraft.limite,
+    diaVencimento: editCardDraft.diaVencimento
+  };
 
-    const updatedCartoes = cartoes.map(x =>
-      x.id === cardToSave.id ? { ...cardToSave, nome: cardToSave.nome ?? "" } : x
-    );
+  const updatedCartoes = cartoes.map(x =>
+    x.id === cardToSave.id ? cardToSave : x
+  );
     setCartoes(updatedCartoes);
     setEditingCardId(null);
     setEditCardDraft(null);
@@ -1818,18 +1823,18 @@ const previsaoMes = React.useMemo(() => ({
               <span className="text-xs opacity-60">#{c.id}</span>
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <label className="flex flex-col">
-                <span className="opacity-60">Nome</span>
-                <input className="p-2 border rounded-lg"
-                  value={editCardDraft.nome}
-                  onChange={(e)=>setEditCardDraft({ ...(editCardDraft as Cartao), nome: e.target.value })} />
-              </label>
-              <label className="flex flex-col">
-                <span className="opacity-60">Limite (R$)</span>
-                <input type="number" min="0" step="0.01" className="p-2 border rounded"
-                  value={editCardDraft.limite}
-                  onChange={(e)=>setEditCardDraft({ ...(editCardDraft as Cartao), limite: e.target.value })} />
-              </label>
+            <label className="flex flex-col">
+              <span className="opacity-60">Nome</span>
+              <input className="p-2 border rounded-lg"
+                value={editCardDraft.nome || ''}
+                onChange={(e)=>setEditCardDraft({ ...(editCardDraft as Cartao), nome: e.target.value })} />
+            </label>
+            <label className="flex flex-col">
+              <span className="opacity-60">Limite (R$)</span>
+              <input type="number" min="0" step="0.01" className="p-2 border rounded"
+                value={editCardDraft.limite || ''}
+                onChange={(e)=>setEditCardDraft({ ...(editCardDraft as Cartao), limite: e.target.value })} />
+            </label>
               <label className="flex flex-col">
                 <span className="opacity-60">Dia de vencimento</span>
                 <input type="number" min="1" max="28" className="p-2 border rounded-lg"
