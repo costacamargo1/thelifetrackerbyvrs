@@ -382,21 +382,24 @@ export default function LifeTracker() {
   };
 
 const saveEditCard = () => {
-  if (!editCardDraft || !editCardDraft.nome) return;
+  if (!editCardDraft) return;
+  
+  // Garantir que todos os campos existam
   const cardToSave: Cartao = {
     id: editCardDraft.id,
-    nome: editCardDraft.nome,
-    limite: editCardDraft.limite,
-    diaVencimento: editCardDraft.diaVencimento
+    nome: editCardDraft.nome || '',
+    limite: editCardDraft.limite || '0',
+    diaVencimento: editCardDraft.diaVencimento || 1
   };
 
   const updatedCartoes = cartoes.map(x =>
     x.id === cardToSave.id ? cardToSave : x
   );
-    setCartoes(updatedCartoes);
-    setEditingCardId(null);
-    setEditCardDraft(null);
-  };
+  
+  setCartoes(updatedCartoes);
+  setEditingCardId(null);
+  setEditCardDraft(null);
+};
 
   const deleteCard = (id: number) => {
     const toDelete = cartoes.find(c => c.id == id);
@@ -1826,14 +1829,14 @@ const previsaoMes = React.useMemo(() => ({
             <label className="flex flex-col">
               <span className="opacity-60">Nome</span>
               <input className="p-2 border rounded-lg"
-                value={editCardDraft.nome || ''}
-                onChange={(e)=>setEditCardDraft({ ...(editCardDraft as Cartao), nome: e.target.value })} />
+  value={editCardDraft?.nome ?? ''}
+  onChange={(e)=>setEditCardDraft(editCardDraft ? { ...editCardDraft, nome: e.target.value } : null)} />
             </label>
             <label className="flex flex-col">
               <span className="opacity-60">Limite (R$)</span>
               <input type="number" min="0" step="0.01" className="p-2 border rounded"
-                value={editCardDraft.limite || ''}
-                onChange={(e)=>setEditCardDraft({ ...(editCardDraft as Cartao), limite: e.target.value })} />
+  value={editCardDraft?.limite ?? ''}
+  onChange={(e)=>setEditCardDraft(editCardDraft ? { ...editCardDraft, limite: e.target.value } : null)} />
             </label>
               <label className="flex flex-col">
                 <span className="opacity-60">Dia de vencimento</span>
