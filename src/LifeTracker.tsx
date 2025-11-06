@@ -384,8 +384,8 @@ export default function LifeTracker() {
   const saveEditCard = () => {
     if (!editCardDraft) return; // já tem
     setCartoes((prev: Cartao[]) =>
-      prev.map(x => x.id === editCardDraft!.id  // adicione ! aqui
-        ? { ...editCardDraft, nome: editCardDraft.nome ?? "" }
+      prev.map(x => x.id === editCardDraft.id
+        ? { ...editCardDraft, nome: editCardDraft.nome ?? "" } // Use editCardDraft from outer scope
         : x
       )
     );
@@ -1765,8 +1765,8 @@ const previsaoMes = React.useMemo(() => ({
                     } else if (e.key === 'Enter' || e.key === 'Tab') {
                       if (sugestaoAtivaIndex > -1) {
                         e.preventDefault();
-                        if (sugestaoAtivaIndex > -1 && sugestoesCartao[sugestaoAtivaIndex]) {
-                        setNovoCartao(c => ({...c, nome: sugestoesCartao[sugestaoAtivaIndex]}));
+                        if (sugestoesCartao[sugestaoAtivaIndex]) {
+                          setNovoCartao(c => ({...c, nome: sugestoesCartao[sugestaoAtivaIndex]}));
                       }
                       setSugestoesCartao([]);
                       }
@@ -2094,7 +2094,7 @@ const previsaoMes = React.useMemo(() => ({
                         <td>{l.descricao}</td>
                         <td>
                           <span className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full inline-block ${getDadosCartao(l.cartaoNome || '').bg}`}></span>
+                            <span className={`w-2 h-2 rounded-full inline-block ${getDadosCartao(l.cartaoNome ?? '').bg}`}></span>
                             {l.cartaoNome}
                           </span>
                         </td>
