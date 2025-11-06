@@ -1138,7 +1138,7 @@ const previsaoMes = React.useMemo(() => ({
                   } else if (e.key === 'Enter' && sugestaoDescricaoAtivaIndex > -1) {
                     e.preventDefault();
                     const sugestaoSelecionada = sugestoesDescricao[sugestaoDescricaoAtivaIndex];
-                    const catAuto = detectarCategoria(sugestaoSelecionada || '');
+                    const catAuto = detectarCategoria(sugestaoSelecionada);
                     setNovoGasto({ ...novoGasto, descricao: sugestaoSelecionada, categoria: catAuto });
                     setSugestoesDescricao([]);
                   } else if (e.key === 'Escape') {
@@ -1165,7 +1165,7 @@ const previsaoMes = React.useMemo(() => ({
                       sugestaoDescricaoAtivaIndex === index ? 'bg-blue-50 border-l-2 border-blue-500' : 'hover:bg-gray-100'
                     }`}
                     onMouseDown={() => {
-                      const catAuto = detectarCategoria(s || '');
+                      const catAuto = detectarCategoria(s);
                       setNovoGasto({ ...novoGasto, descricao: s, categoria: catAuto });
                       setSugestoesDescricao([]);
                     }}
