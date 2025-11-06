@@ -12,6 +12,7 @@ import C6 from './components/assets/icons/card-c6.svg';
 /** =========================
  * Tipos básicos
  * ========================= */
+type TipoAssinatura = 'ASSINATURA' | 'CONTRATO - ALUGUEL' | 'CONTRATO - PERSONALIZADO' | 'ACORDO';
 type TipoPagamento = 'DÉBITO' | 'CRÉDITO';
 type Periodo = 'MENSAL' | 'ANUAL';
 type StatusObj =
@@ -43,12 +44,14 @@ interface Assinatura {
   diaCobranca: number;
   mesCobranca?: number;
   anoAdesao?: number;
-  tipo: 'ASSINATURA' | 'CONTRATO - ALUGUEL' | 'CONTRATO - PERSONALIZADO';
+  tipo: TipoAssinatura;
   categoriaPersonalizada?: string;
   tipoPagamento: TipoPagamento;
   cartaoId: number | null;
   cartaoNome?: string | null;
   periodoCobranca: Periodo;
+  parcelasTotal?: number;  // Só para 'ACORDO', número total de parcelas
+  parcelaAtual?: number;   // Começa em 1, incrementa ao "pagar"
 }
 interface Objetivo { id: number; nome: string; valorNecessario: string; valorAtual: number; status: StatusObj; }
 interface Cartao { id: number; nome: string; limite: string; diaVencimento: number; }
@@ -571,18 +574,40 @@ export default function LifeTracker() {
     }, 0);
   }, [assinaturas]);
 
-  // --- BLOCO PREVISAO_MES CORRIGIDO ---
-  const previsaoMes = React.useMemo(() => ({
-    aluguel: totalAluguelMensal,
-    assinaturas: totalAssinMensal + totalAssinAnualMesCorrente,
-    credito: gastosCreditoMes + totalAssinAnualMesCorrenteCredito,
-    total: totalAluguelMensal + totalAssinMensal + totalAssinAnualMesCorrente + gastosCreditoMes
-  }), [totalAluguelMensal, totalAssinMensal, gastosCreditoMes, totalAssinAnualMesCorrente, totalAssinAnualMesCorrenteCredito]);
+
+const acordosMensais = React.useMemo(() => {
+  return assinaturas
+    .filter(a => a.tipo === 'ACORDO' && a.periodoCobranca === 'MENSAL' && (a.parcelaAtual ?? 1) <= (a.parcelasTotal ?? 1))
+    .reduce((acc, a) => {
+      const valorParcela = toNum(a.valor) / (a.parcelasTotal ?? 1);
+      return acc + valorParcela;
+    }, 0);
+}, [assinaturas]);
+
+const acordosAnuaisVencendoMes = React.useMemo(() => {
+  return anuaisVencendoMes
+    .filter(a => a.tipo === 'ACORDO' && (a.parcelaAtual ?? 1) <= (a.parcelasTotal ?? 1))
+    .reduce((acc, a) => {
+      const valorParcela = toNum(a.valor) / (a.parcelasTotal ?? 1);
+      return acc + valorParcela;
+    }, 0);
+}, [anuaisVencendoMes]);
+
+const totalAcordosMes = acordosMensais + acordosAnuaisVencendoMes;
+
+// AGORA O PREVISAO MES (atualize o total)
+const previsaoMes = React.useMemo(() => ({
+  aluguel: totalAluguelMensal,
+  assinaturas: totalAssinMensal + totalAssinAnualMesCorrente,
+  credito: gastosCreditoMes,
+  total: totalAluguelMensal + totalAssinMensal + totalAssinAnualMesCorrente + gastosCreditoMes + totalAcordosMes
+}), [totalAluguelMensal, totalAssinMensal, totalAssinAnualMesCorrente, gastosCreditoMes, totalAcordosMes]);
   // ------------------------------------
 
   // Listas derivadas para modais
   const assinMensais = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'MENSAL' && a.tipo === 'ASSINATURA'), [assinaturas]);
   const alugueisMensais = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'MENSAL' && a.tipo === 'CONTRATO - ALUGUEL'), [assinaturas]);
+  const acordosMensaisList = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'MENSAL' && a.tipo === 'ACORDO'), [assinaturas]);
 
   // Assinaturas mensais pagas no crédito também contam como gasto de crédito do mês
   const assinaturasCreditoMensal = React.useMemo(
@@ -647,6 +672,7 @@ export default function LifeTracker() {
     });
     return sort;
   }, [assinMensais, mensaisQuery, mensaisSort]);
+
 
   // --- BLOCO DE CÓDIGO CORROMPIDO REMOVIDO DAQUI ---
 
@@ -896,6 +922,10 @@ export default function LifeTracker() {
               <div className="p-3 rounded-xl bg-gray-50 border">
                 <div className="opacity-60">Aluguel</div>
                 <div className="text-lg font-semibold">{fmt(previsaoMes.aluguel)}</div>
+              </div>
+              <div className="p-3 rounded-xl bg-gray-50 border">
+              <div className="opacity-60"> Acordos: </div>
+              <div className="text-lg font-semibold">{fmt(totalAcordosMes)}</div>
               </div>
               <button type="button" onClick={() => setShowMensaisModal(true)} className="p-3 rounded-xl bg-gray-50 border text-left cursor-pointer hover:ring-2 hover:ring-black/10 transition">
                 <div className="opacity-60">Assinaturas Mensais</div>
@@ -1334,13 +1364,16 @@ export default function LifeTracker() {
             </div>
             <div className="md:col-span-3">
               <label className="text-xs opacity-70">Tipo</label>
-              <select className="w-full p-2 border rounded-lg"
-                value={novaAssinatura.tipo}
-                onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, tipo: e.target.value as Assinatura['tipo'] })}>
-                <option>ASSINATURA</option>
-                <option>CONTRATO - ALUGUEL</option>
-                <option>CONTRATO - PERSONALIZADO</option>
-              </select>
+<select
+  value={novaAssinatura.tipo}
+  onChange={(e) => setNovaAssinatura({ ...novaAssinatura, tipo: e.target.value as TipoAssinatura })}
+  className="w-full p-2 border rounded-lg"
+>
+  <option value="ASSINATURA">Assinatura</option>
+  <option value="CONTRATO - ALUGUEL">Contrato - Aluguel</option>
+  <option value="CONTRATO - PERSONALIZADO">Contrato - Personalizado</option>
+  <option value="ACORDO">Acordo</option>
+</select>
             </div>
             {novaAssinatura.tipo === 'CONTRATO - PERSONALIZADO' && (
               <div className="md:col-span-3">
@@ -1348,6 +1381,19 @@ export default function LifeTracker() {
                 <input className="w-full p-2 border rounded-lg"
                   value={novaAssinatura.categoriaPersonalizada || ''}
                   onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, categoriaPersonalizada: e.target.value })} />
+              </div>
+            )}
+            {novaAssinatura.tipo === 'ACORDO' && (
+              <div className="md:col-span-1">
+                <label className="text-xs opacity-70">Número de parcelas</label>
+                <input
+                  type="number"
+                  min="1"
+                  className="w-full p-2 border rounded-lg"
+                  value={novaAssinatura.parcelasTotal || 1}
+                  onChange={(e) => setNovaAssinatura({ ...novaAssinatura, parcelasTotal: parseInt(e.target.value) || 1 })}
+                  placeholder="ex: 3"
+                />
               </div>
             )}
             <div className="md:col-span-2">
@@ -1769,7 +1815,7 @@ export default function LifeTracker() {
                 <option value="valor">Ordenar por valor</option>
               </select>
             </div>
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-3 gap-6">
               <div>
                 <div className="font-medium mb-2">Assinaturas</div>
                 {mensaisList.length === 0 ? <p className="text-sm opacity-60">Nenhuma</p> : (
@@ -1813,9 +1859,45 @@ export default function LifeTracker() {
                 )}
                 <div className="mt-2 text-right text-sm font-semibold">Total: {fmt(alugueisMensais.reduce((s,a)=>s + toNum(a.valor), 0))}</div>
               </div>
+              <div>
+          <div className="font-medium mb-2">Acordos</div>
+            {acordosMensaisList.length === 0 ? (
+              <p className="text-sm opacity-60">Nenhum</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="text-left opacity-60">
+                  <tr><th>Nome</th><th>Valor</th><th>Dia</th><th>Pagamento</th></tr>
+                </thead>
+                <tbody>
+                  {acordosMensaisList.map(a => (
+                    <tr key={a.id} className="border-t">
+                      <td className="py-1">
+            {a.nome}
+            {a.parcelasTotal && a.parcelasTotal > 1 && (
+              <span className="text-xs opacity-70 ml-1">
+                ({a.parcelaAtual ?? 1}/{a.parcelasTotal})
+              </span>
+            )}
+          </td>
+            <td>{fmt(toNum(a.valor))}</td>
+            <td>{a.diaCobranca}</td>
+            <td>
+              {a.tipoPagamento}
+              {a.tipoPagamento === 'CRÉDITO' && a.cartaoId ? ` • ${a.cartaoNome ?? ''}` : ''}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )}
+  <div className="mt-2 text-right text-sm font-semibold">
+    Total: {fmt(acordosMensaisList.reduce((s, a) => s + toNum(a.valor), 0))}
+  </div>
+</div>
             </div>
           </div>
         </div>
+        
       )}
 
       {/* Modal: Gastos em Crédito (mês) */}
