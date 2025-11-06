@@ -165,21 +165,7 @@ const calcularProximoVencimentoAnual = (assinatura: Assinatura): { data: Date; d
 
 const CATEGORIAS_GASTO = ['ALIMENTAÇÃO', 'TRANSPORTE', 'LAZER', 'SAÚDE', 'MORADIA', 'EDUCAÇÃO', 'COMPRAS', 'VESTUÁRIO', 'ELETRÔNICOS', 'UTENSÍLIOS DOMÉSTICOS', 'BELEZA & CUIDADOS', 'PETS', 'INVESTIMENTOS', 'IMPREVISTO', 'OUTROS'] as const;
 
-const removerAssinatura = (id: number): void => {
-  setAssinaturas((prev: Assinatura[]) => prev.filter((a: Assinatura) => a.id !== id));
-};
 
-const pagarParcelaAcordo = (id: number): void => {
-  setAssinaturas((prev: Assinatura[]) =>
-    prev.map((a: Assinatura) => {
-      if (a.id === id && a.tipo === 'ACORDO') {
-        const proximaParcela = (a.parcelaAtual ?? 0) + 1;
-        return { ...a, parcelaAtual: proximaParcela };
-      }
-      return a;
-    })
-  );
-};
 
 const detectarCategoria = (descricao: string): typeof CATEGORIAS_GASTO[number] => {
   const d = (descricao || '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
@@ -421,8 +407,24 @@ export default function LifeTracker() {
     setAssinaturas(prev => prev.map(a => a.cartaoId === id ? { ...a, cartaoId: null } : a));
   };
 
+    const removerAssinatura = (id: number): void => {
+    setAssinaturas((prev: Assinatura[]) => prev.filter((a: Assinatura) => a.id !== id));
+  };
+
+  const pagarParcelaAcordo = (id: number): void => {
+    setAssinaturas((prev: Assinatura[]) =>
+      prev.map((a: Assinatura) => {
+        if (a.id === id && a.tipo === 'ACORDO') {
+          const proximaParcela = (a.parcelaAtual ?? 0) + 1;
+          return { ...a, parcelaAtual: proximaParcela };
+        }
+        return a;
+      })
+    );
+  };
 
   // Forms
+  
   const [novoGasto, setNovoGasto] = React.useState<Gasto>({
     id: 0, descricao: '', valor: '', data: new Date().toISOString().slice(0,10),
     categoria: 'ALIMENTAÇÃO', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null,
