@@ -160,19 +160,54 @@ const calcularProximoVencimentoAnual = (assinatura: Assinatura): { data: Date; d
   return { data: proximoVencimento, dias: diffDiasTotal, meses, texto, ehProximo: diffDiasTotal <= 30 };
 };
 
-const CATEGORIAS_GASTO = ['ALIMENTAÇÃO', 'TRANSPORTE', 'LAZER', 'SAÚDE', 'MORADIA', 'EDUCAÇÃO', 'COMPRAS', 'IMPREVISTO', 'OUTROS'] as const;
+const CATEGORIAS_GASTO = ['ALIMENTAÇÃO', 'TRANSPORTE', 'LAZER', 'SAÚDE', 'MORADIA', 'EDUCAÇÃO', 'COMPRAS', 'VESTUÁRIO', 'ELETRÔNICOS', 'UTENSÍLIOS DOMÉSTICOS', 'BELEZA & CUIDADOS', 'PETS', 'INVESTIMENTOS', 'IMPREVISTO', 'OUTROS'] as const;
 
 const detectarCategoria = (descricao: string): typeof CATEGORIAS_GASTO[number] => {
   const d = (descricao || '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
   const match = (palavras: string[]) => palavras.some(k => d.includes(k));
+  
+  // Imprevisto tem prioridade se começar com a palavra
   if (d.startsWith('imprevisto')) return 'IMPREVISTO';
-  if (match(['almoco','ifood','lanche','comida','salgado','doce','docinho','cafe','jantar','restaurante','padaria','mercado','pizza','hamburguer','acai','cerveja'])) return 'ALIMENTAÇÃO';
-  if (match(['uber','taxi','99','gasolina','onibus','metro','estacionamento','pedagio','passagem'])) return 'TRANSPORTE';
-  if (match(['cinema','teatro','show','festa','bar','jogo','game','passeio'])) return 'LAZER';
-  if (match(['farmacia','remedio','consulta','medico','dentista','exame','hospital','academia'])) return 'SAÚDE';
-  if (match(['luz','agua','internet','gas','iptu'])) return 'MORADIA';
-  if (match(['curso','faculdade','escola','livro','aula','treinamento'])) return 'EDUCAÇÃO';
-  if (match(['loja','roupa','sapato','shopping','presente','mercadolivre','amazon','shopee'])) return 'COMPRAS';
+  
+  // Alimentação
+  if (match(['almoco','almoço','ifood','lanche','comida','salgado','doce','docinho','cafe','jantar','restaurante','padaria','mercado','supermercado','pizza','hamburguer','acai','açai','cerveja','bebida','suco','refrigerante','agua','sorvete','pao','queijo','leite','carne','frango','peixe','arroz','feijao','macarrao','biscoito','frutas','verduras','legumes','hortifruti','feira','delivery'])) return 'ALIMENTAÇÃO';
+  
+  // Transporte
+  if (match(['uber','taxi','99','gasolina','combustivel','onibus','metro','metrô','estacionamento','pedagio','pedágio','passagem','bus','vlt','trem','mobilidade','moto','carro','veiculo','veículo','uber','cabify','indriver','ipva','licenciamento','multa','transito','trânsito'])) return 'TRANSPORTE';
+  
+  // Lazer
+  if (match(['cinema','teatro','show','festa','balada','bar','jogo','game','passeio','viagem','turismo','parque','diversao','diversão','streaming','netflix','spotify','youtube','prime','disney','hbo','entretenimento','ingresso','evento','concerto','museu','clube','piscina'])) return 'LAZER';
+  
+  // Saúde
+  if (match(['farmacia','farmácia','remedio','remédio','medicamento','consulta','medico','médico','dentista','exame','hospital','clinica','clínica','academia','personal','nutricao','nutrição','psicologia','terapia','fisioterapia','laboratorio','laboratório','cirurgia','vacina','plano','saude','saúde','oculos','óculos','aparelho','ortodontia'])) return 'SAÚDE';
+  
+  // Moradia
+  if (match(['aluguel','condominio','condomínio','luz','energia','eletrica','elétrica','agua','água','internet','gas','gás','iptu','manutencao','manutenção','reforma','pintura','encanador','eletricista','limpeza','faxina','zeladoria','seguro residencial','taxa','boleto'])) return 'MORADIA';
+  
+  // Educação
+  if (match(['curso','faculdade','universidade','escola','colegio','colégio','livro','apostila','aula','treinamento','workshop','seminario','seminário','mestrado','doutorado','pos','pós','graduacao','graduação','material escolar','mensalidade','matricula','matrícula','idioma','ingles','inglês','espanhol'])) return 'EDUCAÇÃO';
+  
+  // Eletrônicos
+  if (match(['celular','smartphone','notebook','computador','tablet','pc','mouse','teclado','monitor','tv','televisao','televisão','smartwatch','fone','headphone','caixa de som','carregador','cabo','fonte','hd','ssd','memoria','memória','placa','processador','webcam','microfone','alexa','google home','chromecast','apple','samsung','xiaomi','motorola','lg','console','playstation','xbox','nintendo'])) return 'ELETRÔNICOS';
+  
+  // Utensílios Domésticos
+  if (match(['microondas','geladeira','fogao','fogão','maquina de lavar','lavadora','secadora','aspirador','ferro','panela','frigideira','prato','copo','talher','faca','colher','garfo','liquidificador','batedeira','airfryer','cafeteira','torradeira','ventilador','ar condicionado','aquecedor','cama','colchao','colchão','travesseiro','lencol','lençol','cobertor','toalha','cortina','tapete','mesa','cadeira','sofa','sofá','armario','armário','guarda-roupa','estante','rack','organizador','varal','balde','vassoura','rodo','pano','esponja','detergente'])) return 'UTENSÍLIOS DOMÉSTICOS';
+  
+  // Vestuário
+  if (match(['roupa','camisa','camiseta','calca','calça','short','bermuda','vestido','saia','blusa','jaqueta','casaco','tenis','tênis','sapato','sandalia','sandália','chinelo','bota','meia','cueca','calcinha','sutia','sutiã','pijama','uniforme','terno','gravata','cinto','bolsa','mochila','carteira','relogio','relógio','anel','colar','brinco','pulseira','acessorio','acessório'])) return 'VESTUÁRIO';
+  
+  // Beleza & Cuidados
+  if (match(['salao','salão','cabelo','cabeleireiro','barba','barbeiro','manicure','pedicure','estetica','estética','depilacao','depilação','massagem','spa','maquiagem','cosmetico','cosmético','perfume','shampoo','condicionador','creme','hidratante','protetor solar','desodorante','sabonete','escova','secador','chapinha','navalha','aparador','unha','esmalte','skin care','tratamento'])) return 'BELEZA & CUIDADOS';
+  
+  // Pets
+  if (match(['pet','cachorro','gato','ração','racao','veterinario','veterinário','vacina animal','banho e tosa','petshop','brinquedo pet','caminha','coleira','guia','antipulgas','vermifugo','vermífugo','areia gato','comedouro','bebedouro'])) return 'PETS';
+  
+  // Investimentos
+  if (match(['investimento','aplicacao','aplicação','poupanca','poupança','cdb','tesouro','acao','ação','bolsa','fundo','previdencia','previdência','renda fixa','renda variavel','variável','crypto','bitcoin','corretora','xp','nuinvest','inter invest'])) return 'INVESTIMENTOS';
+  
+  // Compras (genérico para lojas)
+  if (match(['loja','shopping','mercadolivre','amazon','shopee','shein','aliexpress','magazine','casas bahia','americanas','presente','gift','compra'])) return 'COMPRAS';
+  
   return 'OUTROS';
 };
 // ---------------------------------
@@ -366,8 +401,8 @@ export default function LifeTracker() {
   }), [anuaisTodos]);
 
   // Compras parceladas ativas
-  const comprasParceladasAtivas = React.useMemo(() => {
-    const parcelados = gastos.filter(g => g.parcelaId);
+ const comprasParceladasAtivas = React.useMemo(() => {
+    const parcelados = gastos.filter(g => g.parcelaId && g.tipoPagamento === 'CRÉDITO');
     const grouped = parcelados.reduce((acc, g) => {
       if (!g.parcelaId) return acc;
       if (!acc[g.parcelaId]) {
@@ -377,11 +412,17 @@ export default function LifeTracker() {
           parcelasPagas: 0,
           parcelasTotal: g.parcelasTotal || 0,
           valorParcela: toNum(g.valor),
+          cartaoNome: g.cartaoNome || 'Não identificado',
         };
       }
-      acc[g.parcelaId].parcelasPagas = Math.max(acc[g.parcelaId].parcelasPagas, g.parcelaAtual || 0);
+      // Conta quantas parcelas já passaram (parcelas com data <= hoje)
+      const hoje = new Date();
+      const dataParcela = new Date(g.data);
+      if (dataParcela <= hoje) {
+        acc[g.parcelaId].parcelasPagas = Math.max(acc[g.parcelaId].parcelasPagas, g.parcelaAtual || 0);
+      }
       return acc;
-    }, {} as Record<string, { descricao: string; valorTotal: number; parcelasPagas: number; parcelasTotal: number; valorParcela: number }>);
+    }, {} as Record<string, { descricao: string; valorTotal: number; parcelasPagas: number; parcelasTotal: number; valorParcela: number; cartaoNome: string }>);
 
     return Object.values(grouped).filter(g => g.parcelasPagas < g.parcelasTotal);
   }, [gastos]);
