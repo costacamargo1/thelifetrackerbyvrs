@@ -396,13 +396,13 @@ export default function LifeTracker() {
   };
 
   const saveEditCard = () => {
-    if (!editCardDraft) return;
-setCartoes((prev: Cartao[]) =>
-  prev.map(x => x.id === editCardDraft.id
-    ? { ...editCardDraft, nome: editCardDraft.nome ?? "" } // força string
-    : x
-  )
-);
+    if (!editCardDraft) return; // já tem
+    setCartoes((prev: Cartao[]) =>
+      prev.map(x => x.id === editCardDraft!.id  // adicione ! aqui
+        ? { ...editCardDraft, nome: editCardDraft.nome ?? "" }
+        : x
+      )
+    );
     setEditingCardId(null);
     setEditCardDraft(null);
   };
@@ -413,13 +413,7 @@ setCartoes((prev: Cartao[]) =>
     if (!window.confirm(`Remover o cartão "${toDelete.nome}"? Seus gastos antigos permanecem, apenas deixam de apontar para este cartão.`)) return;
 
     // Remover cartão e, se era padrão, definir o primeiro restante como padrão
-      setCartoes((prev: Cartao[]) =>
-        prev.map((x: Cartao) =>
-          x.id === editCardDraft.id
-            ? { ...editCardDraft, nome: editCardDraft.nome ?? '' }
-            : x
-        )
-      );
+    setCartoes((prev: Cartao[]) => prev.filter((x: Cartao) => x.id !== id));
 
     // Para não quebrar referências: zera cartaoId dos gastos que apontavam para ele (mantém cartaoNome como histórico)
     setGastos(prev => prev.map(g => g.cartaoId === id ? { ...g, cartaoId: null } : g));
@@ -548,7 +542,7 @@ const [novoCartao, setNovoCartao] = React.useState<NovoCartaoDraft>({
   const anuaisTodos = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'ANUAL'), [assinaturas]);
   const anuaisProximas = React.useMemo(() => anuaisTodos.filter(a => {
     const vencimento = calcularProximoVencimentoAnual(a);
-    return vencimento?.ehProximo ?? false;
+    return !!vencimento && (vencimento.ehProximo ?? false);
   }), [anuaisTodos]);
 
   // Assinaturas anuais que vencem no mês atual
@@ -662,7 +656,7 @@ const previsaoMes = React.useMemo(() => ({
       .map(g => ({
         id: `gasto-${g.id}`,
         tipo: 'gasto' as const,
-        data: g.data,
+        data: isNaN(new Date(g.data).getTime()) ? '' : g.data,
         descricao: g.descricao,
         valor: toNum(g.valor),
         cartaoId: g.cartaoId,
@@ -674,7 +668,7 @@ const previsaoMes = React.useMemo(() => ({
       .map(a => ({
         id: `assinatura-${a.id}`,
         tipo: 'assinatura' as const,
-        data: new Date(now.getFullYear(), now.getMonth(), a.diaCobranca ?? 1),
+        data: new Date(now.getFullYear(), now.getMonth(), a.diaCobranca ?? 1).toISOString().slice(0,10),
         descricao: a.nome + ' (assinatura)',
         valor: toNum(a.valor),
         cartaoId: a.cartaoId,
@@ -1769,8 +1763,10 @@ const previsaoMes = React.useMemo(() => ({
                     } else if (e.key === 'Enter' || e.key === 'Tab') {
                       if (sugestaoAtivaIndex > -1) {
                         e.preventDefault();
+                        if (sugestaoAtivaIndex > -1 && sugestoesCartao[sugestaoAtivaIndex]) {
                         setNovoCartao(c => ({...c, nome: sugestoesCartao[sugestaoAtivaIndex]}));
-                        setSugestoesCartao([]);
+                      }
+                      setSugestoesCartao([]);
                       }
                     } else if (e.key === 'Escape') {
                       setSugestoesCartao([]);
