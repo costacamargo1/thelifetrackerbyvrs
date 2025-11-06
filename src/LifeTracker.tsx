@@ -213,6 +213,119 @@ const detectarCategoria = (descricao: string): typeof CATEGORIAS_GASTO[number] =
 // ---------------------------------
 
 const SUGESTOES_BANCOS = ['NUBANK', 'SANTANDER', 'CAIXA', 'C6', 'ITAÚ', 'BRADESCO', 'INTER', 'BANCO DO BRASIL'];
+const SUGESTOES_DESCRICAO: Record<string, string[]> = {
+  'ALIMENTAÇÃO': [
+    'Almoço', 'Jantar', 'Café da manhã', 'Lanche', 'iFood', 'Uber Eats', 'Rappi',
+    'Mercado', 'Supermercado', 'Padaria', 'Restaurante', 'Pizza', 'Hambúrguer',
+    'Açaí', 'Sorvete', 'Cerveja', 'Delivery', 'Feira', 'Hortifruti'
+  ],
+  'TRANSPORTE': [
+    'Uber', 'Táxi', '99', 'Gasolina', 'Combustível', 'Estacionamento', 'Pedágio',
+    'Passagem ônibus', 'Metrô', 'IPVA', 'Licenciamento', 'Multa', 'Manutenção carro'
+  ],
+  'LAZER': [
+    'Cinema', 'Teatro', 'Show', 'Festa', 'Bar', 'Netflix', 'Spotify', 'Prime Video',
+    'Disney+', 'HBO Max', 'Viagem', 'Passeio', 'Ingresso', 'Game', 'Streaming'
+  ],
+  'SAÚDE': [
+    'Farmácia', 'Remédio', 'Consulta médica', 'Dentista', 'Exame', 'Academia',
+    'Personal trainer', 'Nutricionista', 'Psicólogo', 'Fisioterapia', 'Plano de saúde',
+    'Óculos', 'Vacina'
+  ],
+  'MORADIA': [
+    'Aluguel', 'Condomínio', 'Luz', 'Água', 'Internet', 'Gás', 'IPTU',
+    'Manutenção', 'Reforma', 'Limpeza', 'Encanador', 'Eletricista'
+  ],
+  'EDUCAÇÃO': [
+    'Mensalidade', 'Curso', 'Faculdade', 'Livro', 'Material escolar', 'Aula particular',
+    'Inglês', 'Idiomas', 'Workshop', 'Treinamento', 'Apostila'
+  ],
+  'ELETRÔNICOS': [
+    'Celular', 'Notebook', 'Tablet', 'TV', 'Fone de ouvido', 'Mouse', 'Teclado',
+    'Monitor', 'Carregador', 'Console', 'PlayStation', 'Xbox', 'Nintendo Switch'
+  ],
+  'UTENSÍLIOS DOMÉSTICOS': [
+    'Microondas', 'Geladeira', 'Fogão', 'Máquina de lavar', 'Aspirador', 'Airfryer',
+    'Liquidificador', 'Panela', 'Jogo de cama', 'Toalha', 'Sofá', 'Mesa', 'Cadeira',
+    'Colchão', 'Travesseiro', 'Cortina', 'Tapete'
+  ],
+  'VESTUÁRIO': [
+    'Roupa', 'Camisa', 'Calça', 'Tênis', 'Sapato', 'Jaqueta', 'Casaco',
+    'Bolsa', 'Mochila', 'Relógio', 'Óculos de sol', 'Cinto', 'Meia'
+  ],
+  'BELEZA & CUIDADOS': [
+    'Salão', 'Corte de cabelo', 'Barbeiro', 'Manicure', 'Pedicure', 'Depilação',
+    'Perfume', 'Shampoo', 'Maquiagem', 'Creme', 'Skin care', 'Massagem', 'Spa'
+  ],
+  'PETS': [
+    'Ração', 'Veterinário', 'Vacina pet', 'Banho e tosa', 'Petshop', 
+    'Brinquedo pet', 'Remédio pet', 'Coleira', 'Areia de gato'
+  ],
+  'INVESTIMENTOS': [
+    'CDB', 'Tesouro Direto', 'Ações', 'Fundo imobiliário', 'Previdência privada',
+    'Bitcoin', 'Poupança', 'Renda fixa'
+  ],
+  'COMPRAS': [
+    'Mercado Livre', 'Amazon', 'Shopee', 'Shein', 'Aliexpress', 
+    'Magazine Luiza', 'Casas Bahia', 'Presente'
+  ],
+  'IMPREVISTO': [
+    'Imprevisto', 'Emergência', 'Conserto urgente', 'Perda', 'Quebra'
+  ],
+  'OUTROS': ['Outros']
+};
+const SUGESTOES_GLOBAIS = [
+  'iFood',
+  'Jantar restaurante',
+  'Uber',
+  '99',
+  'Gasolina',
+  'Netflix',
+  'Spotify',
+  'Amazon',
+  'Mercado livre',
+  'Mercado',          // adicionado
+  'Supermercado',     // adicionado
+  'Shopee',
+  'Roupa',
+  'Sapato',
+  'Farmácia',
+  'Remédio',
+  'Academia',
+  'Cinema',
+  'Viagem',
+  'Passagem aérea',
+  'Hotel',
+  'Aluguel',
+  'Luz',
+  'Água',
+  'Internet',
+  'Iptu',
+  'Curso online',
+  'Livro',
+  'Presente',
+  'Imprevisto',       // adicionado
+  'Pizza',
+  'Hambúrguer',
+  'Açaí',
+  'Café',
+  'Padaria',
+  'Salgado',
+  'Cerveja',
+  'Bar',
+  'Jogo',
+  'Passeio',
+  'Dentista',
+  'Consulta médica',
+  'Exame',
+  'Estacionamento',
+  'Pedágio',
+  'Ônibus',
+  'Metrô',
+  'Transferência',
+  'Doação',
+  'Outros',
+];
 
 /** =========================
  * Componente principal
@@ -249,6 +362,8 @@ export default function LifeTracker() {
   // --- Sugestões de cartões ---
   const [sugestoesCartao, setSugestoesCartao] = React.useState<string[]>([]);
   const [sugestaoAtivaIndex, setSugestaoAtivaIndex] = React.useState(-1);
+  const [sugestoesDescricao, setSugestoesDescricao] = React.useState<string[]>([]);
+  const [sugestaoDescricaoAtivaIndex, setSugestaoDescricaoAtivaIndex] = React.useState(-1);
 
 
   const startEditCard = (c: Cartao) => {
@@ -913,19 +1028,79 @@ export default function LifeTracker() {
             onSubmit={editingGastoId ? salvarEdicaoGasto : adicionarGasto}
             key={`gasto-form-${editingGastoId || 'novo'}`}
           >
-            <div className="md:col-span-3">
-              <label className="text-xs opacity-70">Descrição</label>
-              <input
-                className="w-full p-2 border rounded-lg"
-                value={novoGasto.descricao}
-                onChange={(e) => {
-                  const desc = e.target.value;
-                  const catAuto = detectarCategoria(desc);
-                  setNovoGasto({ ...novoGasto, descricao: desc, categoria: catAuto });
-                }}
-                placeholder="ex: almoço ifood"
-              />
-            </div>
+          <div className="md:col-span-3 relative">
+            <label className="text-xs opacity-70">Descrição</label>
+            <input
+              className="w-full p-2 border rounded-lg"
+              value={novoGasto.descricao}
+              onChange={(e) => {
+  const desc = e.target.value;
+  const catAuto = detectarCategoria(desc);
+  setNovoGasto({ ...novoGasto, descricao: desc, categoria: catAuto });
+
+  // === SUGESTÕES GLOBAIS AO DIGITAR ===
+  if (desc.trim().length >= 2) {
+    const filtradas = SUGESTOES_GLOBAIS
+      .filter(s => s.toLowerCase().includes(desc.toLowerCase()))
+      .slice(0, 8); // Máximo 8 sugestões
+
+    setSugestoesDescricao(filtradas);
+    setSugestaoDescricaoAtivaIndex(filtradas.length > 0 ? 0 : -1);
+  } else {
+    setSugestoesDescricao([]);
+  }
+}}
+              onBlur={() => setTimeout(() => setSugestoesDescricao([]), 200)}
+              onKeyDown={(e) => {
+                if (sugestoesDescricao.length > 0) {
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setSugestaoDescricaoAtivaIndex(prev => (prev + 1) % sugestoesDescricao.length);
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setSugestaoDescricaoAtivaIndex(prev => (prev - 1 + sugestoesDescricao.length) % sugestoesDescricao.length);
+                  } else if (e.key === 'Enter' && sugestaoDescricaoAtivaIndex > -1) {
+                    e.preventDefault();
+                    const sugestaoSelecionada = sugestoesDescricao[sugestaoDescricaoAtivaIndex];
+                    const catAuto = detectarCategoria(sugestaoSelecionada);
+                    setNovoGasto({ ...novoGasto, descricao: sugestaoSelecionada, categoria: catAuto });
+                    setSugestoesDescricao([]);
+                  } else if (e.key === 'Escape') {
+                    setSugestoesDescricao([]);
+                  }
+                }
+              }}
+              onFocus={() => {
+                // Mostra todas as sugestões da categoria quando focar no campo vazio
+                if (!novoGasto.descricao.trim()) {
+                  const sugestoesCategoria = SUGESTOES_DESCRICAO[novoGasto.categoria] || [];
+                  setSugestoesDescricao(sugestoesCategoria.slice(0, 8));
+                  setSugestaoDescricaoAtivaIndex(0);
+                }
+              }}
+              placeholder="ex: almoço ifood"
+            />
+            {sugestoesDescricao.length > 0 && (
+              <ul className="absolute z-10 w-full bg-white border rounded-lg mt-1 shadow-lg max-h-60 overflow-y-auto">
+                {sugestoesDescricao.map((s, index) => (
+                  <li
+                    key={s}
+                    className={`p-2 cursor-pointer text-sm ${
+                      sugestaoDescricaoAtivaIndex === index ? 'bg-blue-50 border-l-2 border-blue-500' : 'hover:bg-gray-100'
+                    }`}
+                    onMouseDown={() => {
+                      const catAuto = detectarCategoria(s);
+                      setNovoGasto({ ...novoGasto, descricao: s, categoria: catAuto });
+                      setSugestoesDescricao([]);
+                    }}
+                    onMouseEnter={() => setSugestaoDescricaoAtivaIndex(index)}
+                  >
+                    {s}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
             <div>
               <label className="text-xs opacity-70">Valor (R$)</label>
               <input
