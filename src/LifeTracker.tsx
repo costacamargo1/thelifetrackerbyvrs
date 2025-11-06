@@ -165,22 +165,20 @@ const calcularProximoVencimentoAnual = (assinatura: Assinatura): { data: Date; d
 
 const CATEGORIAS_GASTO = ['ALIMENTAÇÃO', 'TRANSPORTE', 'LAZER', 'SAÚDE', 'MORADIA', 'EDUCAÇÃO', 'COMPRAS', 'VESTUÁRIO', 'ELETRÔNICOS', 'UTENSÍLIOS DOMÉSTICOS', 'BELEZA & CUIDADOS', 'PETS', 'INVESTIMENTOS', 'IMPREVISTO', 'OUTROS'] as const;
 
-const removerAssinatura = (id: number) => {
-  const toRemove = assinaturas.find(a => a.id === id);
-  if (!toRemove) return;
-  if (!window.confirm(`Remover "${toRemove.nome}"?`)) return;
+const removerAssinatura = (id: number): void => {
+  setAssinaturas((prev: Assinatura[]) => prev.filter((a: Assinatura) => a.id !== id));
+};
 
-  setAssinaturas(prev => prev.filter(a => a.id !== id));
-}; // <-- esta chave e ponto e vírgula faltavam aqui!
-
-const pagarParcelaAcordo = (id: number) => {
-  setAssinaturas(prev => prev.map(a => {
-    if (a.id === id && a.tipo === 'ACORDO') {
-      const proximaParcela = (a.parcelaAtual ?? 0) + 1;
-      return { ...a, parcelaAtual: proximaParcela };
-    }
-    return a;
-  }));
+const pagarParcelaAcordo = (id: number): void => {
+  setAssinaturas((prev: Assinatura[]) =>
+    prev.map((a: Assinatura) => {
+      if (a.id === id && a.tipo === 'ACORDO') {
+        const proximaParcela = (a.parcelaAtual ?? 0) + 1;
+        return { ...a, parcelaAtual: proximaParcela };
+      }
+      return a;
+    })
+  );
 };
 
 const detectarCategoria = (descricao: string): typeof CATEGORIAS_GASTO[number] => {
@@ -415,9 +413,13 @@ setCartoes((prev: Cartao[]) =>
     if (!window.confirm(`Remover o cartão "${toDelete.nome}"? Seus gastos antigos permanecem, apenas deixam de apontar para este cartão.`)) return;
 
     // Remover cartão e, se era padrão, definir o primeiro restante como padrão
-        setCartoes(prev => {
-          return prev.filter(c => c.id !== id);
-        });
+      setCartoes((prev: Cartao[]) =>
+        prev.map((x: Cartao) =>
+          x.id === editCardDraft.id
+            ? { ...editCardDraft, nome: editCardDraft.nome ?? '' }
+            : x
+        )
+      );
 
     // Para não quebrar referências: zera cartaoId dos gastos que apontavam para ele (mantém cartaoNome como histórico)
     setGastos(prev => prev.map(g => g.cartaoId === id ? { ...g, cartaoId: null } : g));
@@ -447,6 +449,12 @@ setCartoes((prev: Cartao[]) =>
   } as unknown as Objetivo);
 
   interface NovoCartaoDraft {
+  nome: string;
+  limite: string;
+  diaVencimento: number;
+}
+// Tipo mais rígido para o estado de novo cartão
+interface NovoCartaoDraft {
   nome: string;
   limite: string;
   diaVencimento: number;
