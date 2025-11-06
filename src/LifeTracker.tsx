@@ -1156,26 +1156,28 @@ const previsaoMes = React.useMemo(() => ({
               }}
               placeholder="ex: almoço ifood"
             />
-            {sugestoesDescricao.length > 0 && (
-              <ul className="absolute z-10 w-full bg-white border rounded-lg mt-1 shadow-lg max-h-60 overflow-y-auto">
-                {sugestoesDescricao.map((s, index) => (
-                  <li
-                    key={s}
-                    className={`p-2 cursor-pointer text-sm ${
-                      sugestaoDescricaoAtivaIndex === index ? 'bg-blue-50 border-l-2 border-blue-500' : 'hover:bg-gray-100'
-                    }`}
-                    onMouseDown={() => {
-                      const catAuto = detectarCategoria(s);
-                      setNovoGasto({ ...novoGasto, descricao: s || '', categoria: catAuto });
-                      setSugestoesDescricao([]);
-                    }}
-                    onMouseEnter={() => setSugestaoDescricaoAtivaIndex(index)}
-                  >
-                    {s}
-                  </li>
-                ))}
-              </ul>
-            )}
+{sugestoesDescricao.length > 0 && (
+  <ul className="absolute z-10 w-full bg-white border rounded-lg mt-1 shadow-lg max-h-60 overflow-y-auto">
+    {sugestoesDescricao.map((s, index) => (
+      <li
+        key={s}
+        className={`p-2 cursor-pointer text-sm ${
+          sugestaoDescricaoAtivaIndex === index ? 'bg-blue-50 border-l-2 border-blue-500' : 'hover:bg-gray-100'
+        }`}
+        onMouseDown={() => {
+          if (s) {  // Adicione esta verificação
+            const catAuto = detectarCategoria(s);
+            setNovoGasto({ ...novoGasto, descricao: s, categoria: catAuto });
+            setSugestoesDescricao([]);
+          }
+        }}
+        onMouseEnter={() => setSugestaoDescricaoAtivaIndex(index)}
+      >
+        {s}
+      </li>
+    ))}
+  </ul>
+)}
           </div>
             <div>
               <label className="text-xs opacity-70">Valor (R$)</label>
