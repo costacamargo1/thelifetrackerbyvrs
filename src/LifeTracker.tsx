@@ -384,12 +384,11 @@ export default function LifeTracker() {
   const saveEditCard = () => {
     if (!editCardDraft) return;
     const cardToSave = editCardDraft; // Capture non-null value
-    setCartoes((prev: Cartao[]) =>
-      prev.map(x => x.id === cardToSave.id
-        ? { ...cardToSave, nome: cardToSave.nome ?? "" }
-        : x
-      )
+
+    const updatedCartoes = cartoes.map(x =>
+      x.id === cardToSave.id ? { ...cardToSave, nome: cardToSave.nome ?? "" } : x
     );
+    setCartoes(updatedCartoes);
     setEditingCardId(null);
     setEditCardDraft(null);
   };
@@ -663,7 +662,7 @@ const previsaoMes = React.useMemo(() => ({
         descricao: g.descricao,
         valor: toNum(g.valor),
         cartaoId: g.cartaoId,
-        cartaoNome: g.cartaoNome ?? cartoes.find(c => c.id === g.cartaoId)?.nome ?? '' // Ensure it's always a string
+        cartaoNome: g.cartaoNome ?? cartoes.find(c => c.id === g.cartaoId)?.nome ?? ''
       }));
  
     const assinList = assinMensais
@@ -675,7 +674,7 @@ const previsaoMes = React.useMemo(() => ({
         descricao: a.nome + ' (assinatura)',
         valor: toNum(a.valor),
         cartaoId: a.cartaoId,
-        cartaoNome: cartoes.find(c => c.id === a.cartaoId)?.nome ?? '' // Ensure it's always a string
+        cartaoNome: cartoes.find(c => c.id === a.cartaoId)?.nome ?? ''
       }));
 
     return [...gastosList, ...assinList].sort((a, b) => (new Date(a.data)).getTime() - (new Date(b.data)).getTime());
