@@ -165,6 +165,23 @@ const calcularProximoVencimentoAnual = (assinatura: Assinatura): { data: Date; d
 
 const CATEGORIAS_GASTO = ['ALIMENTAÇÃO', 'TRANSPORTE', 'LAZER', 'SAÚDE', 'MORADIA', 'EDUCAÇÃO', 'COMPRAS', 'VESTUÁRIO', 'ELETRÔNICOS', 'UTENSÍLIOS DOMÉSTICOS', 'BELEZA & CUIDADOS', 'PETS', 'INVESTIMENTOS', 'IMPREVISTO', 'OUTROS'] as const;
 
+const removerAssinatura = (id: number) => {
+  const toRemove = assinaturas.find(a => a.id === id);
+  if (!toRemove) return;
+  if (!window.confirm(`Remover "${toRemove.nome}"?`)) return;
+  setAssinaturas(prev => prev.filter(a => a.id !== id));
+};
+
+const pagarParcelaAcordo = (id: number) => {
+  setAssinaturas(prev => prev.map(a => {
+    if (a.id === id && a.tipo === 'ACORDO') {
+      const proximaParcela = (a.parcelaAtual ?? 0) + 1;
+      return { ...a, parcelaAtual: proximaParcela };
+    }
+    return a;
+  }));
+};
+
 const detectarCategoria = (descricao: string): typeof CATEGORIAS_GASTO[number] => {
   const d = (descricao || '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
   const match = (palavras: string[]) => palavras.some(k => d.includes(k));
@@ -1206,43 +1223,70 @@ const previsaoMes = React.useMemo(() => ({
             </div>
           </form>
 
-          <div>
-            <h3 className="text-sm font-medium mb-2">Últimos gastos</h3>
-            {gastos.length === 0 ? (
-              <p className="text-sm opacity-60">Sem lançamentos</p>
-            ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left opacity-60">
-                    <th className="py-2">Data</th>
-                    <th>Descrição</th>
-                    <th>Categoria</th>
-                    <th>Pagamento</th>
-                    <th className="text-right pr-4">Valor</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {gastos.slice().reverse().map(g => (
-                    <tr key={g.id} className="border-t">
-                      <td className="py-2 pr-2">{g.data}</td>
-                      <td>
-                        {g.descricao}
-                        {g.parcelasTotal && g.parcelasTotal > 1 && <span className="text-xs opacity-60 ml-1">({g.parcelaAtual}/{g.parcelasTotal})</span>}
-                      </td>
-                      <td>{g.categoria}</td>
-                      <td>{g.tipoPagamento}{g.cartaoNome ? ` · ${g.cartaoNome}` : ''}</td>
-                      <td className="text-right pr-4">{fmt(toNum(g.valor))}</td>
-                      <td className="flex gap-2">
-                        <button type="button" onClick={() => iniciarEdicaoGasto(g)} className="text-xs text-blue-600 hover:underline">Alterar</button>
-                        <button type="button" onClick={() => removerGasto(g.id)} className="text-xs text-red-600 hover:underline">Remover</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+<div>
+  <h3 className="text-sm font-medium mb-2">Últimos gastos</h3>
+  {gastos.length === 0 ? (
+    <p className="text-sm opacity-60">Sem lançamentos</p>
+  ) : (
+    <div className="space-y-2">
+      {gastos.slice().reverse().map(g => (
+        <div key={g.id} className="p-3 rounded-lg border bg-white hover:shadow-sm transition">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-sm truncate">{g.descricao}</span>
+                {g.parcelasTotal && g.parcelasTotal > 1 && (
+                  <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded flex-shrink-0">
+                    {g.parcelaAtual}/{g.parcelasTotal}
+                  </span>
+                )}
+              </div>
+              
+              <div className="text-xs opacity-60 mt-0.5 flex items-center gap-2 flex-wrap">
+                <span>{new Date(g.data).toLocaleDateString('pt-BR')}</span>
+                <span>•</span>
+                <span>{g.categoria}</span>
+                <span>•</span>
+                <span>{g.tipoPagamento}{g.cartaoNome && ` - ${g.cartaoNome}`}</span>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <div className="text-right">
+                <div className="font-semibold text-sm whitespace-nowrap">
+                  {fmt(toNum(g.valor))}
+                </div>
+              </div>
+              
+              <div className="flex gap-1.5">
+                <button 
+                  type="button" 
+                  onClick={() => iniciarEdicaoGasto(g)} 
+                  className="px-2 py-1 text-xs rounded bg-blue-50 text-blue-700 hover:bg-blue-100 transition"
+                  title="Editar"
+                >
+                  Editar
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    if (window.confirm('Tem certeza que deseja remover este gasto?')) {
+                      removerGasto(g.id);
+                    }
+                  }}
+                  className="px-2 py-1 text-xs rounded bg-red-50 text-red-700 hover:bg-red-100 transition"
+                  title="Excluir"
+                >
+                  Excluir
+                </button>
+              </div>
+            </div>
           </div>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
         </section>
       )}
 
@@ -1291,201 +1335,310 @@ const previsaoMes = React.useMemo(() => ({
             </div>
           </form>
 
+<div>
+  <h3 className="text-sm font-medium mb-2">Últimas receitas</h3>
+  {receitas.length === 0 ? (
+    <p className="text-sm opacity-60">Sem lançamentos</p>
+  ) : (
+    <div className="space-y-3">
+      {receitas.slice().reverse().map(r => (
+        <div key={r.id} className="p-4 rounded-xl border bg-white">
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex-1">
+              <div className="font-medium text-base">{r.descricao}</div>
+              
+              <div className="text-sm opacity-70 mt-1">
+                <span className="font-medium">Data:</span> {new Date(r.data).toLocaleDateString('pt-BR')}
+              </div>
+            </div>
+            
+            <div className="text-right">
+              <div className="text-lg font-semibold text-green-600">
+                {fmt(toNum(r.valor))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2 mt-3 pt-3 border-t">
+            <button 
+              type="button" 
+              onClick={() => iniciarEdicaoReceita(r)} 
+              className="px-3 py-1.5 text-xs rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition"
+            >
+              Editar
+            </button>
+            <button 
+              type="button" 
+              onClick={() => {
+                if (window.confirm('Tem certeza que deseja remover esta receita?')) {
+                  removerReceita(r.id);
+                }
+              }}
+              className="px-3 py-1.5 text-xs rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition"
+            >
+              Excluir
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+        </section>
+      )}
+
+{tab === 'assinaturas' && (
+  <section className="p-4 rounded-2xl shadow bg-white space-y-4">
+    <h2 className="text-lg font-medium">{editingAssinaturaId ? 'Alterar Assinatura/Contrato' : 'Adicionar Assinatura/Contrato'}</h2>
+    <form
+      className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end"
+      onSubmit={editingAssinaturaId ? salvarEdicaoAssinatura : adicionarAssinatura}
+      key={`assinatura-form-${editingAssinaturaId || 'novo'}`}
+    >
+      <div className="md:col-span-4">
+        <label className="text-xs opacity-70">Nome</label>
+        <input className="w-full p-2 border rounded-lg"
+          value={novaAssinatura.nome}
+          onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, nome: e.target.value })} />
+      </div>
+      <div className="md:col-span-2">
+        <label className="text-xs opacity-70">Valor {novaAssinatura.tipo === 'ACORDO' ? 'Total' : ''} (R$)</label>
+        <input type="number" step="0.01" min="0" className="w-full p-2 border rounded-lg"
+          value={novaAssinatura.valor}
+          onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, valor: e.target.value })} />
+      </div>
+      <div className="md:col-span-3 grid grid-cols-3 gap-2">
+        <div>
+          <label className="text-xs opacity-70">Dia</label>
+          <input type="number" min="1" max="31" className="w-full p-2 border rounded-lg"
+            value={novaAssinatura.diaCobranca || ''}
+            onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, diaCobranca: Number(e.target.value) })} />
+        </div>
+        {novaAssinatura.periodoCobranca === 'ANUAL' && (
           <div>
-            <h3 className="text-sm font-medium mb-2">Últimas receitas</h3>
-            {receitas.length === 0 ? (
-              <p className="text-sm opacity-60">Sem lançamentos</p>
-            ) : (
-              <ul className="text-sm space-y-1">
-                {receitas.slice().reverse().map(r => (
-                  <li key={r.id} className="flex justify-between items-center border-t py-2">
-                    <div>{r.data} · {r.descricao}</div>
-                    <div className="flex items-center gap-4">
-                      <span>{fmt(toNum(r.valor))}</span>
-                      <div className="flex gap-2">
-                        <button type="button" onClick={() => iniciarEdicaoReceita(r)} className="text-xs text-blue-600 hover:underline">Alterar</button>
-                        <button type="button" onClick={() => removerReceita(r.id)} className="text-xs text-red-600 hover:underline">Remover</button>
-                      </div>
+            <label className="text-xs opacity-70">Mês</label>
+            <select className="w-full p-2 border rounded-lg"
+              value={novaAssinatura.mesCobranca}
+              onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, mesCobranca: Number(e.target.value || 1) })}>
+              {Array.from({length: 12}, (_, i) => i + 1).map(m => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        {novaAssinatura.periodoCobranca === 'ANUAL' && (
+          <div>
+            <label className="text-xs opacity-70">Ano Adesão</label>
+            <input type="number" min="2000" max="2100" className="w-full p-2 border rounded-lg"
+              value={novaAssinatura.anoAdesao} onChange={(e) => setNovaAssinatura({ ...novaAssinatura, anoAdesao: Number(e.target.value) })} />
+          </div>
+        )}
+      </div>
+      <div className="md:col-span-3">
+        <label className="text-xs opacity-70">Tipo</label>
+        <select
+          value={novaAssinatura.tipo}
+          onChange={(e) => setNovaAssinatura({ ...novaAssinatura, tipo: e.target.value as TipoAssinatura })}
+          className="w-full p-2 border rounded-lg"
+        >
+          <option value="ASSINATURA">Assinatura</option>
+          <option value="CONTRATO - ALUGUEL">Contrato - Aluguel</option>
+          <option value="CONTRATO - PERSONALIZADO">Contrato - Personalizado</option>
+          <option value="ACORDO">Acordo</option>
+        </select>
+      </div>
+      {novaAssinatura.tipo === 'CONTRATO - PERSONALIZADO' && (
+        <div className="md:col-span-3">
+          <label className="text-xs opacity-70">Categoria do contrato</label>
+          <input className="w-full p-2 border rounded-lg"
+            value={novaAssinatura.categoriaPersonalizada || ''}
+            onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, categoriaPersonalizada: e.target.value })} />
+        </div>
+      )}
+      {novaAssinatura.tipo === 'ACORDO' && (
+        <div className="md:col-span-2">
+          <label className="text-xs opacity-70">Número de parcelas</label>
+          <input
+            type="number"
+            min="1"
+            className="w-full p-2 border rounded-lg"
+            value={novaAssinatura.parcelasTotal || 1}
+            onChange={(e) => setNovaAssinatura({ ...novaAssinatura, parcelasTotal: parseInt(e.target.value) || 1, parcelaAtual: editingAssinaturaId ? novaAssinatura.parcelaAtual : 1 })}
+            placeholder="ex: 3"
+          />
+        </div>
+      )}
+      <div className="md:col-span-2">
+        <label className="text-xs opacity-70">Periodicidade</label>
+        <select className="w-full p-2 border rounded-lg"
+          value={novaAssinatura.periodoCobranca}
+          onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, periodoCobranca: e.target.value as Periodo })}>
+          <option value="MENSAL">MENSAL</option>
+          <option value="ANUAL">ANUAL</option>
+        </select>
+      </div>
+      <div className="md:col-span-2">
+        <label className="text-xs opacity-70">Pagamento</label>
+        <select className="w-full p-2 border rounded-lg"
+          value={novaAssinatura.tipoPagamento}
+          onChange={(e)=>setNovaAssinatura({
+            ...novaAssinatura,
+            tipoPagamento: e.target.value as TipoPagamento,
+            cartaoId: e.target.value === 'CRÉDITO' ? (novaAssinatura.cartaoId || cartoes[0]?.id || null) : null
+          })}>
+          <option value="DÉBITO">DÉBITO</option>
+          <option value="CRÉDITO">CRÉDITO</option>
+        </select>
+      </div>
+      {novaAssinatura.tipoPagamento === 'CRÉDITO' && (
+        <div className="md:col-span-3">
+          <label className="text-xs opacity-70">Cartão</label>
+          <select className="w-full p-2 border rounded-lg"
+            value={novaAssinatura.cartaoId ?? ''}
+            onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, cartaoId: e.target.value ? Number(e.target.value) : null })}>
+            <option value="">Selecione...</option>
+            {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+          </select>
+        </div>
+      )}
+      <div className="md:col-span-2 flex gap-2">
+        <button className="px-3 py-2 rounded-lg bg-black text-white text-sm w-full">
+          {editingAssinaturaId ? 'Salvar' : 'Adicionar'}
+        </button>
+        {editingAssinaturaId && (
+          <button type="button" onClick={cancelarEdicaoAssinatura} className="px-3 py-2 rounded-lg bg-gray-200 text-sm">Cancelar</button>
+        )}
+      </div>
+    </form>
+
+    <div>
+      <h3 className="text-sm font-medium mb-2">Lista de Assinaturas e Contratos</h3>
+      {assinaturas.length === 0 ? (
+        <p className="text-sm opacity-60">Sem registros</p>
+      ) : (
+        <div className="space-y-3">
+          {assinaturas.slice().reverse().map(a => {
+            const ehAcordo = a.tipo === 'ACORDO';
+            const parcelaAtual = a.parcelaAtual ?? 1;
+            const parcelasTotal = a.parcelasTotal ?? 1;
+            const parcelaConcluida = ehAcordo && parcelaAtual > parcelasTotal;
+            const valorParcela = ehAcordo ? toNum(a.valor) / parcelasTotal : toNum(a.valor);
+            const progressoParcelas = ehAcordo ? (parcelaAtual / parcelasTotal) * 100 : 0;
+
+            return (
+              <div key={a.id} className={`p-4 rounded-xl border ${parcelaConcluida ? 'bg-green-50 border-green-300' : 'bg-white'}`}>
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-base">{a.nome}</span>
+                      {a.periodoCobranca === 'MENSAL' && calcularProximoVencimentoMensal(a)?.ehProximo && !parcelaConcluida && (
+                        <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">Vence em breve</span>
+                      )}
+                      {a.periodoCobranca === 'ANUAL' && calcularProximoVencimentoAnual(a)?.ehProximo && !parcelaConcluida && (
+                        <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">Vence em breve</span>
+                      )}
+                      {parcelaConcluida && (
+                        <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">✓ Concluído</span>
+                      )}
                     </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </section>
-      )}
-
-      {tab === 'assinaturas' && (
-        <section className="p-4 rounded-2xl shadow bg-white space-y-4">
-          <h2 className="text-lg font-medium">{editingAssinaturaId ? 'Alterar Assinatura/Contrato' : 'Adicionar Assinatura/Contrato'}</h2>
-          <form
-            className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end"
-            onSubmit={editingAssinaturaId ? salvarEdicaoAssinatura : adicionarAssinatura}
-            key={`assinatura-form-${editingAssinaturaId || 'novo'}`}
-          >
-            <div className="md:col-span-4">
-              <label className="text-xs opacity-70">Nome</label>
-              <input className="w-full p-2 border rounded-lg"
-                value={novaAssinatura.nome}
-                onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, nome: e.target.value })} />
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-xs opacity-70">Valor (R$)</label>
-              <input type="number" step="0.01" min="0" className="w-full p-2 border rounded-lg"
-                value={novaAssinatura.valor}
-                onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, valor: e.target.value })} />
-            </div>
-            <div className="md:col-span-3 grid grid-cols-3 gap-2">
-              <div>
-                <label className="text-xs opacity-70">Dia</label>
-                <input type="number" min="1" max="31" className="w-full p-2 border rounded-lg"
-                  value={novaAssinatura.diaCobranca || ''}
-                  onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, diaCobranca: Number(e.target.value) })} />
-              </div>
-              {novaAssinatura.periodoCobranca === 'ANUAL' && (
-                <div>
-                  <label className="text-xs opacity-70">Mês</label>
-                  <select className="w-full p-2 border rounded-lg"
-                    value={novaAssinatura.mesCobranca}
-                    onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, mesCobranca: Number(e.target.value || 1) })}>
-                    {Array.from({length: 12}, (_, i) => i + 1).map(m => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              {novaAssinatura.periodoCobranca === 'ANUAL' && (
-                <div>
-                  <label className="text-xs opacity-70">Ano Adesão</label>
-                  <input type="number" min="2000" max="2100" className="w-full p-2 border rounded-lg"
-                    value={novaAssinatura.anoAdesao} onChange={(e) => setNovaAssinatura({ ...novaAssinatura, anoAdesao: Number(e.target.value) })} />
-                </div>
-              )}
-            </div>
-            <div className="md:col-span-3">
-              <label className="text-xs opacity-70">Tipo</label>
-<select
-  value={novaAssinatura.tipo}
-  onChange={(e) => setNovaAssinatura({ ...novaAssinatura, tipo: e.target.value as TipoAssinatura })}
-  className="w-full p-2 border rounded-lg"
->
-  <option value="ASSINATURA">Assinatura</option>
-  <option value="CONTRATO - ALUGUEL">Contrato - Aluguel</option>
-  <option value="CONTRATO - PERSONALIZADO">Contrato - Personalizado</option>
-  <option value="ACORDO">Acordo</option>
-</select>
-            </div>
-            {novaAssinatura.tipo === 'CONTRATO - PERSONALIZADO' && (
-              <div className="md:col-span-3">
-                <label className="text-xs opacity-70">Categoria do contrato</label>
-                <input className="w-full p-2 border rounded-lg"
-                  value={novaAssinatura.categoriaPersonalizada || ''}
-                  onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, categoriaPersonalizada: e.target.value })} />
-              </div>
-            )}
-            {novaAssinatura.tipo === 'ACORDO' && (
-              <div className="md:col-span-1">
-                <label className="text-xs opacity-70">Número de parcelas</label>
-                <input
-                  type="number"
-                  min="1"
-                  className="w-full p-2 border rounded-lg"
-                  value={novaAssinatura.parcelasTotal || 1}
-                  onChange={(e) => setNovaAssinatura({ ...novaAssinatura, parcelasTotal: parseInt(e.target.value) || 1 })}
-                  placeholder="ex: 3"
-                />
-              </div>
-            )}
-            <div className="md:col-span-2">
-              <label className="text-xs opacity-70">Periodicidade</label>
-              <select className="w-full p-2 border rounded-lg"
-                value={novaAssinatura.periodoCobranca}
-                onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, periodoCobranca: e.target.value as Periodo })}>
-                <option value="MENSAL">MENSAL</option>
-                <option value="ANUAL">ANUAL</option>
-              </select>
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-xs opacity-70">Pagamento</label>
-              <select className="w-full p-2 border rounded-lg"
-                value={novaAssinatura.tipoPagamento}
-                onChange={(e)=>setNovaAssinatura({
-                  ...novaAssinatura,
-                  tipoPagamento: e.target.value as TipoPagamento,
-                  cartaoId: e.target.value === 'CRÉDITO' ? (novaAssinatura.cartaoId || cartoes[0]?.id || null) : null
-                })}>
-                <option value="DÉBITO">DÉBITO</option>
-                <option value="CRÉDITO">CRÉDITO</option>
-              </select>
-            </div>
-            {novaAssinatura.tipoPagamento === 'CRÉDITO' && (
-              <div className="md:col-span-3">
-                <label className="text-xs opacity-70">Cartão</label>
-                <select className="w-full p-2 border rounded-lg"
-                  value={novaAssinatura.cartaoId ?? ''}
-                  onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, cartaoId: e.target.value ? Number(e.target.value) : null })}>
-                  <option value="">Selecione...</option>
-                  {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                </select>
-              </div>
-            )}
-            <div className="md:col-span-2 flex gap-2">
-              <button className="px-3 py-2 rounded-lg bg-black text-white text-sm w-full">
-                {editingAssinaturaId ? 'Salvar' : 'Adicionar'}
-              </button>
-              {editingAssinaturaId && (
-                <button type="button" onClick={cancelarEdicaoAssinatura} className="px-3 py-2 rounded-lg bg-gray-200 text-sm">Cancelar</button>
-              )}
-            </div>
-          </form>
-
-          <div>
-            <h3 className="text-sm font-medium mb-2">Lista</h3>
-            {assinaturas.length === 0 ? (
-              <p className="text-sm opacity-60">Sem registros</p>
-            ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left opacity-60">
-                    <th className="py-2">Nome</th>
-                    <th>Valor</th>
-                    <th>Vencimento</th>
-                    <th>Tipo</th>
-                    <th>Período</th>
-                    <th>Pagamento</th>
-                    <th className="text-right">Valor Anual</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {assinaturas.slice().reverse().map(a => (
-                    <tr key={a.id} className="border-t text-sm">
-                      <td className="py-2">
-                        {a.periodoCobranca === 'MENSAL' && calcularProximoVencimentoMensal(a)?.ehProximo && <span className="mr-2" title="Vencimento próximo!">⚠️</span>}
-                        {a.periodoCobranca === 'ANUAL' && calcularProximoVencimentoAnual(a)?.ehProximo && <span className="mr-2" title="Vencimento próximo!">⚠️</span>}
-                        {a.nome}
-                      </td>
-                      <td>{fmt(toNum(a.valor))}</td>
-                      <td>{a.periodoCobranca === 'ANUAL' ? `${String(a.diaCobranca).padStart(2,'0')}/${String(a.mesCobranca).padStart(2,'0')}` : `Dia ${a.diaCobranca}`}</td>
-                      <td>{a.tipo}{a.categoriaPersonalizada ? ` · ${a.categoriaPersonalizada}` : ''}</td>
-                      <td>{a.periodoCobranca}</td>
-                      <td>{a.tipoPagamento}{a.cartaoNome ? ` · ${a.cartaoNome}` : ''}</td>
-                      <td className="text-right">{fmt(toNum(a.valor) * (a.periodoCobranca === 'MENSAL' ? 12 : 1))}</td>
-                      <td className="pl-4 w-px">
-                        <div className="flex gap-2">
-                          <button type="button" onClick={() => iniciarEdicaoAssinatura(a)} className="text-xs text-blue-600 hover:underline">Alterar</button>
+                    
+                    <div className="text-sm opacity-70 mt-1 space-y-0.5">
+                      <div>
+                        <span className="font-medium">Tipo:</span> {a.tipo}
+                        {a.categoriaPersonalizada && ` • ${a.categoriaPersonalizada}`}
+                      </div>
+                      <div>
+                        <span className="font-medium">Vencimento:</span> {' '}
+                        {a.periodoCobranca === 'ANUAL' 
+                          ? `${String(a.diaCobranca).padStart(2,'0')}/${String(a.mesCobranca).padStart(2,'0')}` 
+                          : `Todo dia ${a.diaCobranca}`}
+                        {' • '}{a.periodoCobranca}
+                      </div>
+                      <div>
+                        <span className="font-medium">Pagamento:</span> {a.tipoPagamento}
+                        {a.tipoPagamento === 'CRÉDITO' && a.cartaoNome && ` • ${a.cartaoNome}`}
+                      </div>
+                      {ehAcordo && (
+                        <div>
+                          <span className="font-medium">Parcelas:</span> {parcelaAtual}/{parcelasTotal} pagas
+                          {' • '}{fmt(valorParcela)}/mês
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-            <div className="mt-4 text-right font-semibold">
-              Valor Total Anual de Assinaturas: {fmt(totalAnualAssinaturas)}
-            </div>
-          </div>
-        </section>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="text-right">
+                    <div className="text-lg font-semibold">
+                      {ehAcordo ? fmt(valorParcela) : fmt(toNum(a.valor))}
+                      {ehAcordo && <span className="text-xs font-normal opacity-60">/mês</span>}
+                    </div>
+                    {ehAcordo && (
+                      <div className="text-xs opacity-60 mt-1">
+                        Total: {fmt(toNum(a.valor))}
+                      </div>
+                    )}
+                    {!ehAcordo && (
+                      <div className="text-xs opacity-60 mt-1">
+                        Anual: {fmt(toNum(a.valor) * (a.periodoCobranca === 'MENSAL' ? 12 : 1))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Barra de progresso para Acordos */}
+                {ehAcordo && (
+                  <div className="mt-3 mb-2">
+                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full transition-all ${parcelaConcluida ? 'bg-green-500' : 'bg-blue-600'}`}
+                        style={{ width: `${Math.min(progressoParcelas, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-2 mt-3 pt-3 border-t">
+                  <button 
+                    type="button" 
+                    onClick={() => iniciarEdicaoAssinatura(a)} 
+                    className="px-3 py-1.5 text-xs rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition"
+                  >
+                    ✏️ Editar
+                  </button>
+                  {ehAcordo && !parcelaConcluida && (
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        if (window.confirm(`Confirmar pagamento da parcela ${parcelaAtual}/${parcelasTotal}?`)) {
+                          pagarParcelaAcordo(a.id);
+                        }
+                      }}
+                      className="px-3 py-1.5 text-xs rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition"
+                    >
+                      ✓ Pagar parcela {parcelaAtual}
+                    </button>
+                  )}
+                  <button 
+                    type="button" 
+                    onClick={() => removerAssinatura(a.id)} 
+                    className="px-3 py-1.5 text-xs rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition"
+                  >
+                    🗑️ Excluir
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
+      <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+        <div className="text-sm font-semibold text-right">
+          Valor Total Anual de Assinaturas: {fmt(totalAnualAssinaturas)}
+        </div>
+      </div>
+    </div>
+  </section>
+)}
 
       {tab === 'objetivos' && (
         <section className="p-4 rounded-2xl shadow bg-white space-y-4">
