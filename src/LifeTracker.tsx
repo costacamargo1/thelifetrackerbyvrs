@@ -1138,9 +1138,11 @@ const previsaoMes = React.useMemo(() => ({
                   } else if (e.key === 'Enter' && sugestaoDescricaoAtivaIndex > -1) {
                     e.preventDefault();
                     const sugestaoSelecionada = sugestoesDescricao[sugestaoDescricaoAtivaIndex];
-                    const catAuto = detectarCategoria(sugestaoSelecionada);
-                    setNovoGasto({ ...novoGasto, descricao: sugestaoSelecionada, categoria: catAuto });
-                    setSugestoesDescricao([]);
+                    if (sugestaoSelecionada) {
+                      const catAuto = detectarCategoria(sugestaoSelecionada);
+                      setNovoGasto({ ...novoGasto, descricao: sugestaoSelecionada, categoria: catAuto });
+                      setSugestoesDescricao([]);
+                    }
                   } else if (e.key === 'Escape') {
                     setSugestoesDescricao([]);
                   }
