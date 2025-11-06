@@ -569,7 +569,9 @@ const [novoCartao, setNovoCartao] = React.useState<NovoCartaoDraft>({
       if (!acc[g.parcelaId]) {
         acc[g.parcelaId] = {
           descricao: g.descricao,
-          valorTotal: toNum(g.valor) * (g.parcelasTotal || 1),
+          // Ensure g.valor is a string before passing to toNum
+          // And g.parcelasTotal is a number before multiplication
+          valorTotal: toNum(String(g.valor)) * (g.parcelasTotal || 1),
           parcelasPagas: 0,
           parcelasTotal: g.parcelasTotal || 0,
           valorParcela: toNum(g.valor),
@@ -579,8 +581,9 @@ const [novoCartao, setNovoCartao] = React.useState<NovoCartaoDraft>({
       // Conta quantas parcelas já passaram (parcelas com data <= hoje)
       const hoje = new Date();
       const dataParcela = new Date(g.data);
-      if (dataParcela <= hoje) {
-        acc[g.parcelaId].parcelasPagas = Math.max(acc[g.parcelaId].parcelasPagas, g.parcelaAtual || 0);
+      // Check if acc[g.parcelaId] is defined before accessing its properties
+      if (dataParcela <= hoje && acc[g.parcelaId]) {
+        acc[g.parcelaId]!.parcelasPagas = Math.max(acc[g.parcelaId]!.parcelasPagas, g.parcelaAtual || 0);
       }
       return acc;
     }, {} as Record<string, { descricao: string; valorTotal: number; parcelasPagas: number; parcelasTotal: number; valorParcela: number; cartaoNome: string }>);
@@ -1135,7 +1138,7 @@ const previsaoMes = React.useMemo(() => ({
                   } else if (e.key === 'Enter' && sugestaoDescricaoAtivaIndex > -1) {
                     e.preventDefault();
                     const sugestaoSelecionada = sugestoesDescricao[sugestaoDescricaoAtivaIndex];
-                    const catAuto = detectarCategoria(sugestaoSelecionada);
+                    const catAuto = detectarCategoria(sugestaoSelecionada || '');
                     setNovoGasto({ ...novoGasto, descricao: sugestaoSelecionada, categoria: catAuto });
                     setSugestoesDescricao([]);
                   } else if (e.key === 'Escape') {
@@ -1162,7 +1165,7 @@ const previsaoMes = React.useMemo(() => ({
                       sugestaoDescricaoAtivaIndex === index ? 'bg-blue-50 border-l-2 border-blue-500' : 'hover:bg-gray-100'
                     }`}
                     onMouseDown={() => {
-                      const catAuto = detectarCategoria(s);
+                      const catAuto = detectarCategoria(s || '');
                       setNovoGasto({ ...novoGasto, descricao: s, categoria: catAuto });
                       setSugestoesDescricao([]);
                     }}
