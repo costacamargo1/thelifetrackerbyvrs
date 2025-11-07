@@ -336,7 +336,7 @@ const SUGESTOES_GLOBAIS = [
  * Componente principal
  * ========================= */
 
-export default function LifeTracker() {
+export default function LifeTracker({ darkMode, toggleDarkMode }: { darkMode: boolean; toggleDarkMode: () => void }) {
   // Abas
   const [tab, setTab] = React.useState<'dashboard' | 'gastos' | 'receitas' | 'assinaturas' | 'objetivos' | 'cartoes' | 'dividas' | 'configuracoes'>('dashboard');
 
@@ -897,12 +897,17 @@ const previsaoMes = React.useMemo(() => ({
   // UI helpers
   const TabButton: React.FC<{ id: typeof tab; children: React.ReactNode }> = ({ id, children }) => (
     <button
-      className={`px-3 py-2 rounded-xl text-sm ${tab === id ? 'bg-black text-white' : 'bg-white text-black border'}`}
+      className={`px-3 py-2 rounded-xl text-sm ${
+        tab === id
+          ? 'bg-black text-white dark:bg-gray-700 dark:text-white'
+          : 'bg-white text-black border border-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700'
+      }`}
       onClick={() => setTab(id)}
       type="button"
     >
       {children}
     </button>
+
   );
 
   return (
@@ -919,17 +924,24 @@ const previsaoMes = React.useMemo(() => ({
           <TabButton id="dividas">Dívidas</TabButton>
           <TabButton id="configuracoes">Configurações</TabButton>
         </div>
+        <button
+          onClick={toggleDarkMode}
+          className="px-3 py-2 rounded-xl text-sm bg-gray-200 text-black dark:bg-gray-700 dark:text-white"
+          type="button"
+        >
+          {darkMode ? 'Modo Claro' : 'Modo Escuro'}
+        </button>
       </header>
 
       {tab === 'dashboard' && (
         <>
           {/* Cards do dashboard */}
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="p-4 rounded-2xl shadow bg-white">
+            <div className="p-4 rounded-2xl shadow bg-white dark:bg-gray-700 dark:text-gray-200">
               <div className="text-sm opacity-60">Saldo (Dinheiro)</div>
               <div className={`text-2xl font-semibold ${getCorValor(saldo, configuracoes.saldo)}`}>{fmt(saldo)}</div>
             </div>
-            <div className="p-4 rounded-2xl shadow bg-white">
+            <div className="p-4 rounded-2xl shadow bg-white dark:bg-gray-700 dark:text-gray-200">
               <div className="text-sm opacity-60">Crédito Disponível</div>
               <div className={`text-xl font-semibold ${getCorValor(creditoDisponivel, configuracoes.credito)}`}>
                 {fmt(creditoDisponivel)}
@@ -947,42 +959,42 @@ const previsaoMes = React.useMemo(() => ({
                 </ul>
               )}
             </div>
-            <div className="p-4 rounded-2xl shadow bg-white">
+            <div className="p-4 rounded-2xl shadow bg-white dark:bg-gray-700 dark:text-gray-200">
               <div className="text-sm opacity-60">Gastos (Crédito)</div>
               <div className="text-xl font-medium">{fmt(gastosCredito)}</div>
             </div>
-            <div className="p-4 rounded-2xl shadow bg-white">
+            <div className="p-4 rounded-2xl shadow bg-white dark:bg-gray-700 dark:text-gray-200">
               <div className="text-sm opacity-60">Gastos (Dinheiro)</div>
               <div className="text-xl font-medium">{fmt(gastosDebito)}</div>
             </div>
-            <div className="p-4 rounded-2xl shadow bg-white">
+            <div className="p-4 rounded-2xl shadow bg-white dark:bg-gray-700 dark:text-gray-200">
               <div className="text-sm opacity-60">Gastos (Total)</div>
               <div className="text-xl font-medium">{fmt(gastosTotal)}</div>
             </div>
           </section>
 
           {/* Previsão do mês */}
-          <section className="p-4 rounded-2xl shadow bg-white">
-            <h2 className="text-lg font-medium mb-3">Previsão de Gastos (este mês)</h2>
+          <section className="p-4 rounded-2xl shadow bg-white dark:bg-gray-800 dark:text-gray-200">
+            <h2 className="text-lg font-medium mb-3 text-black dark:text-gray-200">Previsão de Gastos (este mês)</h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-              <div className="p-3 rounded-xl bg-gray-50 border">
+              <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
                 <div className="opacity-60">Aluguel</div>
                 <div className="text-lg font-semibold">{fmt(previsaoMes.aluguel)}</div>
               </div>
-              <div className="p-3 rounded-xl bg-gray-50 border">
+              <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
               <div className="opacity-60"> Acordos: </div>
               <div className="text-lg font-semibold">{fmt(totalAcordosMes)}</div>
               </div>
-              <button type="button" onClick={() => setShowMensaisModal(true)} className="p-3 rounded-xl bg-gray-50 border text-left cursor-pointer hover:ring-2 hover:ring-black/10 transition">
+              <button type="button" onClick={() => setShowMensaisModal(true)} className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-left cursor-pointer hover:ring-2 hover:ring-black/10 transition dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
                 <div className="opacity-60">Assinaturas Mensais</div>
                 <div className="text-lg font-semibold">{fmt(previsaoMes.assinaturas)}</div>
               </button>
-              <button type="button" onClick={() => setShowCreditoMesModal(true)} className="p-3 rounded-xl bg-gray-50 border text-left cursor-pointer hover:ring-2 hover:ring-black/10 transition">
+              <button type="button" onClick={() => setShowCreditoMesModal(true)} className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-left cursor-pointer hover:ring-2 hover:ring-black/10 transition dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
                 <div className="opacity-60">Gastos em Crédito (mês)</div>
                 <div className="text-lg font-semibold">{fmt(previsaoMes.credito)}</div>
               </button>
-              <div className="p-3 rounded-xl bg-gray-900 text-white">
-                <div className="opacity-80">TOTAL PREVISTO</div>
+              <div className="p-3 rounded-xl bg-gray-900 text-white dark:bg-gray-700">
+                <div className="opacity-80">TOTAL PREVISTO PARA O MÊS ATUAL</div>
                 <div className="text-lg font-semibold">{fmt(previsaoMes.total)}</div>
               </div>
             </div>
@@ -990,7 +1002,7 @@ const previsaoMes = React.useMemo(() => ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Gastos por categoria */}
-            <section className="p-4 rounded-2xl shadow bg-white">
+            <section className="p-4 rounded-2xl shadow bg-white dark:bg-gray-700 dark:text-gray-200">
               <h2 className="text-lg font-medium mb-3">Gastos por categoria</h2>
               {Object.keys(porCategoria).length === 0 ? (
                 <p className="text-sm opacity-60">Sem lançamentos</p>
@@ -1007,7 +1019,7 @@ const previsaoMes = React.useMemo(() => ({
             </section>
 
             {/* Compras Parceladas Ativas */}
-            <section className="p-4 rounded-2xl shadow bg-white">
+            <section className="p-4 rounded-2xl shadow bg-white dark:bg-gray-700 dark:text-gray-200">
               <h2 className="text-lg font-medium mb-3">Compras Parceladas Ativas</h2>
               {comprasParceladasAtivas.length === 0 ? (
                 <p className="text-sm opacity-60">Nenhuma compra parcelada ativa.</p>
@@ -1030,7 +1042,7 @@ const previsaoMes = React.useMemo(() => ({
           </div>
 
           {/* Assinaturas anuais */}
-          <section className="p-4 rounded-2xl shadow bg-white">
+          <section className="p-4 rounded-2xl shadow bg-white dark:bg-gray-700 dark:text-gray-200">
             <h2 className="text-lg font-medium mb-3">Assinaturas anuais</h2>
             {anuaisTodos.length === 0 ? (
               <p className="text-sm opacity-60">Nenhuma assinatura anual.</p>
@@ -1061,7 +1073,7 @@ const previsaoMes = React.useMemo(() => ({
           </section>
 
           {/* Objetivos */}
-          <section className="p-4 rounded-2xl shadow bg-white">
+          <section className="p-4 rounded-2xl shadow bg-white dark:bg-gray-700 dark:text-gray-200">
             <h2 className="text-lg font-medium mb-3">Objetivos</h2>
             {objetivos.length === 0 ? (
               <p className="text-sm opacity-60">Nenhum objetivo cadastrado</p>
@@ -1072,10 +1084,11 @@ const previsaoMes = React.useMemo(() => ({
                   const progressoBase = necessario > 0 ? Math.min(100, Math.round((o.valorAtual / necessario) * 100)) : 0;
                   const progresso = (o.status === 'QUITADO - EM PROGRESSO' || o.status === 'QUITADO - FINALIZADO') ? 100 : progressoBase;
                   const quitado = o.status.startsWith('QUITADO');
+
                   return (
-                    <div key={o.id} className={`p-3 rounded-xl border ${quitado ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
+                <div key={o.id} className={`p-3 rounded-xl border border-gray-200 ${quitado ? 'bg-green-50 border-green-200 dark:bg-green-900 dark:border-green-700 dark:text-gray-200' : 'bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200'}`}>
                       <div className="flex items-start justify-between">
-                        <div className="font-medium text-sm">{o.nome}</div>
+                    <div className="font-medium text-sm text-black dark:text-gray-200">{o.nome}</div>
                         <div className={`text-xs px-2 py-0.5 rounded-full ${quitado ? 'bg-green-200 text-green-800' : 'bg-gray-200'}`}>{o.status}</div>
                       </div>
                       <div className="text-xs opacity-70 mt-1">Meta: {fmt(necessario)}</div>
@@ -1097,17 +1110,16 @@ const previsaoMes = React.useMemo(() => ({
       )}
 
       {tab === 'gastos' && (
-        <section className="p-4 rounded-2xl shadow bg-white space-y-4">
+        <section className="p-4 rounded-2xl shadow bg-white dark:bg-gray-800 dark:text-gray-200 space-y-4">
           <h2 className="text-lg font-medium">{editingGastoId ? 'Alterar Gasto' : 'Lançar Gasto'}</h2>
-          <form
-            className="grid grid-cols-1 md:grid-cols-10 gap-4 items-end"
-            onSubmit={editingGastoId ? salvarEdicaoGasto : adicionarGasto}
-            key={`gasto-form-${editingGastoId || 'novo'}`}
-          >
+          <form className="grid grid-cols-1 md:grid-cols-10 gap-4 items-end"
+                onSubmit={editingGastoId ? salvarEdicaoGasto : adicionarGasto}
+                key={`gasto-form-${editingGastoId || 'novo'}`}>
           <div className="md:col-span-3 relative">
             <label className="text-xs opacity-70">Descrição</label>
             <input
-              className="w-full p-2 border rounded-lg"
+              className="w-full p-2 border border-gray-300 rounded-lg bg-white
+                         dark:bg-gray-700 dark:text-white dark:border-gray-600"
               value={novoGasto.descricao}
               onChange={(e) => {
   const desc = e.target.value;
@@ -1128,7 +1140,8 @@ const previsaoMes = React.useMemo(() => ({
 }}
               onBlur={() => setTimeout(() => setSugestoesDescricao([]), 200)}
               onKeyDown={(e) => {
-                if (sugestoesDescricao.length > 0) {
+                if (sugestoesDescricao.length > 0 && e.key !== 'Tab') { // Ignorar Tab para não interferir com a navegação padrão
+
                   if (e.key === 'ArrowDown') {
                     e.preventDefault();
                     setSugestaoDescricaoAtivaIndex(prev => (prev + 1) % sugestoesDescricao.length);
@@ -1150,7 +1163,8 @@ const previsaoMes = React.useMemo(() => ({
               }}
               onFocus={() => {
                 // Mostra todas as sugestões da categoria quando focar no campo vazio
-                if (!novoGasto.descricao.trim()) {
+                // Apenas se não houver sugestões ativas já
+                if (!novoGasto.descricao.trim() && sugestoesDescricao.length === 0) {
                   const sugestoesCategoria = SUGESTOES_DESCRICAO[novoGasto.categoria] || [];
                   setSugestoesDescricao(sugestoesCategoria.slice(0, 8));
                   setSugestaoDescricaoAtivaIndex(0);
@@ -1185,7 +1199,8 @@ const previsaoMes = React.useMemo(() => ({
               <label className="text-xs opacity-70">Valor (R$)</label>
               <input
                 type="number" step="0.01" min="0"
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                           dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 value={novoGasto.valor}
                 onChange={(e) => setNovoGasto({ ...novoGasto, valor: e.target.value })}
               />
@@ -1193,7 +1208,8 @@ const previsaoMes = React.useMemo(() => ({
             <div className="md:col-span-2">
               <label className="text-xs opacity-70">Pagamento</label>
               <select
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                           dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 value={novoGasto.tipoPagamento}
                 onChange={(e) => {
                   const tipo = e.target.value as TipoPagamento;
@@ -1209,7 +1225,8 @@ const previsaoMes = React.useMemo(() => ({
                 <label className="text-xs opacity-70">Cartão</label>
                 <select
                   required
-                  className="w-full p-2 border rounded-lg"
+                  className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                             dark:bg-gray-700 dark:text-white dark:border-gray-600"
                   value={novoGasto.cartaoId ?? ''}
                   onChange={(e) => setNovoGasto({ ...novoGasto, cartaoId: e.target.value ? Number(e.target.value) : null })}
                 >
@@ -1223,7 +1240,8 @@ const previsaoMes = React.useMemo(() => ({
                 <label className="text-xs opacity-70">Parcelas</label>
                 <input
                   type="number" min="1" max="24"
-                  className="w-full p-2 border rounded-lg"
+                  className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                             dark:bg-gray-700 dark:text-white dark:border-gray-600"
                   value={novoGasto.parcelasTotal || 1}
                   onChange={(e) => setNovoGasto({ ...novoGasto, parcelasTotal: Number(e.target.value) || 1 })}
                 />
@@ -1231,7 +1249,9 @@ const previsaoMes = React.useMemo(() => ({
             )}
             <div className="md:col-span-2">
               <label className="text-xs opacity-70">Categoria</label>
-              <select className="w-full p-2 border rounded-lg"
+              <select 
+                className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                           dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 value={novoGasto.categoria}
                 onChange={(e) => setNovoGasto({ ...novoGasto, categoria: e.target.value })}>
                 {CATEGORIAS_GASTO.map(c => <option key={c} value={c}>{c}</option>)}
@@ -1240,14 +1260,16 @@ const previsaoMes = React.useMemo(() => ({
             <div>
               <label className="text-xs opacity-70">Data</label>
               <input
-                type="date"
-                className="w-full p-2 border rounded-lg"
+                type="date" 
+                className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                           dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 value={novoGasto.data}
                 onChange={(e) => setNovoGasto({ ...novoGasto, data: e.target.value })}
               />
             </div>
             <div className="flex gap-2">
-              <button className="w-full px-3 py-2 rounded-lg bg-black text-white text-sm">
+              <button className="w-full px-3 py-2 rounded-lg bg-black text-white text-sm
+                                 dark:bg-gray-700 dark:text-white">
                 {editingGastoId ? 'Salvar' : 'Adicionar'}
               </button>
               {editingGastoId && (
@@ -1258,9 +1280,9 @@ const previsaoMes = React.useMemo(() => ({
 
 <div>
   <h3 className="text-sm font-medium mb-2">Últimos gastos</h3>
-  {gastos.length === 0 ? (
+  {gastos.length === 0 ? ( 
     <p className="text-sm opacity-60">Sem lançamentos</p>
-  ) : (
+  ) : ( 
     <div className="space-y-2">
       {gastos.slice().reverse().map(g => (
         <div key={g.id} className="p-3 rounded-lg border bg-white hover:shadow-sm transition">
@@ -1275,7 +1297,7 @@ const previsaoMes = React.useMemo(() => ({
                 )}
               </div>
               
-              <div className="text-xs opacity-60 mt-0.5 flex items-center gap-2 flex-wrap">
+              <div className="text-xs opacity-60 mt-0.5 flex items-center gap-2 flex-wrap dark:text-gray-400">
                 <span>{new Date(g.data).toLocaleDateString('pt-BR')}</span>
                 <span>•</span>
                 <span>{g.categoria}</span>
@@ -1295,7 +1317,8 @@ const previsaoMes = React.useMemo(() => ({
                 <button 
                   type="button" 
                   onClick={() => iniciarEdicaoGasto(g)} 
-                  className="px-2 py-1 text-xs rounded bg-blue-50 text-blue-700 hover:bg-blue-100 transition"
+                  className="px-2 py-1 text-xs rounded bg-blue-50 text-blue-700 hover:bg-blue-100 transition
+                             dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800"
                   title="Editar"
                 >
                   Editar
@@ -1307,7 +1330,8 @@ const previsaoMes = React.useMemo(() => ({
                       removerGasto(g.id);
                     }
                   }}
-                  className="px-2 py-1 text-xs rounded bg-red-50 text-red-700 hover:bg-red-100 transition"
+                  className="px-2 py-1 text-xs rounded bg-red-50 text-red-700 hover:bg-red-100 transition
+                             dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800"
                   title="Excluir"
                 >
                   Excluir
@@ -1324,7 +1348,7 @@ const previsaoMes = React.useMemo(() => ({
       )}
 
       {tab === 'receitas' && (
-        <section className="p-4 rounded-2xl shadow bg-white space-y-4">
+        <section className="p-4 rounded-2xl shadow bg-white dark:bg-gray-800 dark:text-gray-200 space-y-4">
           <h2 className="text-lg font-medium">{editingReceitaId ? 'Alterar Receita' : 'Lançar Receita'}</h2>
           <form
             className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end"
@@ -1334,7 +1358,8 @@ const previsaoMes = React.useMemo(() => ({
             <div className="md:col-span-2">
               <label className="text-xs opacity-70">Descrição</label>
               <input
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                           dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 value={novaReceita.descricao}
                 onChange={(e) => setNovaReceita({ ...novaReceita, descricao: e.target.value })}
                 placeholder="ex: salário"
@@ -1343,8 +1368,9 @@ const previsaoMes = React.useMemo(() => ({
             <div>
               <label className="text-xs opacity-70">Valor (R$)</label>
               <input
-                type="number" step="0.01" min="0"
-                className="w-full p-2 border rounded-lg"
+                type="number" step="0.01" min="0" 
+                className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                           dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 value={novaReceita.valor}
                 onChange={(e) => setNovaReceita({ ...novaReceita, valor: e.target.value })}
               />
@@ -1352,14 +1378,16 @@ const previsaoMes = React.useMemo(() => ({
             <div>
               <label className="text-xs opacity-70">Data</label>
               <input
-                type="date"
-                className="w-full p-2 border rounded-lg"
+                type="date" 
+                className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                           dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 value={novaReceita.data}
                 onChange={(e) => setNovaReceita({ ...novaReceita, data: e.target.value })}
               />
             </div>
             <div className="flex gap-2">
-              <button className="w-full px-3 py-2 rounded-lg bg-black text-white text-sm">
+              <button className="w-full px-3 py-2 rounded-lg bg-black text-white text-sm
+                                 dark:bg-gray-700 dark:text-white">
                 {editingReceitaId ? 'Salvar' : 'Adicionar'}
               </button>
               {editingReceitaId && (
@@ -1380,7 +1408,7 @@ const previsaoMes = React.useMemo(() => ({
             <div className="flex-1">
               <div className="font-medium text-base">{r.descricao}</div>
               
-              <div className="text-sm opacity-70 mt-1">
+              <div className="text-sm opacity-70 mt-1 dark:text-gray-400">
                 <span className="font-medium">Data:</span> {new Date(r.data).toLocaleDateString('pt-BR')}
               </div>
             </div>
@@ -1396,7 +1424,8 @@ const previsaoMes = React.useMemo(() => ({
             <button 
               type="button" 
               onClick={() => iniciarEdicaoReceita(r)} 
-              className="px-3 py-1.5 text-xs rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition"
+              className="px-3 py-1.5 text-xs rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition
+                         dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800"
             >
               Editar
             </button>
@@ -1407,7 +1436,8 @@ const previsaoMes = React.useMemo(() => ({
                   removerReceita(r.id);
                 }
               }}
-              className="px-3 py-1.5 text-xs rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition"
+              className="px-3 py-1.5 text-xs rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition
+                         dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800"
             >
               Excluir
             </button>
@@ -1421,7 +1451,7 @@ const previsaoMes = React.useMemo(() => ({
       )}
 
 {tab === 'assinaturas' && (
-  <section className="p-4 rounded-2xl shadow bg-white space-y-4">
+  <section className="p-4 rounded-2xl shadow bg-white dark:bg-gray-800 dark:text-gray-200 space-y-4">
     <h2 className="text-lg font-medium">{editingAssinaturaId ? 'Alterar Assinatura/Contrato' : 'Adicionar Assinatura/Contrato'}</h2>
     <form
       className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end"
@@ -1430,20 +1460,20 @@ const previsaoMes = React.useMemo(() => ({
     >
       <div className="md:col-span-4">
         <label className="text-xs opacity-70">Nome</label>
-        <input className="w-full p-2 border rounded-lg"
+        <input className="w-full p-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
           value={novaAssinatura.nome}
           onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, nome: e.target.value })} />
       </div>
       <div className="md:col-span-2">
         <label className="text-xs opacity-70">Valor {novaAssinatura.tipo === 'ACORDO' ? 'Total' : ''} (R$)</label>
-        <input type="number" step="0.01" min="0" className="w-full p-2 border rounded-lg"
+        <input type="number" step="0.01" min="0" className="w-full p-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
           value={novaAssinatura.valor}
           onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, valor: e.target.value })} />
       </div>
       <div className="md:col-span-3 grid grid-cols-3 gap-2">
         <div>
           <label className="text-xs opacity-70">Dia</label>
-          <input type="number" min="1" max="31" className="w-full p-2 border rounded-lg"
+          <input type="number" min="1" max="31" className="w-full p-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
             value={novaAssinatura.diaCobranca || ''}
             onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, diaCobranca: Number(e.target.value) })} />
         </div>
@@ -1462,17 +1492,20 @@ const previsaoMes = React.useMemo(() => ({
         {novaAssinatura.periodoCobranca === 'ANUAL' && (
           <div>
             <label className="text-xs opacity-70">Ano Adesão</label>
-            <input type="number" min="2000" max="2100" className="w-full p-2 border rounded-lg"
+            <input type="number" min="2000" max="2100" 
+              className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                         dark:bg-gray-700 dark:text-white dark:border-gray-600"
               value={novaAssinatura.anoAdesao} onChange={(e) => setNovaAssinatura({ ...novaAssinatura, anoAdesao: Number(e.target.value) })} />
           </div>
         )}
       </div>
       <div className="md:col-span-3">
         <label className="text-xs opacity-70">Tipo</label>
-        <select
+        <select 
+          className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                     dark:bg-gray-700 dark:text-white dark:border-gray-600"
           value={novaAssinatura.tipo}
           onChange={(e) => setNovaAssinatura({ ...novaAssinatura, tipo: e.target.value as TipoAssinatura })}
-          className="w-full p-2 border rounded-lg"
         >
           <option value="ASSINATURA">Assinatura</option>
           <option value="CONTRATO - ALUGUEL">Contrato - Aluguel</option>
@@ -1483,7 +1516,9 @@ const previsaoMes = React.useMemo(() => ({
       {novaAssinatura.tipo === 'CONTRATO - PERSONALIZADO' && (
         <div className="md:col-span-3">
           <label className="text-xs opacity-70">Categoria do contrato</label>
-          <input className="w-full p-2 border rounded-lg"
+          <input 
+            className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                       dark:bg-gray-700 dark:text-white dark:border-gray-600"
             value={novaAssinatura.categoriaPersonalizada || ''}
             onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, categoriaPersonalizada: e.target.value })} />
         </div>
@@ -1493,8 +1528,9 @@ const previsaoMes = React.useMemo(() => ({
           <label className="text-xs opacity-70">Número de parcelas</label>
           <input
             type="number"
-            min="1"
-            className="w-full p-2 border rounded-lg"
+            min="1" 
+            className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                       dark:bg-gray-700 dark:text-white dark:border-gray-600"
             value={novaAssinatura.parcelasTotal || 1}
             onChange={(e) => setNovaAssinatura({ ...novaAssinatura, parcelasTotal: parseInt(e.target.value) || 1, parcelaAtual: editingAssinaturaId ? novaAssinatura.parcelaAtual : 1 })}
             placeholder="ex: 3"
@@ -1503,7 +1539,9 @@ const previsaoMes = React.useMemo(() => ({
       )}
       <div className="md:col-span-2">
         <label className="text-xs opacity-70">Periodicidade</label>
-        <select className="w-full p-2 border rounded-lg"
+        <select 
+          className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                     dark:bg-gray-700 dark:text-white dark:border-gray-600"
           value={novaAssinatura.periodoCobranca}
           onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, periodoCobranca: e.target.value as Periodo })}>
           <option value="MENSAL">MENSAL</option>
@@ -1512,7 +1550,9 @@ const previsaoMes = React.useMemo(() => ({
       </div>
       <div className="md:col-span-2">
         <label className="text-xs opacity-70">Pagamento</label>
-        <select className="w-full p-2 border rounded-lg"
+        <select 
+          className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                     dark:bg-gray-700 dark:text-white dark:border-gray-600"
           value={novaAssinatura.tipoPagamento}
           onChange={(e)=>setNovaAssinatura({
             ...novaAssinatura,
@@ -1526,7 +1566,7 @@ const previsaoMes = React.useMemo(() => ({
       {novaAssinatura.tipoPagamento === 'CRÉDITO' && (
         <div className="md:col-span-3">
           <label className="text-xs opacity-70">Cartão</label>
-          <select className="w-full p-2 border rounded-lg"
+          <select className="w-full p-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
             value={novaAssinatura.cartaoId ?? ''}
             onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, cartaoId: e.target.value ? Number(e.target.value) : null })}>
             <option value="">Selecione...</option>
@@ -1535,7 +1575,8 @@ const previsaoMes = React.useMemo(() => ({
         </div>
       )}
       <div className="md:col-span-2 flex gap-2">
-        <button className="px-3 py-2 rounded-lg bg-black text-white text-sm w-full">
+        <button className="px-3 py-2 rounded-lg bg-black text-white text-sm w-full
+                           dark:bg-gray-700 dark:text-white">
           {editingAssinaturaId ? 'Salvar' : 'Adicionar'}
         </button>
         {editingAssinaturaId && (
@@ -1559,7 +1600,8 @@ const previsaoMes = React.useMemo(() => ({
             const progressoParcelas = ehAcordo ? (parcelaAtual / parcelasTotal) * 100 : 0;
 
             return (
-              <div key={a.id} className={`p-4 rounded-xl border ${parcelaConcluida ? 'bg-green-50 border-green-300' : 'bg-white'}`}>
+              <div key={a.id} className={`p-4 rounded-xl border border-gray-200
+                                         ${parcelaConcluida ? 'bg-green-50 border-green-300 dark:bg-green-900 dark:border-green-700 dark:text-gray-200' : 'bg-white dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600'}`}>
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -1575,7 +1617,7 @@ const previsaoMes = React.useMemo(() => ({
                       )}
                     </div>
                     
-                    <div className="text-sm opacity-70 mt-1 space-y-0.5">
+                    <div className="text-sm opacity-70 mt-1 space-y-0.5 dark:text-gray-400">
                       <div>
                         <span className="font-medium">Tipo:</span> {a.tipo}
                         {a.categoriaPersonalizada && ` • ${a.categoriaPersonalizada}`}
@@ -1623,7 +1665,7 @@ const previsaoMes = React.useMemo(() => ({
                   <div className="mt-3 mb-2">
                     <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                       <div 
-                        className={`h-full transition-all ${parcelaConcluida ? 'bg-green-500' : 'bg-blue-600'}`}
+                        className={`h-full transition-all ${parcelaConcluida ? 'bg-green-500' : 'bg-blue-600 dark:bg-blue-400'}`}
                         style={{ width: `${Math.min(progressoParcelas, 100)}%` }}
                       />
                     </div>
@@ -1633,8 +1675,9 @@ const previsaoMes = React.useMemo(() => ({
                 <div className="flex gap-2 mt-3 pt-3 border-t">
                   <button 
                     type="button" 
-                    onClick={() => iniciarEdicaoAssinatura(a)} 
-                    className="px-3 py-1.5 text-xs rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition"
+                    onClick={() => iniciarEdicaoAssinatura(a)}
+                    className="px-3 py-1.5 text-xs rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition
+                               dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800"
                   >
                     ✏️ Editar
                   </button>
@@ -1646,15 +1689,17 @@ const previsaoMes = React.useMemo(() => ({
                           pagarParcelaAcordo(a.id);
                         }
                       }}
-                      className="px-3 py-1.5 text-xs rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition"
+                      className="px-3 py-1.5 text-xs rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition
+                                 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800"
                     >
                       ✓ Pagar parcela {parcelaAtual}
                     </button>
                   )}
                   <button 
                     type="button" 
-                    onClick={() => removerAssinatura(a.id)} 
-                    className="px-3 py-1.5 text-xs rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition"
+                    onClick={() => removerAssinatura(a.id)}
+                    className="px-3 py-1.5 text-xs rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition
+                               dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800"
                   >
                     🗑️ Excluir
                   </button>
@@ -1663,8 +1708,8 @@ const previsaoMes = React.useMemo(() => ({
             );
           })}
         </div>
-      )}
-      <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+      )} 
+      <div className="mt-4 p-3 bg-gray-50 rounded-lg dark:bg-gray-700 dark:text-gray-200">
         <div className="text-sm font-semibold text-right">
           Valor Total Anual de Assinaturas: {fmt(totalAnualAssinaturas)}
         </div>
@@ -1674,24 +1719,31 @@ const previsaoMes = React.useMemo(() => ({
 )}
 
       {tab === 'objetivos' && (
-        <section className="p-4 rounded-2xl shadow bg-white space-y-4">
+        <section className="p-4 rounded-2xl shadow bg-white dark:bg-gray-800 dark:text-gray-200 space-y-4">
           <h2 className="text-lg font-medium">Objetivos</h2>
-          <form className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end" onSubmit={adicionarObjetivo}>
+          <form className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end" 
+                onSubmit={adicionarObjetivo}>
             <div className="md:col-span-2">
               <label className="text-xs opacity-70">Nome</label>
-              <input className="w-full p-2 border rounded-lg"
+              <input 
+                className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                           dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 value={novoObjetivo.nome}
                 onChange={(e)=>setNovoObjetivo({ ...novoObjetivo, nome: e.target.value })} />
             </div>
             <div>
               <label className="text-xs opacity-70">Valor necessário (R$)</label>
-              <input type="number" step="0.01" min="0" className="w-full p-2 border rounded-lg"
+              <input type="number" step="0.01" min="0" 
+                className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                           dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 value={String(novoObjetivo.valorNecessario || '')}
                 onChange={(e)=>setNovoObjetivo({ ...novoObjetivo, valorNecessario: e.target.value })} />
             </div>
             <div>
               <label className="text-xs opacity-70">Status</label>
-              <select className="w-full p-2 border rounded-lg"
+              <select 
+                className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                           dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 value={novoObjetivo.status}
                 onChange={(e)=>setNovoObjetivo({ ...novoObjetivo, status: e.target.value as StatusObj })}>
                 <option>IMEDIATO</option>
@@ -1702,7 +1754,8 @@ const previsaoMes = React.useMemo(() => ({
               </select>
             </div>
             <div>
-              <button className="w-full px-3 py-2 rounded-lg bg-black text-white text-sm">Adicionar</button>
+              <button className="w-full px-3 py-2 rounded-lg bg-black text-white text-sm
+                                 dark:bg-gray-700 dark:text-white">Adicionar</button>
             </div>
           </form>
 
@@ -1715,7 +1768,7 @@ const previsaoMes = React.useMemo(() => ({
               const progresso = (o.status === 'QUITADO - EM PROGRESSO') ? 100 : progressoBase;
               const quitado = o.status.startsWith('QUITADO');
               return (
-                <div key={o.id} className={`p-4 rounded-2xl border ${quitado ? 'bg-green-50 border-green-300' : 'bg-white'}`}>
+                <div key={o.id} className={`p-4 rounded-2xl border ${quitado ? 'bg-green-50 border-green-300 dark:bg-green-900 dark:border-green-700' : 'bg-white dark:bg-gray-700 dark:border-gray-600'}`}>
                   <div className="flex items-center justify-between">
                     <div className="font-medium">{o.nome}</div>
                     <select
@@ -1739,8 +1792,10 @@ const previsaoMes = React.useMemo(() => ({
                     <div>{progresso}%</div>
                   </div>
                   <div className="flex gap-2 mt-3">
-                    <button className="px-2 py-1 bg-gray-900 text-white rounded" onClick={()=>atualizarObjetivoValor(o.id, 50)} type="button">+ R$50</button>
-                    <button className="px-2 py-1 bg-gray-200 rounded" onClick={()=>atualizarObjetivoValor(o.id, -50)} type="button">- R$50</button>
+                    <button className="px-2 py-1 bg-gray-900 text-white rounded dark:bg-gray-600 dark:text-white" onClick={()=>atualizarObjetivoValor(o.id, 50)} type="button">+ R$50</button>
+                    <button className="px-2 py-1 bg-gray-200 rounded dark:bg-gray-600 dark:text-white" onClick={()=>atualizarObjetivoValor(o.id, -50)} type="button">- R$50</button>
+                    <button className="px-2 py-1 rounded bg-red-600 text-white text-xs dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800"
+                            onClick={() => { if (window.confirm('Remover este objetivo?')) setObjetivos(prev => prev.filter(obj => obj.id !== o.id)); }} type="button">Remover</button>
                   </div>
                 </div>
               );
@@ -1750,12 +1805,15 @@ const previsaoMes = React.useMemo(() => ({
       )}
 
       {tab === 'cartoes' && (
-        <section className="p-4 rounded-2xl shadow bg-white space-y-4">
+        <section className="p-4 rounded-2xl shadow bg-white dark:bg-gray-800 dark:text-gray-200 space-y-4">
           <h2 className="text-lg font-medium">Cartões de Crédito</h2>
-          <form className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end" onSubmit={adicionarCartao}>
+          <form className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end" 
+                onSubmit={adicionarCartao}>
             <div className="relative">
               <label className="text-xs opacity-70">Nome</label>
-              <input className="w-full p-2 border rounded-lg"
+              <input 
+                className="w-full p-2 border border-gray-300 rounded-lg bg-white
+                           dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 value={novoCartao.nome}
                 onChange={(e) => {
                   const valor = e.target.value;
@@ -1791,26 +1849,32 @@ const previsaoMes = React.useMemo(() => ({
                   }
                 }}
                  />
-              {sugestoesCartao.length > 0 && (
-                <ul className="absolute z-10 w-full bg-white border rounded-lg mt-1 shadow-lg max-h-40 overflow-y-auto">
-                  {sugestoesCartao.map((s, index) => <li key={s} className={`p-2 cursor-pointer ${sugestaoAtivaIndex === index ? 'bg-gray-200' : 'hover:bg-gray-100'}`} onMouseDown={() => { setNovoCartao(c => ({...c, nome: s})); setSugestoesCartao([]); }}>{s}</li>)}
+              {sugestoesCartao.length > 0 && novoCartao.nome.trim() && (
+                <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg mt-1 shadow-lg max-h-40 overflow-y-auto
+                           dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                  {sugestoesCartao.map((s, index) => <li key={s} className={`p-2 cursor-pointer ${sugestaoAtivaIndex === index ? 'bg-gray-200 dark:bg-gray-600' : 'hover:bg-gray-100 dark:hover:bg-gray-600'}`} onMouseDown={() => { setNovoCartao(c => ({...c, nome: s})); setSugestoesCartao([]); }}>{s}</li>)}
                 </ul>
               )}
             </div>
             <div>
               <label className="text-xs opacity-70">Limite (R$)</label>
-              <input type="number" step="0.01" min="0" className="w-full p-2 border rounded-lg"
+              <input type="number" step="0.01" min="0" 
+                className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                           dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 value={novoCartao.limite}
                 onChange={(e)=>setNovoCartao({ ...novoCartao, limite: e.target.value })} />
             </div>
             <div>
               <label className="text-xs opacity-70">Dia de vencimento</label>
-              <input type="number" min="1" max="28" className="w-full p-2 border rounded-lg"
+              <input type="number" min="1" max="28" 
+                className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                           dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 value={novoCartao.diaVencimento || ''}
                 onChange={(e)=>setNovoCartao({ ...novoCartao, diaVencimento: Number(e.target.value) })} />
             </div>            
-            <div>
-              <button className="w-full px-3 py-2 rounded-lg bg-black text-white text-sm">Adicionar</button>
+            <div> 
+              <button className="w-full px-3 py-2 rounded-lg bg-black text-white text-sm
+                                 dark:bg-gray-700 dark:text-white">Adicionar</button>
             </div>
           </form>
 
@@ -1827,27 +1891,33 @@ const previsaoMes = React.useMemo(() => ({
 
       if (isEditing && editCardDraft) {
         return (
-          <div key={c.id} className="p-4 rounded-2xl border bg-white space-y-2">
-            <div className="flex items-center justify-between">
+          <div key={c.id} className="p-4 rounded-2xl border bg-white dark:bg-gray-800 space-y-2">
+            <div className="flex items-center justify-between dark:text-gray-200">
               <div className="font-medium">Editar cartão</div>
               <span className="text-xs opacity-60">#{c.id}</span>
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm">
 <label className="flex flex-col">
   <span className="opacity-60">Nome</span>
-  <input className="p-2 border rounded-lg"
+  <input 
+    className="p-2 border border-gray-200 rounded-lg bg-white
+               dark:bg-gray-700 dark:text-white dark:border-gray-600"
     value={editCardDraft?.nome ?? ''}
     onChange={(e)=>setEditCardDraft(editCardDraft ? { ...editCardDraft, nome: e.target.value } : null)} />
 </label>
 <label className="flex flex-col">
   <span className="opacity-60">Limite (R$)</span>
-  <input type="number" min="0" step="0.01" className="p-2 border rounded"
+  <input type="number" min="0" step="0.01" 
+    className="p-2 border border-gray-200 rounded-lg bg-white
+               dark:bg-gray-700 dark:text-white dark:border-gray-600"
     value={editCardDraft?.limite ?? ''}
     onChange={(e)=>setEditCardDraft(editCardDraft ? { ...editCardDraft, limite: e.target.value } : null)} />
 </label>
               <label className="flex flex-col">
                 <span className="opacity-60">Dia de vencimento</span>
-                <input type="number" min="1" max="28" className="p-2 border rounded-lg"
+                <input type="number" min="1" max="28" 
+                  className="p-2 border border-gray-200 rounded-lg bg-white
+                             dark:bg-gray-700 dark:text-white dark:border-gray-600"
                   value={editCardDraft.diaVencimento}
                   onChange={(e)=>setEditCardDraft({ ...(editCardDraft as Cartao), diaVencimento: Number(e.target.value || 1) })} />
               </label>
@@ -1861,7 +1931,8 @@ const previsaoMes = React.useMemo(() => ({
       }
 
       return (
-        <div key={c.id} className="p-4 rounded-2xl border bg-white flex flex-col">
+        <div key={c.id} className="p-4 rounded-2xl border border-gray-200 bg-white flex flex-col
+                                   dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600">
           <div className="flex-1">
             <div className="flex items-center justify-between">
               <div className="font-medium flex items-center gap-2">
@@ -1870,16 +1941,16 @@ const previsaoMes = React.useMemo(() => ({
               </div>
             </div>
             <div className="text-sm opacity-70 mt-1">Venc.: dia {c.diaVencimento}</div>
-            {dadosCartao.imagem && (
+            {dadosCartao.imagem && ( // Imagens de cartão podem precisar de ajuste para modo escuro, ou serem SVGs que se adaptam
               <img src={dadosCartao.imagem} alt={c.nome} className="w-24 h-auto my-3" />
             )}
             <div className="mt-2 text-sm">Limite: {fmt(toNum(c.limite))}</div>
             <div className="mt-1 text-sm">Usado (mês): {fmt(usadoMes)}</div>
             <div className="mt-1 text-sm">Disponível: {fmt(disp)}</div>
           </div>
-          <div className="flex gap-2 mt-3">
-            <button type="button" className="px-2 py-1 rounded bg-gray-900 text-white text-xs" onClick={()=>startEditCard(c)}>Editar</button>
-            <button type="button" className="px-2 py-1 rounded bg-red-600 text-white text-xs" onClick={()=>deleteCard(c.id)}>Remover</button>
+          <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+            <button type="button" className="px-2 py-1 rounded bg-gray-900 text-white text-xs dark:bg-gray-600 dark:text-white" onClick={()=>startEditCard(c)}>Editar</button>
+            <button type="button" className="px-2 py-1 rounded bg-red-600 text-white text-xs dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800" onClick={()=>deleteCard(c.id)}>Remover</button>
           </div>
         </div>
       );
@@ -1889,29 +1960,37 @@ const previsaoMes = React.useMemo(() => ({
       )}
 
       {tab === 'dividas' && (
-        <section className="p-4 rounded-2xl shadow bg-white space-y-4">
+        <section className="p-4 rounded-2xl shadow bg-white dark:bg-gray-800 dark:text-gray-200 space-y-4">
           <h2 className="text-lg font-medium">Dívidas — Quem me deve</h2>
-          <form className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end" onSubmit={adicionarDivida}>
+          <form className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end" 
+                onSubmit={adicionarDivida}>
             <div>
               <label className="text-xs opacity-70">Pessoa</label>
-              <input className="w-full p-2 border rounded-lg"
+              <input 
+                className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                           dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 value={novaDivida.pessoa}
                 onChange={(e)=>setNovaDivida({ ...novaDivida, pessoa: e.target.value })} />
             </div>
             <div>
               <label className="text-xs opacity-70">Valor (R$)</label>
-              <input type="number" step="0.01" min="0" className="w-full p-2 border rounded-lg"
+              <input type="number" step="0.01" min="0" 
+                className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                           dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 value={novaDivida.valor}
                 onChange={(e)=>setNovaDivida({ ...novaDivida, valor: e.target.value })} />
             </div>
             <div className="md:col-span-2">
               <label className="text-xs opacity-70">Descrição</label>
-              <input className="w-full p-2 border rounded-lg"
+              <input 
+                className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                           dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 value={novaDivida.descricao}
                 onChange={(e)=>setNovaDivida({ ...novaDivida, descricao: e.target.value })} />
             </div>
             <div>
-              <button className="w-full px-3 py-2 rounded-lg bg-black text-white text-sm">Adicionar</button>
+              <button className="w-full px-3 py-2 rounded-lg bg-black text-white text-sm
+                                 dark:bg-gray-700 dark:text-white">Adicionar</button>
             </div>
           </form>
 
@@ -1919,7 +1998,7 @@ const previsaoMes = React.useMemo(() => ({
             <p className="text-sm opacity-60">Sem dívidas registradas</p>
           ) : (
             <table className="w-full text-sm">
-              <thead>
+              <thead className="dark:text-gray-400">
                 <tr className="text-left opacity-60">
                   <th className="py-2">Pessoa</th>
                   <th>Descrição</th>
@@ -1928,7 +2007,7 @@ const previsaoMes = React.useMemo(() => ({
               </thead>
               <tbody>
                 {dividas.slice().reverse().map(d => (
-                  <tr key={d.id} className="border-t">
+                  <tr key={d.id} className="border-t border-gray-200 dark:border-gray-600">
                     <td className="py-2">{d.pessoa}</td>
                     <td>{d.descricao}</td>
                     <td className="text-right">{fmt(toNum(d.valor))}</td>
@@ -1941,44 +2020,56 @@ const previsaoMes = React.useMemo(() => ({
       )}
 
       {tab === 'configuracoes' && (
-        <section className="p-4 rounded-2xl shadow bg-white space-y-6">
-          <h2 className="text-lg font-medium">Configurações</h2>
+        <section className="p-4 rounded-2xl shadow bg-white dark:bg-gray-800 space-y-6">
+          <h2 className="text-lg font-medium text-black dark:text-gray-200">Configurações</h2>
 
-          <div className="p-4 border rounded-xl">
-            <h3 className="font-medium mb-2">Cores do Dashboard</h3>
-            <p className="text-sm opacity-70 mb-4">Defina os valores para que os indicadores de "Saldo" e "Crédito Disponível" mudem de cor.</p>
+          <div className="p-4 border border-gray-200 rounded-xl dark:border-gray-600">
+            <h3 className="font-medium mb-2 text-black dark:text-gray-200">Cores do Dashboard</h3>
+            <p className="text-sm opacity-70 mb-4 dark:text-gray-400">Defina os valores para que os indicadores de "Saldo" e "Crédito Disponível" mudem de cor.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h4 className="font-semibold text-sm mb-2">Saldo (Dinheiro)</h4>
+                <h4 className="font-semibold text-sm mb-2 text-black dark:text-gray-200">Saldo (Dinheiro)</h4>
                 <div className="space-y-2">
                   <label className="flex flex-col text-sm">
                     <span className="opacity-60">Fica <b className="text-orange-500">laranja</b> abaixo de (R$):</span>
-                    <input type="number" step="0.01" className="p-2 border rounded-lg" value={configuracoes.saldo.alerta} onChange={e => setConfiguracoes(c => ({ ...c, saldo: { ...c.saldo, alerta: e.target.value } }))} />
+                    <input type="number" step="0.01" 
+                      className="p-2 border border-gray-200 rounded-lg bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                      value={configuracoes.saldo.alerta} onChange={e => setConfiguracoes(c => ({ ...c, saldo: { ...c.saldo, alerta: e.target.value } }))} />
                   </label>
                   <label className="flex flex-col text-sm">
                     <span className="opacity-60">Fica <b className="text-red-600">vermelho</b> abaixo de (R$):</span>
-                    <input type="number" step="0.01" className="p-2 border rounded-lg" value={configuracoes.saldo.critico} onChange={e => setConfiguracoes(c => ({ ...c, saldo: { ...c.saldo, critico: e.target.value } }))} />
+                    <input type="number" step="0.01" 
+                      className="p-2 border border-gray-200 rounded-lg bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                      value={configuracoes.saldo.critico} onChange={e => setConfiguracoes(c => ({ ...c, saldo: { ...c.saldo, critico: e.target.value } }))} />
                   </label>
                   <label className="flex flex-col text-sm">
                     <span className="opacity-60">Fica <b className="text-green-600">verde</b> acima de (R$):</span>
-                    <input type="number" step="0.01" className="p-2 border rounded-lg" value={configuracoes.saldo.positivo} onChange={e => setConfiguracoes(c => ({ ...c, saldo: { ...c.saldo, positivo: e.target.value } }))} />
+                    <input type="number" step="0.01" 
+                      className="p-2 border border-gray-200 rounded-lg bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                      value={configuracoes.saldo.positivo} onChange={e => setConfiguracoes(c => ({ ...c, saldo: { ...c.saldo, positivo: e.target.value } }))} />
                   </label>
                 </div>
               </div>
               <div>
-                <h4 className="font-semibold text-sm mb-2">Crédito Disponível</h4>
+                <h4 className="font-semibold text-sm mb-2 text-black dark:text-gray-200">Crédito Disponível</h4>
                 <div className="space-y-2">
                   <label className="flex flex-col text-sm">
                     <span className="opacity-60">Fica <b className="text-orange-500">laranja</b> abaixo de (R$):</span>
-                    <input type="number" step="0.01" className="p-2 border rounded-lg" value={configuracoes.credito.alerta} onChange={e => setConfiguracoes(c => ({ ...c, credito: { ...c.credito, alerta: e.target.value } }))} />
+                    <input type="number" step="0.01" 
+                      className="p-2 border border-gray-200 rounded-lg bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                      value={configuracoes.credito.alerta} onChange={e => setConfiguracoes(c => ({ ...c, credito: { ...c.credito, alerta: e.target.value } }))} />
                   </label>
                   <label className="flex flex-col text-sm">
                     <span className="opacity-60">Fica <b className="text-red-600">vermelho</b> abaixo de (R$):</span>
-                    <input type="number" step="0.01" className="p-2 border rounded-lg" value={configuracoes.credito.critico} onChange={e => setConfiguracoes(c => ({ ...c, credito: { ...c.credito, critico: e.target.value } }))} />
+                    <input type="number" step="0.01" 
+                      className="p-2 border border-gray-200 rounded-lg bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                      value={configuracoes.credito.critico} onChange={e => setConfiguracoes(c => ({ ...c, credito: { ...c.credito, critico: e.target.value } }))} />
                   </label>
                   <label className="flex flex-col text-sm">
                     <span className="opacity-60">Fica <b className="text-green-600">verde</b> acima de (R$):</span>
-                    <input type="number" step="0.01" className="p-2 border rounded-lg" value={configuracoes.credito.positivo} onChange={e => setConfiguracoes(c => ({ ...c, credito: { ...c.credito, positivo: e.target.value } }))} />
+                    <input type="number" step="0.01" 
+                      className="p-2 border border-gray-200 rounded-lg bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                      value={configuracoes.credito.positivo} onChange={e => setConfiguracoes(c => ({ ...c, credito: { ...c.credito, positivo: e.target.value } }))} />
                   </label>
                 </div>
               </div>
@@ -1989,22 +2080,25 @@ const previsaoMes = React.useMemo(() => ({
 
       {/* Modal: Assinaturas Mensais */}
       {showMensaisModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowMensaisModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-3xl p-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-3">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" 
+             onClick={() => setShowMensaisModal(false)}>
+          <div className="bg-white rounded-3xl w-full max-w-7xl p-6 dark:bg-gray-800 dark:text-gray-200" 
+               onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-2">
               <h3 className="text-lg font-semibold">Assinaturas Mensais</h3>
-              <button className="px-3 py-1 rounded bg-black text-white" onClick={() => setShowMensaisModal(false)} type="button">Fechar</button>
+              <button className="px-3 py-1 rounded bg-black text-white dark:bg-gray-700 dark:text-white" onClick={() => setShowMensaisModal(false)} type="button">Fechar</button>
             </div>
             <div className="flex gap-2 mb-3">
-              <input value={mensaisQuery} onChange={e=>setMensaisQuery(e.target.value)} placeholder="Buscar por nome..." className="border rounded px-2 py-1 flex-1" />
+              <input value={mensaisQuery} onChange={e=>setMensaisQuery(e.target.value)} placeholder="Buscar por nome..." className="border rounded px-2 py-1 flex-1" type="text" />
               <select value={mensaisSort} onChange={e=>setMensaisSort(e.target.value as any)} className="border rounded px-2 py-1">
                 <option value="vencimento">Ordenar por vencimento</option>
                 <option value="nome">Ordenar por nome</option>
                 <option value="valor">Ordenar por valor</option>
               </select>
             </div>
-            <div className="grid md:grid-cols-3 gap-6">
-              <div>
+            <div className="border-b border-gray-200 pb-4 mb-4"></div> {/* Separador horizontal adicionado */}
+            <div className="grid md:grid-cols-3 gap-6 divide-x divide-gray-200 dark:divide-gray-700">
+              <div className="pr-6">
                 <div className="font-medium mb-2">Assinaturas</div>
                 {mensaisList.length === 0 ? <p className="text-sm opacity-60">Nenhuma</p> : (
                   <table className="w-full text-sm">
@@ -2013,7 +2107,7 @@ const previsaoMes = React.useMemo(() => ({
                       {mensaisList.map(a => (
                         <tr key={a.id} className="border-t">
                           <td className="py-1">
-                            {calcularProximoVencimentoMensal(a)?.ehProximo && (
+                            {calcularProximoVencimentoMensal(a)?.ehProximo && !darkMode && ( // Ícone de aviso só no modo claro
                               <span className="mr-2" title="Vencimento próximo!">⚠️</span>
                             )}
                             {a.nome}
@@ -2028,7 +2122,7 @@ const previsaoMes = React.useMemo(() => ({
                 )}
                 <div className="mt-2 text-right text-sm font-semibold">Total: {fmt(mensaisList.reduce((s,a)=>s + toNum(a.valor), 0))}</div>
               </div>
-              <div>
+              <div className="px-6">
                 <div className="font-medium mb-2">Contratos (Aluguel)</div>
                 {alugueisMensais.length === 0 ? <p className="text-sm opacity-60">Nenhum</p> : (
                   <table className="w-full text-sm">
@@ -2037,7 +2131,7 @@ const previsaoMes = React.useMemo(() => ({
                       {alugueisMensais.map(a => (
                         <tr key={a.id} className="border-t">
                           <td className="py-1">{a.nome}</td>
-                          <td>{fmt(toNum(a.valor))}</td>
+                          <td>{fmt(toNum(a.valor))}</td> 
                           <td>{a.diaCobranca}</td>
                           <td>{a.tipoPagamento}{a.tipoPagamento === 'CRÉDITO' && a.cartaoId ? ` • ${a.cartaoNome ?? ''}` : ''}</td>
                         </tr>
@@ -2047,8 +2141,8 @@ const previsaoMes = React.useMemo(() => ({
                 )}
                 <div className="mt-2 text-right text-sm font-semibold">Total: {fmt(alugueisMensais.reduce((s,a)=>s + toNum(a.valor), 0))}</div>
               </div>
-              <div>
-          <div className="font-medium mb-2">Acordos</div>
+              <div className="pl-6">
+            <div className="font-medium mb-2">Acordos</div>
             {acordosMensaisList.length === 0 ? (
               <p className="text-sm opacity-60">Nenhum</p>
             ) : (
@@ -2081,31 +2175,31 @@ const previsaoMes = React.useMemo(() => ({
   <div className="mt-2 text-right text-sm font-semibold">
     Total: {fmt(acordosMensaisList.reduce((s, a) => s + toNum(a.valor), 0))}
   </div>
-</div>
+              </div>
             </div>
           </div>
-        </div>
-        
+      </div>
       )}
 
       {/* Modal: Gastos em Crédito (mês) */}
       {showCreditoMesModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowCreditoMesModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-4xl p-4" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" 
+             onClick={() => setShowCreditoMesModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-6xl p-6 dark:bg-gray-800 dark:text-gray-200" 
+               onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold">Gastos em Crédito (mês)</h3>
-              <button className="px-3 py-1 rounded bg-black text-white" onClick={() => setShowCreditoMesModal(false)} type="button">Fechar</button>
+              <button className="px-3 py-1 rounded bg-black text-white dark:bg-gray-700 dark:text-white" onClick={() => setShowCreditoMesModal(false)} type="button">Fechar</button>
             </div>
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-3 gap-6"> {/* Removed creditByCard from here */}
               <div className="md:col-span-2">
                 <table className="w-full text-sm">
                   <thead className="text-left opacity-60">
                     <tr><th>Data</th><th>Descrição</th><th>Cartão</th><th>Valor</th></tr>
                   </thead>
-                  <tbody>
-                    {creditGastosMesList.map(l => (
+                  <tbody>{creditGastosMesList.map((l: { id: string; data: string; descricao: string; cartaoNome: string | null; valor: number; }) => (
                       <tr key={l.id} className="border-t">
-                        <td className="py-1">{l.data.toString().startsWith('Invalid') ? l.data.toString() : (new Date(l.data)).toLocaleDateString()}</td>
+                        <td className="py-1 border-gray-200 dark:border-gray-700">{l.data.toString().startsWith('Invalid') ? l.data.toString() : (new Date(l.data)).toLocaleDateString()}</td>
                         <td>{l.descricao}</td>
                         <td>
                           <span className="flex items-center gap-2">
@@ -2122,7 +2216,8 @@ const previsaoMes = React.useMemo(() => ({
               <div className="md:col-span-1">
                 <div className="font-medium mb-2">Resumo por cartão</div>
                 <ul className="text-sm space-y-2">
-                  {creditByCard.map(r => (
+                  {creditByCard.map(r => ( 
+
                     <li key={r.cartao.id} className="p-2 rounded border flex items-center justify-between">
                       <div>
                         <div className="font-medium">{r.cartao.nome}</div>
@@ -2142,5 +2237,9 @@ const previsaoMes = React.useMemo(() => ({
       )}
 
     </div>
-  );
+  ); // Closing parenthesis for the return statement
+} // Closing curly brace for the LifeTracker function
+
+function setShowCreditoMesModal(arg0: boolean): void {
+  throw new Error('Function not implemented.');
 }

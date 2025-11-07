@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import LifeTracker from './LifeTracker';
 
 class ErrorBoundary extends React.Component<React.PropsWithChildren, { hasError: boolean; err?: any }> {
@@ -29,10 +29,16 @@ class ErrorBoundary extends React.Component<React.PropsWithChildren, { hasError:
 }
 
 export default function App() {
+  const [darkMode, setDarkMode] = useState(false);
+
+  const toggleDarkMode = () => {
+    setDarkMode(prevMode => !prevMode);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 dark:text-gray-100 ${darkMode ? 'dark' : ''}`}>
       <ErrorBoundary>
-        <LifeTracker />
+        <LifeTracker darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
       </ErrorBoundary>
     </div>
   );
