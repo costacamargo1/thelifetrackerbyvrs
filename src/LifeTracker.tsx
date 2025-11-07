@@ -50,6 +50,7 @@ interface Assinatura {
   cartaoId: number | null;
   cartaoNome?: string | null;
   periodoCobranca: Periodo;
+  pagoEsteMes?: boolean; // Para CONTRATO - ALUGUEL
   parcelasTotal?: number;  // Só para 'ACORDO', número total de parcelas
   parcelaAtual?: number;   // Começa em 1, incrementa ao "pagar"
 }
@@ -86,6 +87,21 @@ const getDadosCartao = (nomeCartao: string): { bg: string; text: string; imagem:
 
   return { bg: 'bg-gray-200', text: 'text-black', imagem: null };
 };
+
+const getCorProgresso = (percent: number) => {
+  if (percent < 50) return 'bg-green-500';
+  if (percent < 75) return 'bg-yellow-500';
+  if (percent < 90) return 'bg-orange-500';
+  return 'bg-red-600';
+};
+
+const getCorTextoProgresso = (percent: number) => {
+  if (percent < 50) return 'text-green-600';
+  if (percent < 75) return 'text-yellow-600';
+  if (percent < 90) return 'text-orange-600';
+  return 'text-red-600';
+};
+
 
 const fmt = (n: number) =>
   n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 2 });
@@ -691,20 +707,28 @@ const previsaoMes = React.useMemo(() => ({
     return [...gastosList, ...assinList].sort((a, b) => (new Date(a.data)).getTime() - (new Date(b.data)).getTime());
   }, [gastos, assinMensais, cartoes]);
 
-  // Resumo por cartão (mês atual)
+ // Resumo por cartão (considerando o total comprometido)
   const creditByCard = React.useMemo(() => {
     const map = new Map<number, number>();
-    creditGastosMesList.forEach(x => {
-      const id = x.cartaoId;
+    gastos.filter(g => g.tipoPagamento === 'CRÉDITO').forEach(g => {
+      const id = g.cartaoId;
       if (!id) return;
-      map.set(id, (map.get(id) ?? 0) + x.valor);
+      map.set(id, (map.get(id) ?? 0) + toNum(g.valor));
     });
+    assinaturas
+      .filter(a => a.tipoPagamento === 'CRÉDITO' && a.periodoCobranca === 'MENSAL' && a.diaCobranca <= new Date().getDate())
+      .forEach(a => {
+        const id = a.cartaoId;
+        if (!id) return;
+        map.set(id, (map.get(id) ?? 0) + toNum(a.valor));
+      });
     return cartoes.map(c => ({
       cartao: c,
       usado: map.get(c.id) ?? 0,
-      disponivel: Math.max(0, toNum(c.limite) - (map.get(c.id) ?? 0))
+      disponivel: Math.max(0, toNum(c.limite) - (map.get(c.id) ?? 0)),
     }));
-  }, [creditGastosMesList, cartoes]);
+  }, [gastos, cartoes, assinaturas]);
+
 
   // Ordenação e filtro da lista de assinaturas mensais
   const mensaisList = React.useMemo(() => {
@@ -822,6 +846,7 @@ const previsaoMes = React.useMemo(() => ({
     setEditingAssinaturaId(null);
     setNovaAssinatura({ id: 0, nome: '', valor: '', diaCobranca: 1, tipo: 'ASSINATURA', categoriaPersonalizada: '', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null, periodoCobranca: 'MENSAL', mesCobranca: new Date().getMonth() + 1, anoAdesao: new Date().getFullYear() });
   };
+  
 
   const salvarEdicaoAssinatura = (e: React.FormEvent) => {
     e.preventDefault();
@@ -863,6 +888,20 @@ const previsaoMes = React.useMemo(() => ({
       categoriaPersonalizada: '', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null, periodoCobranca: 'MENSAL', mesCobranca: new Date().getMonth() + 1, anoAdesao: new Date().getFullYear()
     });
   };
+    // Resetar 'pagoEsteMes' para aluguéis no início de cada mês
+  React.useEffect(() => {
+    const hoje = new Date();
+    const primeiroDiaDoMes = hoje.getDate() === 1;
+
+    if (primeiroDiaDoMes) {
+      const jaResetou = localStorage.getItem('resetAluguelMes') === `${hoje.getFullYear()}-${hoje.getMonth()}`;
+      if (!jaResetou) {
+        setAssinaturas(prev => prev.map(a => a.tipo === 'CONTRATO - ALUGUEL' ? { ...a, pagoEsteMes: false } : a));
+        localStorage.setItem('resetAluguelMes', `${hoje.getFullYear()}-${hoje.getMonth()}`);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const adicionarObjetivo = (e: React.FormEvent) => {
     e.preventDefault();
@@ -884,6 +923,31 @@ const previsaoMes = React.useMemo(() => ({
     setNovaDivida({ id: 0, pessoa: '', valor: '', descricao: '' });
   };
   
+  const pagarAluguel = (aluguel: Assinatura) => {
+    if (aluguel.pagoEsteMes) {
+      alert('Este aluguel já foi marcado como pago para o mês atual.');
+      return;
+    }
+
+    // Adicionar o gasto correspondente
+    const novoGastoAluguel: Gasto = {
+      id: Date.now(),
+      descricao: `Pagamento Aluguel: ${aluguel.nome}`,
+      valor: aluguel.valor,
+      categoria: 'MORADIA',
+      data: new Date().toISOString().slice(0, 10),
+      tipoPagamento: aluguel.tipoPagamento,
+      cartaoId: aluguel.cartaoId,
+      cartaoNome: aluguel.cartaoNome,
+    };
+    setGastos(g => [...g, novoGastoAluguel]);
+
+    // Marcar como pago
+    setAssinaturas(prev => prev.map(a => 
+      a.id === aluguel.id ? { ...a, pagoEsteMes: true } : a
+    ));
+  };
+
   const getCorValor = (valor: number, config: Configuracoes['credito'] | Configuracoes['saldo']) => {
     const critico = toNum(config.critico);
     const alerta = toNum(config.alerta);
@@ -939,10 +1003,14 @@ const previsaoMes = React.useMemo(() => ({
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="p-4 rounded-2xl shadow bg-white dark:bg-gray-700 dark:text-gray-200">
               <div className="text-sm opacity-60">Saldo (Dinheiro)</div>
-              <div className={`text-2xl font-semibold ${getCorValor(saldo, configuracoes.saldo)}`}>{fmt(saldo)}</div>
+              <div className={`text-2xl font-semibold ${getCorValor(saldo, configuracoes.saldo)}`}>
+                {fmt(saldo)}
+              </div>
             </div>
             <div className="p-4 rounded-2xl shadow bg-white dark:bg-gray-700 dark:text-gray-200">
-              <div className="text-sm opacity-60">Crédito Disponível</div>
+              <div className="text-sm opacity-60">
+                Crédito Disponível
+              </div>
               <div className={`text-xl font-semibold ${getCorValor(creditoDisponivel, configuracoes.credito)}`}>
                 {fmt(creditoDisponivel)}
               </div>
@@ -960,8 +1028,13 @@ const previsaoMes = React.useMemo(() => ({
               )}
             </div>
             <div className="p-4 rounded-2xl shadow bg-white dark:bg-gray-700 dark:text-gray-200">
-              <div className="text-sm opacity-60">Gastos (Crédito)</div>
-              <div className="text-xl font-medium">{fmt(gastosCredito)}</div>
+              <div className="text-sm opacity-60">Gastos (Crédito)</div>              
+              <div className="text-xl font-medium">{fmt(gastosCredito + assinaturasCreditoMensal)}</div>
+              {assinaturasCreditoMensal > 0 && (
+                <div className="text-xs opacity-60">
+                  (inclui {fmt(assinaturasCreditoMensal)} de assinaturas)
+                </div>
+              )}
             </div>
             <div className="p-4 rounded-2xl shadow bg-white dark:bg-gray-700 dark:text-gray-200">
               <div className="text-sm opacity-60">Gastos (Dinheiro)</div>
@@ -980,6 +1053,20 @@ const previsaoMes = React.useMemo(() => ({
               <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
                 <div className="opacity-60">Aluguel</div>
                 <div className="text-lg font-semibold">{fmt(previsaoMes.aluguel)}</div>
+                {alugueisMensais.map(aluguel => (
+                  <div key={aluguel.id} className="mt-1 text-xs flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full inline-block ${aluguel.pagoEsteMes ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                    <span>{aluguel.pagoEsteMes ? 'Pago' : 'Não Pago'}</span>
+                    {!aluguel.pagoEsteMes && (
+                      <button
+                        onClick={() => pagarAluguel(aluguel)}
+                        className="px-2 py-0.5 bg-green-600 text-white rounded hover:bg-green-700 text-xs"
+                      >
+                        Pagar
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
               <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
               <div className="opacity-60"> Acordos: </div>
@@ -2217,15 +2304,20 @@ const previsaoMes = React.useMemo(() => ({
                 <div className="font-medium mb-2">Resumo por cartão</div>
                 <ul className="text-sm space-y-2">
                   {creditByCard.map(r => ( 
-
                     <li key={r.cartao.id} className="p-2 rounded border flex items-center justify-between">
                       <div>
                         <div className="font-medium">{r.cartao.nome}</div>
-                        <div className="opacity-60">Limite {fmt(toNum(r.cartao.limite))}</div>
+                        <div className="opacity-60">
+                          Limite {fmt(toNum(r.cartao.limite))}
+                        </div>
                       </div>
                       <div className="text-right">
                         <div className="font-semibold">{fmt(r.usado)}</div>
-                        <div className="opacity-60">Restante {fmt(r.disponivel)}</div>
+                        <div
+                          className={`opacity-60 ${getCorTextoProgresso((r.usado / toNum(r.cartao.limite)) * 100)}`}
+                        >
+                          Restante {fmt(r.disponivel)}
+                        </div>
                       </div>
                     </li>
                   ))}
