@@ -58,7 +58,7 @@ interface Objetivo { id: number; nome: string; valorNecessario: string; valorAtu
 interface Cartao { id: number; nome: string; limite: string; diaVencimento: number; }
 interface Configuracoes {
   credito: {
-    alerta: string;
+    alerta: string; 
     critico: string;
     positivo: string;
   };
@@ -66,7 +66,7 @@ interface Configuracoes {
     alerta: string;
     critico: string;
     positivo: string;
-  };
+  }; // Closing bracket for 'saldo'
 }
 
 
@@ -405,7 +405,9 @@ const saveEditCard = () => {
       return {
         id: editCardDraft.id,
         nome: editCardDraft.nome ?? "",
-        limite: editCardDraft.limite ?? "0",
+        limite: editCardDraft.limite ?? "0", // Keep this line
+        // Remove the duplicate 'limite' property
+        diaFechamento: editCardDraft.diaFechamento ?? 1, 
         diaVencimento: editCardDraft.diaVencimento ?? 1
       };
     }
@@ -484,6 +486,7 @@ const saveEditCard = () => {
   nome: string;
   limite: string;
   diaVencimento: number;
+  diaVencimento: number; diaFechamento: number; 
 }
 // Tipo mais rígido para o estado de novo cartão
 interface NovoCartaoDraft {
@@ -495,6 +498,7 @@ const [novoCartao, setNovoCartao] = React.useState<NovoCartaoDraft>({
   nome: '',
   limite: '',
   diaVencimento: 1,
+  diaVencimento: 1, diaFechamento: 1, 
 });
 
 
@@ -888,6 +892,7 @@ const previsaoMes = React.useMemo(() => ({
     const cartaoFinal = { ...novoCartao, nome: novoCartao.nome.trim().toUpperCase(), id: Date.now() };
     setCartoes((prev: Cartao[]) => [...prev, cartaoFinal]);
     setSugestoesCartao([]);
+    setSugestoesCartao([]); diaFechamento: 1, 
     setNovoCartao({ nome: '', limite: '', diaVencimento: 1 });
   };
 
@@ -1979,6 +1984,14 @@ const previsaoMes = React.useMemo(() => ({
                 value={novoCartao.diaVencimento || ''}
                 onChange={(e)=>setNovoCartao({ ...novoCartao, diaVencimento: Number(e.target.value) })} />
             </div>            
+            <div>
+              <label className="text-xs opacity-70">Dia de fechamento</label>
+              <input type="number" min="1" max="31"
+                className="w-full p-2 border border-gray-200 rounded-lg bg-white
+                           dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                value={novoCartao.diaFechamento || ''}
+                onChange={(e) => setNovoCartao({ ...novoCartao, diaFechamento: Number(e.target.value) })} />
+            </div>
             <div> 
               <button className="w-full px-3 py-2 rounded-lg bg-black text-white text-sm
                                  dark:bg-gray-700 dark:text-white">Adicionar</button>
@@ -2020,6 +2033,13 @@ const previsaoMes = React.useMemo(() => ({
     value={editCardDraft?.limite ?? ''}
     onChange={(e)=>setEditCardDraft(editCardDraft ? { ...editCardDraft, limite: e.target.value } : null)} />
 </label>
+<label className="flex flex-col">
+  <span className="opacity-60">Dia de fechamento</span>
+  <input type="number" min="1" max="31"
+    className="p-2 border border-gray-200 rounded-lg bg-white
+               dark:bg-gray-700 dark:text-white dark:border-gray-600"
+    value={editCardDraft.diaFechamento} onChange={(e) => setEditCardDraft({ ...(editCardDraft as Cartao), diaFechamento: Number(e.target.value || 1) })} />
+</label>
               <label className="flex flex-col">
                 <span className="opacity-60">Dia de vencimento</span>
                 <input type="number" min="1" max="28" 
@@ -2046,14 +2066,12 @@ const previsaoMes = React.useMemo(() => ({
                 <span className={`w-4 h-4 rounded-full inline-block ${dadosCartao.bg}`}></span>
                 {c.nome}
               </div>
-            </div>
+            </div>            
+            <div className="text-sm opacity-70 mt-1">Fechamento: dia {c.diaFechamento}</div>
             <div className="text-sm opacity-70 mt-1">Venc.: dia {c.diaVencimento}</div>
             {dadosCartao.imagem && ( // Imagens de cartão podem precisar de ajuste para modo escuro, ou serem SVGs que se adaptam
               <img src={dadosCartao.imagem} alt={c.nome} className="w-24 h-auto my-3" />
             )}
-            <div className="mt-2 text-sm">Limite: {fmt(toNum(c.limite))}</div>
-            <div className="mt-1 text-sm">Usado (mês): {fmt(usadoMes)}</div>
-            <div className="mt-1 text-sm">Disponível: {fmt(disp)}</div>
           </div>
           <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
             <button type="button" className="px-2 py-1 rounded bg-gray-900 text-white text-xs dark:bg-gray-600 dark:text-white" onClick={()=>startEditCard(c)}>Editar</button>
