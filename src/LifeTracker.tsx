@@ -405,10 +405,9 @@ const saveEditCard = () => {
       return {
         id: editCardDraft.id,
         nome: editCardDraft.nome ?? "",
-        limite: editCardDraft.limite ?? "0", // Keep this line
-        // Remove the duplicate 'limite' property
-        diaFechamento: editCardDraft.diaFechamento ?? 1, 
-        diaVencimento: editCardDraft.diaVencimento ?? 1
+        limite: editCardDraft.limite ?? "0",
+        diaFechamento: (editCardDraft as any).diaFechamento ?? 1, 
+        diaVencimento: editCardDraft.diaVencimento ?? 1 // This line was already present and correct
       };
     }
     return x;
@@ -485,8 +484,8 @@ const saveEditCard = () => {
   interface NovoCartaoDraft {
   nome: string;
   limite: string;
-  diaVencimento: number;
-  diaVencimento: number; diaFechamento: number; 
+  diaVencimento: number; 
+  diaFechamento: number; 
 }
 // Tipo mais rígido para o estado de novo cartão
 interface NovoCartaoDraft {
@@ -497,7 +496,7 @@ interface NovoCartaoDraft {
 const [novoCartao, setNovoCartao] = React.useState<NovoCartaoDraft>({
   nome: '',
   limite: '',
-  diaVencimento: 1,
+  // diaVencimento: 1, // Duplicate property removed
   diaVencimento: 1, diaFechamento: 1, 
 });
 
@@ -892,8 +891,8 @@ const previsaoMes = React.useMemo(() => ({
     const cartaoFinal = { ...novoCartao, nome: novoCartao.nome.trim().toUpperCase(), id: Date.now() };
     setCartoes((prev: Cartao[]) => [...prev, cartaoFinal]);
     setSugestoesCartao([]);
-    setSugestoesCartao([]); diaFechamento: 1, 
-    setNovoCartao({ nome: '', limite: '', diaVencimento: 1 });
+    
+    setNovoCartao({ nome: '', limite: '', diaVencimento: 1, diaFechamento: 1 });
   };
 
   const adicionarAssinatura = (e: React.FormEvent) => {
@@ -2038,7 +2037,7 @@ const previsaoMes = React.useMemo(() => ({
   <input type="number" min="1" max="31"
     className="p-2 border border-gray-200 rounded-lg bg-white
                dark:bg-gray-700 dark:text-white dark:border-gray-600"
-    value={editCardDraft.diaFechamento} onChange={(e) => setEditCardDraft({ ...(editCardDraft as Cartao), diaFechamento: Number(e.target.value || 1) })} />
+    value={(editCardDraft as any).diaFechamento} onChange={(e) => setEditCardDraft(prev => prev ? { ...prev, diaFechamento: Number(e.target.value || 1) } : null)} />
 </label>
               <label className="flex flex-col">
                 <span className="opacity-60">Dia de vencimento</span>
@@ -2067,7 +2066,7 @@ const previsaoMes = React.useMemo(() => ({
                 {c.nome}
               </div>
             </div>            
-            <div className="text-sm opacity-70 mt-1">Fechamento: dia {c.diaFechamento}</div>
+            <div className="text-sm opacity-70 mt-1">Fechamento: dia {(c as any).diaFechamento}</div>
             <div className="text-sm opacity-70 mt-1">Venc.: dia {c.diaVencimento}</div>
             {dadosCartao.imagem && ( // Imagens de cartão podem precisar de ajuste para modo escuro, ou serem SVGs que se adaptam
               <img src={dadosCartao.imagem} alt={c.nome} className="w-24 h-auto my-3" />
