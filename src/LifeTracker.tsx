@@ -431,8 +431,20 @@ const saveEditCard = () => {
     setAssinaturas(prev => prev.map(a => a.cartaoId === id ? { ...a, cartaoId: null } : a));
   };
 
-    const removerAssinatura = (id: number): void => {
-    setAssinaturas((prev: Assinatura[]) => prev.filter((a: Assinatura) => a.id !== id));
+  const removerAssinatura = (id: number): void => {
+    const assinaturaParaRemover = assinaturas.find(a => a.id === id);
+
+    if (!assinaturaParaRemover) return;
+
+    // Se for um aluguel pago, remove também o gasto correspondente para estornar o valor.
+    if (assinaturaParaRemover.tipo === 'CONTRATO - ALUGUEL' && assinaturaParaRemover.pagoEsteMes) {
+      const descricaoGastoAluguel = `Pagamento Aluguel: ${assinaturaParaRemover.nome}`;
+      setGastos(prevGastos => prevGastos.filter(g => 
+        !(g.descricao === descricaoGastoAluguel && g.categoria === 'MORADIA' && isSameMonth(g.data))
+      ));
+    }
+
+    setAssinaturas(prev => prev.filter(a => a.id !== id));
   };
 
   const pagarParcelaAcordo = (id: number): void => {
@@ -554,8 +566,9 @@ const [novoCartao, setNovoCartao] = React.useState<NovoCartaoDraft>({
   );
 
   const assinDebitoMensal = React.useMemo(
-    () => assinaturas.filter(a => a.tipoPagamento === 'DÉBITO' && a.periodoCobranca === 'MENSAL')
-                     .reduce((acc, a) => acc + toNum(a.valor), 0),
+    () => assinaturas
+      .filter(a => a.tipoPagamento === 'DÉBITO' && a.periodoCobranca === 'MENSAL' && a.tipo !== 'CONTRATO - ALUGUEL')
+      .reduce((acc, a) => acc + toNum(a.valor), 0),
     [assinaturas]
   );
 
