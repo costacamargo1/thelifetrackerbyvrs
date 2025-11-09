@@ -555,11 +555,6 @@ const [novoCartao, setNovoCartao] = React.useState<NovoCartaoDraft>({
     [cartoes]
   );
 
-  const creditoDisponivel = React.useMemo(
-    () => Math.max(0, totalLimite - gastosCredito),
-    [totalLimite, gastosCredito]
-  );
-
   const gastosTotal = React.useMemo(
     () => gastosCredito + gastosDebito,
     [gastosCredito, gastosDebito]
@@ -577,6 +572,16 @@ const [novoCartao, setNovoCartao] = React.useState<NovoCartaoDraft>({
     [totalReceitas, gastosDebito, assinDebitoMensal]
   );
 
+  // Listas derivadas para modais
+  const assinMensais = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'MENSAL' && a.tipo === 'ASSINATURA'), [assinaturas]);
+
+  // Assinaturas mensais pagas no crédito também contam como gasto de crédito do mês
+  const assinaturasCreditoMensal = React.useMemo(
+    () => assinMensais.filter(a => a.tipoPagamento === 'CRÉDITO').reduce((s, a) => s + toNum(a.valor), 0),
+    [assinMensais]
+  );
+
+
   const porCategoria = React.useMemo(() => calcularGastosPorCategoria(gastos), [gastos]);
   const anuaisTodos = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'ANUAL'), [assinaturas]);
   const anuaisProximas = React.useMemo(() => anuaisTodos.filter(a => {
@@ -589,6 +594,20 @@ const [novoCartao, setNovoCartao] = React.useState<NovoCartaoDraft>({
     const vencimento = calcularProximoVencimentoAnual(a);
     return vencimento ? isSameMonth(vencimento.data.toISOString()) : false;
   }), [anuaisTodos]);
+
+  const totalAssinAnualMesCorrenteCredito = React.useMemo(
+    () => anuaisVencendoMes.filter(a => a.tipoPagamento === 'CRÉDITO').reduce((acc, a) => acc + toNum(a.valor), 0),
+    [anuaisVencendoMes]
+  );
+
+  const creditoDisponivel = React.useMemo(
+    () =>
+      Math.max(
+        0,
+        totalLimite - (gastosCredito + assinaturasCreditoMensal + totalAssinAnualMesCorrenteCredito)
+      ),
+    [totalLimite, gastosCredito, assinaturasCreditoMensal, totalAssinAnualMesCorrenteCredito]
+  ); 
 
   // Compras parceladas ativas
  const comprasParceladasAtivas = React.useMemo(() => {
@@ -638,11 +657,6 @@ const [novoCartao, setNovoCartao] = React.useState<NovoCartaoDraft>({
     [anuaisVencendoMes]
   );
 
-  const totalAssinAnualMesCorrenteCredito = React.useMemo(
-    () => anuaisVencendoMes.filter(a => a.tipoPagamento === 'CRÉDITO').reduce((acc, a) => acc + toNum(a.valor), 0),
-    [anuaisVencendoMes]
-  );
-
   const totalAnualAssinaturas = React.useMemo(() => {
     return assinaturas.reduce((acc, a) => {
       return acc + (toNum(a.valor) * (a.periodoCobranca === 'MENSAL' ? 12 : 1));
@@ -680,15 +694,8 @@ const previsaoMes = React.useMemo(() => ({
   // ------------------------------------
 
   // Listas derivadas para modais
-  const assinMensais = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'MENSAL' && a.tipo === 'ASSINATURA'), [assinaturas]);
   const alugueisMensais = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'MENSAL' && a.tipo === 'CONTRATO - ALUGUEL'), [assinaturas]);
   const acordosMensaisList = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'MENSAL' && a.tipo === 'ACORDO'), [assinaturas]);
-
-  // Assinaturas mensais pagas no crédito também contam como gasto de crédito do mês
-  const assinaturasCreditoMensal = React.useMemo(
-    () => assinMensais.filter(a => a.tipoPagamento === 'CRÉDITO').reduce((s, a) => s + toNum(a.valor), 0),
-    [assinMensais]
-  );
 
   // Lista detalhada de gastos de crédito do mês (gastos + assinaturas mensais no crédito)
   const creditGastosMesList = React.useMemo(() => {
