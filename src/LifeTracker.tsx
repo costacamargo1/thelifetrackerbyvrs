@@ -998,6 +998,8 @@ const previsaoMes = React.useMemo(() => ({
 
   );
 
+  const nomeMesAtual = new Date().toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
+
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       <header className="flex items-center justify-between">
@@ -1105,7 +1107,12 @@ const previsaoMes = React.useMemo(() => ({
                 <div className="text-lg font-semibold">{fmt(previsaoMes.credito)}</div>
               </button>
               <div className="p-3 rounded-xl bg-gray-900 text-white dark:bg-gray-700">
-                <div className="opacity-80">TOTAL PREVISTO PARA O MÊS ATUAL</div>
+                <div className="opacity-80">
+                  Total previsto para{' '}
+                  <span className="font-bold text-green-400 [text-shadow:0_0_8px_#4ade80]">
+                    {nomeMesAtual}
+                  </span>
+                </div>
                 <div className="text-lg font-semibold">{fmt(previsaoMes.total)}</div>
               </div>
             </div>
@@ -2368,7 +2375,3 @@ const previsaoMes = React.useMemo(() => ({
     </div>
   ); // Closing parenthesis for the return statement
 } // Closing curly brace for the LifeTracker function
-
-function setShowCreditoMesModal(arg0: boolean): void {
-  throw new Error('Function not implemented.');
-}
