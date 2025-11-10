@@ -36,7 +36,6 @@ interface Gasto { // ... (sem alterações na interface)
 }
 
 interface Receita { id: number; descricao: string; valor: string; data: string; }
-interface Divida { id: number; pessoa: string; valor: string; descricao: string; }
 interface Assinatura {
   id: number;
   nome: string;
@@ -354,7 +353,7 @@ const SUGESTOES_GLOBAIS = [
 
 export default function LifeTracker({ darkMode, toggleDarkMode }: { darkMode: boolean; toggleDarkMode: () => void }) {
   // Abas
-  const [tab, setTab] = React.useState<'dashboard' | 'gastos' | 'receitas' | 'assinaturas' | 'objetivos' | 'cartoes' | 'dividas' | 'configuracoes'>('dashboard');
+  const [tab, setTab] = React.useState<'dashboard' | 'gastos' | 'receitas' | 'assinaturas' | 'objetivos' | 'cartoes' | 'dividas' | 'faturas' | 'configuracoes'>('dashboard');
 
   // Modais e ordenação de listas
   const [showMensaisModal, setShowMensaisModal] = React.useState(false);
@@ -368,7 +367,6 @@ export default function LifeTracker({ darkMode, toggleDarkMode }: { darkMode: bo
   const [assinaturas, setAssinaturas] = React.useState<Assinatura[]>([]);
   const [objetivos, setObjetivos] = React.useState<Objetivo[]>([]);
   const [cartoes, setCartoes] = React.useState<Cartao[]>([]);
-  const [dividas, setDividas] = React.useState<Divida[]>([]);
   const [configuracoes, setConfiguracoes] = React.useState<Configuracoes>({
     credito: { alerta: '2500', critico: '1000', positivo: '5000' },
     saldo: { alerta: '500', critico: '100', positivo: '2000' },
@@ -382,6 +380,10 @@ export default function LifeTracker({ darkMode, toggleDarkMode }: { darkMode: bo
   const [editingAssinaturaId, setEditingAssinaturaId] = React.useState<number | null>(null);
   // --- Sugestões de cartões ---
   const [sugestoesCartao, setSugestoesCartao] = React.useState<string[]>([]);
+  // --- Faturas ---
+  const [mesFatura, setMesFatura] = React.useState(new Date());
+  const [buscaFatura, setBuscaFatura] = React.useState('');
+
   const [sugestaoAtivaIndex, setSugestaoAtivaIndex] = React.useState(-1);
   const [sugestoesDescricao, setSugestoesDescricao] = React.useState<string[]>([]);
   const [sugestaoDescricaoAtivaIndex, setSugestaoDescricaoAtivaIndex] = React.useState(-1);
@@ -501,10 +503,6 @@ const [novoCartao, setNovoCartao] = React.useState<NovoCartaoDraft>({
 });
 
 
-  const [novaDivida, setNovaDivida] = React.useState<Divida>({
-    id: 0, pessoa: '', valor: '', descricao: ''
-  });
-
   // Persistência (localStorage)
   React.useEffect(() => {
     const load = <T,>(k: string, fallback: T) => {
@@ -516,7 +514,6 @@ const [novoCartao, setNovoCartao] = React.useState<NovoCartaoDraft>({
     setAssinaturas(load<Assinatura[]>('assinaturas', []));
     setObjetivos(load<Objetivo[]>('objetivos', []));
     setCartoes(load<Cartao[]>('cartoes', []));
-    setDividas(load<Divida[]>('dividas', []));
     setConfiguracoes(load<Configuracoes>('configuracoes', {
       credito: { alerta: '2500', critico: '1000', positivo: '5000' },
       saldo: { alerta: '500', critico: '100', positivo: '2000' },
@@ -529,7 +526,7 @@ const [novoCartao, setNovoCartao] = React.useState<NovoCartaoDraft>({
   React.useEffect(() => { localStorage.setItem('assinaturas', JSON.stringify(assinaturas)); }, [assinaturas]);
   React.useEffect(() => { localStorage.setItem('objetivos', JSON.stringify(objetivos)); }, [objetivos]);
   React.useEffect(() => { localStorage.setItem('cartoes', JSON.stringify(cartoes)); }, [cartoes]);
-  React.useEffect(() => { localStorage.setItem('dividas', JSON.stringify(dividas)); }, [dividas]);
+  React.useEffect(() => { localStorage.setItem('cartoes', JSON.stringify(cartoes)); }, [cartoes]);  
   React.useEffect(() => { localStorage.setItem('configuracoes', JSON.stringify(configuracoes)); }, [configuracoes]);
 
   // Derivados
@@ -602,6 +599,71 @@ const [novoCartao, setNovoCartao] = React.useState<NovoCartaoDraft>({
     () => anuaisVencendoMes.filter(a => a.tipoPagamento === 'CRÉDITO').reduce((acc, a) => acc + toNum(a.valor), 0),
     [anuaisVencendoMes]
   );
+
+  // Lógica da aba Faturas
+  const faturasPorCartao = React.useMemo(() => {
+    const isMesFatura = (data: string) => {
+      const d = new Date(data + 'T12:00:00');
+      return d.getFullYear() === mesFatura.getFullYear() && d.getMonth() === mesFatura.getMonth();
+    };
+
+    const faturas = cartoes.map(cartao => {
+      const gastosDoCartao = gastos.filter(g => g.cartaoId === cartao.id && g.tipoPagamento === 'CRÉDITO' && isMesFatura(g.data));
+      const assinaturasDoCartao = assinaturas.filter(a => a.cartaoId === cartao.id && a.tipoPagamento === 'CRÉDITO' && a.periodoCobranca === 'MENSAL');
+      
+      const lancamentos = [
+        ...gastosDoCartao.map(g => ({ ...g, dataObj: new Date(g.data + 'T12:00:00') })),
+        ...assinaturasDoCartao.map(a => ({
+          id: `ass-${a.id}`,
+          descricao: a.nome,
+          valor: a.valor,
+          data: new Date(mesFatura.getFullYear(), mesFatura.getMonth(), a.diaCobranca).toISOString().slice(0, 10),
+          dataObj: new Date(mesFatura.getFullYear(), mesFatura.getMonth(), a.diaCobranca),
+          categoria: a.categoriaPersonalizada || a.tipo,
+        }))
+      ].sort((a, b) => a.dataObj.getTime() - b.dataObj.getTime());
+
+      const total = lancamentos.reduce((acc, item) => acc + toNum(item.valor), 0);
+
+      return {
+        cartao,
+        lancamentos,
+        total,
+        disponivel: toNum(cartao.limite) - total,
+      };
+    });
+
+
+    // Ordenação especial para layout
+    if (faturas.length > 1) {
+      faturas.sort((a, b) => toNum(b.cartao.limite) - toNum(a.cartao.limite));
+      if (faturas.length > 2) {
+        // Move o segundo maior para o início (será o da esquerda)
+        const segundo = faturas.splice(1, 1)[0];
+        if (segundo) {
+          faturas.unshift(segundo);
+        }
+      }
+    }
+    return faturas;
+  }, [cartoes, gastos, assinaturas, mesFatura]);
+
+  const faturasFiltradas = React.useMemo(() => {
+    if (!buscaFatura.trim()) return faturasPorCartao;
+    const query = buscaFatura.toLowerCase();
+
+    return faturasPorCartao.map(fatura => ({
+      ...fatura,
+      lancamentos: fatura.lancamentos.filter(l => 
+        l.descricao.toLowerCase().includes(query) ||
+        l.categoria.toLowerCase().includes(query) ||
+        String(l.valor).includes(query)
+      ),
+    }));
+  }, [faturasPorCartao, buscaFatura]);
+
+  const totalFaturasMes = React.useMemo(() => faturasPorCartao.reduce((acc, f) => acc + f.total, 0), [faturasPorCartao]);
+
 
   const creditoDisponivel = React.useMemo(
     () =>
@@ -941,12 +1003,6 @@ const previsaoMes = React.useMemo(() => ({
     setObjetivos(list => list.map(o => o.id === id ? { ...o, status } : o));
   };
 
-  const adicionarDivida = (e: React.FormEvent) => {
-    e.preventDefault();
-    setDividas(d => [...d, { ...novaDivida, id: Date.now() }]);
-    setNovaDivida({ id: 0, pessoa: '', valor: '', descricao: '' });
-  };
-  
   const pagarAluguel = (aluguel: Assinatura) => {
     if (aluguel.pagoEsteMes) {
       alert('Este aluguel já foi marcado como pago para o mês atual.');
@@ -1011,7 +1067,7 @@ const previsaoMes = React.useMemo(() => ({
           <TabButton id="assinaturas">Assinaturas/Contratos</TabButton>
           <TabButton id="objetivos">Objetivos</TabButton>
           <TabButton id="cartoes">Cartões</TabButton>
-          <TabButton id="dividas">Dívidas</TabButton>
+          <TabButton id="faturas">Faturas</TabButton>
           <TabButton id="configuracoes">Configurações</TabButton>
         </div>
         <button
@@ -2004,7 +2060,7 @@ const previsaoMes = React.useMemo(() => ({
             </div>
           </form>
 
-        
+
   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
     {cartoes.length === 0 ? (
       <p className="text-sm opacity-60">Nenhum cartão</p>
@@ -2090,62 +2146,79 @@ const previsaoMes = React.useMemo(() => ({
         </section>
       )}
 
-      {tab === 'dividas' && (
-        <section className="p-4 rounded-2xl shadow bg-white dark:bg-gray-800 dark:text-gray-200 space-y-4">
-          <h2 className="text-lg font-medium">Dívidas — Quem me deve</h2>
-          <form className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end" 
-                onSubmit={adicionarDivida}>
-            <div>
-              <label className="text-xs opacity-70">Pessoa</label>
-              <input 
-                className="w-full p-2 border border-gray-200 rounded-lg bg-white
-                           dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                value={novaDivida.pessoa}
-                onChange={(e)=>setNovaDivida({ ...novaDivida, pessoa: e.target.value })} />
+      {tab === 'faturas' && ( // This line was already present and correct
+        <section className="space-y-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl shadow bg-white dark:bg-gray-800">
+            <h2 className="text-lg font-medium text-black dark:text-gray-200">Faturas dos Cartões</h2>
+            <div className="flex items-center gap-4 w-full sm:w-auto">
+              <input
+                type="text"
+                placeholder="Buscar lançamento..."
+                value={buscaFatura}
+                onChange={e => setBuscaFatura(e.target.value)}
+                className="w-full sm:w-48 p-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600 text-sm"
+              />
+              <input
+                type="month"
+                value={`${mesFatura.getFullYear()}-${String(mesFatura.getMonth() + 1).padStart(2, '0')}`}
+                onChange={e => setMesFatura(new Date(e.target.value + '-02T00:00:00'))}
+                className="p-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600 text-sm"
+              />
             </div>
-            <div>
-              <label className="text-xs opacity-70">Valor (R$)</label>
-              <input type="number" step="0.01" min="0" 
-                className="w-full p-2 border border-gray-200 rounded-lg bg-white
-                           dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                value={novaDivida.valor}
-                onChange={(e)=>setNovaDivida({ ...novaDivida, valor: e.target.value })} />
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-xs opacity-70">Descrição</label>
-              <input 
-                className="w-full p-2 border border-gray-200 rounded-lg bg-white
-                           dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                value={novaDivida.descricao}
-                onChange={(e)=>setNovaDivida({ ...novaDivida, descricao: e.target.value })} />
-            </div>
-            <div>
-              <button className="w-full px-3 py-2 rounded-lg bg-black text-white text-sm
-                                 dark:bg-gray-700 dark:text-white">Adicionar</button>
-            </div>
-          </form>
+          </div>
 
-          {dividas.length === 0 ? (
-            <p className="text-sm opacity-60">Sem dívidas registradas</p>
+          {cartoes.length === 0 ? (
+            <div className="p-4 rounded-2xl shadow bg-white dark:bg-gray-800 dark:text-gray-200">
+              <p className="text-gray-500 dark:text-gray-400">Nenhum cartão de crédito cadastrado.</p>
+              <button onClick={() => setTab('cartoes')} className="mt-4 px-4 py-2 bg-black text-white rounded-lg text-sm dark:bg-gray-700" type="button">
+                Cadastrar Cartão
+              </button>
+            </div>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="dark:text-gray-400">
-                <tr className="text-left opacity-60">
-                  <th className="py-2">Pessoa</th>
-                  <th>Descrição</th>
-                  <th className="text-right">Valor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dividas.slice().reverse().map(d => (
-                  <tr key={d.id} className="border-t border-gray-200 dark:border-gray-600">
-                    <td className="py-2">{d.pessoa}</td>
-                    <td>{d.descricao}</td>
-                    <td className="text-right">{fmt(toNum(d.valor))}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <>
+              <div className={`grid gap-4 grid-cols-1 ${faturasFiltradas.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
+                {faturasFiltradas.filter(f => f.lancamentos.length > 0).map(({ cartao, lancamentos, total, disponivel }) => {
+                  const dadosCartao = getDadosCartao(cartao.nome);
+                  return (
+                    <div key={cartao.id} className="p-4 rounded-2xl shadow bg-white dark:bg-gray-800 flex flex-col transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg">
+                      <div className="flex items-center gap-3 mb-3">
+                        {dadosCartao.imagem && <img src={dadosCartao.imagem} alt={cartao.nome} className="w-10 h-auto" />}
+                        <div>
+                          <h3 className="font-semibold text-base text-black dark:text-gray-200">{cartao.nome}</h3>
+                          <div className="text-xs opacity-70 dark:text-gray-400">Limite: {fmt(toNum(cartao.limite))} | Disp.: {fmt(disponivel)}</div>
+                        </div>
+                      </div>
+                      <div className="flex-1 overflow-y-auto pr-2 -mr-2" style={{maxHeight: '400px'}}>
+                        <table className="w-full text-sm">
+                          <tbody>
+                            {lancamentos.length === 0 ? (
+                              <tr><td className="py-4 text-center opacity-60" colSpan={3}>Nenhum gasto este mês.</td></tr>
+                            ) : (
+                              lancamentos.map((g, index) => (
+                                <tr key={`${g.id}-${index}`} className="border-t border-gray-100 dark:border-gray-700">
+                                  <td className="py-1.5 text-xs opacity-70 whitespace-nowrap">{(new Date(g.data + 'T12:00:00')).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</td>
+                                  <td className="py-1.5 px-2 truncate" title={g.descricao}>{g.descricao}</td>
+                                  <td className="py-1.5 text-right font-medium whitespace-nowrap">{fmt(toNum(g.valor))}</td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center font-semibold">
+                        <span>Total da Fatura</span>
+                        <span>{fmt(total)}</span>
+                      </div>
+                      
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-6 text-center p-4 bg-gray-900 text-white dark:bg-gray-700 rounded-2xl shadow-lg">
+                <span className="opacity-80">VALOR TOTAL DAS FATURAS DO MÊS DE {mesFatura.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase()}: </span>
+                <span className="font-bold text-xl">{fmt(totalFaturasMes)}</span>
+              </div>
+            </>
           )}
         </section>
       )}
@@ -2310,7 +2383,7 @@ const previsaoMes = React.useMemo(() => ({
             </div>
           </div>
       </div>
-      )}
+      )} 
 
       {/* Modal: Gastos em Crédito (mês) */}
       {showCreditoMesModal && (
