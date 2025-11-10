@@ -353,7 +353,7 @@ const SUGESTOES_GLOBAIS = [
 
 export default function LifeTracker({ darkMode, toggleDarkMode }: { darkMode: boolean; toggleDarkMode: () => void }) {
   // Abas
-  const [tab, setTab] = React.useState<'dashboard' | 'gastos' | 'receitas' | 'assinaturas' | 'objetivos' | 'cartoes' | 'dividas' | 'faturas' | 'configuracoes'>('dashboard');
+  const [tab, setTab] = React.useState<'dashboard' | 'gastos' | 'receitas' | 'assinaturas' | 'objetivos' | 'cartoes' | 'dividas' | 'faturas' | 'configuracoes' | 'resumo-anual'>('dashboard');
 
   // Modais e ordenação de listas
   const [showMensaisModal, setShowMensaisModal] = React.useState(false);
@@ -383,6 +383,7 @@ export default function LifeTracker({ darkMode, toggleDarkMode }: { darkMode: bo
   // --- Faturas ---
   const [mesFatura, setMesFatura] = React.useState(new Date());
   const [buscaFatura, setBuscaFatura] = React.useState('');
+  const [anoResumo, setAnoResumo] = React.useState(new Date().getFullYear());
 
   const [sugestaoAtivaIndex, setSugestaoAtivaIndex] = React.useState(-1);
   const [sugestoesDescricao, setSugestoesDescricao] = React.useState<string[]>([]);
@@ -758,6 +759,37 @@ const previsaoMes = React.useMemo(() => ({
 }), [totalAluguelMensal, totalAssinMensal, totalAssinAnualMesCorrente, gastosCreditoMes, totalAcordosMes]);
   // ------------------------------------
 
+  // --- Resumo Anual ---
+  const dadosResumoAnual = React.useMemo(() => {
+    const meses = Array.from({ length: 12 }, (_, i) => ({
+      mes: i,
+      nome: new Date(anoResumo, i, 1).toLocaleString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase(),
+      receitas: 0,
+      gastosDebito: 0,
+      gastosCredito: 0,
+    }));
+
+    receitas.forEach(r => {
+      const d = new Date(r.data + 'T12:00:00');
+      if (d.getFullYear() === anoResumo) {
+        meses[d.getMonth()]!.receitas += toNum(r.valor);
+      }
+    });
+
+    gastos.forEach(g => {
+      const d = new Date(g.data + 'T12:00:00');
+      if (d.getFullYear() === anoResumo) {
+        if (g.tipoPagamento === 'CRÉDITO') {
+          meses[d.getMonth()]!.gastosCredito += toNum(g.valor);
+        } else {
+          meses[d.getMonth()]!.gastosDebito += toNum(g.valor);
+        }
+      }
+    });
+
+    return meses;
+  }, [anoResumo, receitas, gastos]);
+
   // Listas derivadas para modais
   const alugueisMensais = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'MENSAL' && a.tipo === 'CONTRATO - ALUGUEL'), [assinaturas]);
   const acordosMensaisList = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'MENSAL' && a.tipo === 'ACORDO'), [assinaturas]);
@@ -1069,6 +1101,7 @@ const previsaoMes = React.useMemo(() => ({
           <TabButton id="cartoes">Cartões</TabButton>
           <TabButton id="faturas">Faturas</TabButton>
           <TabButton id="configuracoes">Configurações</TabButton>
+          <TabButton id="resumo-anual" >Resumo Anual</TabButton>
         </div>
         <button
           onClick={toggleDarkMode}
@@ -2145,6 +2178,53 @@ const previsaoMes = React.useMemo(() => ({
   </div>
         </section>
       )}
+
+      {tab === 'resumo-anual' ? (() => {
+        const BarChart = ({ title, data, dataKey, colorClass }: { title: string; data: typeof dadosResumoAnual; dataKey: keyof typeof dadosResumoAnual[0]; colorClass: string }) => {
+          const maxValue = Math.max(...data.map(d => d[dataKey] as number), 1);
+          return (
+            <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-600">
+              <h3 className="font-medium mb-4 text-black dark:text-gray-200">{title}</h3>
+              <div className="flex items-end justify-between gap-2 h-48">
+                {data.map(d => (
+                  <div key={d.mes} className="flex-1 flex flex-col items-center gap-1 group">
+                    <div className="text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                      {fmt(d[dataKey] as number)}
+                    </div>
+                    <div className={`w-full rounded-t ${colorClass}`} style={{ height: `${((d[dataKey] as number) / maxValue) * 100}%` }} />
+                    <div className="text-xs opacity-70">{d.nome}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        };
+
+        return (
+          <section className="p-4 rounded-2xl shadow bg-white dark:bg-gray-800 space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-medium text-black dark:text-gray-200">Resumo Anual</h2>
+              <div className="flex items-center gap-2">
+                <span className="text-sm opacity-70">Ano:</span>
+                <input
+                  type="number"
+                  value={anoResumo}
+                  onChange={e => setAnoResumo(Number(e.target.value))}
+                  className="p-2 w-24 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <BarChart title="Receitas por Mês" data={dadosResumoAnual} dataKey="receitas" colorClass="bg-green-500" />              
+              <div className="grid md:grid-cols-2 gap-6">
+                <BarChart title="Gastos em Dinheiro (Débito/PIX) por Mês" data={dadosResumoAnual} dataKey="gastosDebito" colorClass="bg-blue-500" />
+                <BarChart title="Gastos em Crédito por Mês" data={dadosResumoAnual} dataKey="gastosCredito" colorClass="bg-orange-500" />
+              </div>
+            </div>
+          </section>
+        );
+      })() : null}
 
       {tab === 'faturas' && ( // This line was already present and correct
         <section className="space-y-6">
