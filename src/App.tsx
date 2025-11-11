@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import LifeTracker from './LifeTracker';
 
 class ErrorBoundary extends React.Component<React.PropsWithChildren, { hasError: boolean; err?: any }> {
@@ -35,8 +35,16 @@ export default function App() {
     setDarkMode(prevMode => !prevMode);
   };
 
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove(darkMode ? 'light' : 'dark');
+    root.classList.add(darkMode ? 'dark' : 'light');
+  }, [darkMode]);
+
   return (
-    <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 dark:text-gray-100 ${darkMode ? 'dark' : ''}`}>
+    // A div principal não precisa mais controlar a classe 'dark' nem o fundo principal.
+    // O Tailwind vai cuidar disso através da classe no <html> e dos estilos no body.
+    <div className="min-h-screen">
       <ErrorBoundary>
         <LifeTracker darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
       </ErrorBoundary>

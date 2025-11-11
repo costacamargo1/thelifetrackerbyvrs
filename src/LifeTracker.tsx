@@ -1116,20 +1116,20 @@ const previsaoMes = React.useMemo(() => ({
         <>
           {/* Cards do dashboard */}
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="p-4 rounded-2xl shadow bg-white dark:bg-gray-700 dark:text-gray-200">
+            <div className="p-4 rounded-2xl glass-card glass-card-hover">
               <div className="text-sm opacity-60">Saldo (Dinheiro)</div>
               <div className={`text-2xl font-semibold ${getCorValor(saldo, configuracoes.saldo)}`}>
                 {fmt(saldo)}
               </div>
             </div>
-            <div className="p-4 rounded-2xl shadow bg-white dark:bg-gray-700 dark:text-gray-200">
+            <div className="p-4 rounded-2xl glass-card glass-card-hover">
               <div className="text-sm opacity-60">
                 Crédito Disponível
               </div>
               <div className={`text-xl font-semibold ${getCorValor(creditoDisponivel, configuracoes.credito)}`}>
                 {fmt(creditoDisponivel)}
               </div>
-              <div className="text-xs opacity-60">Total de {fmt(totalLimite)}</div>
+              <div className="text-xs opacity-60 mt-1">Total de {fmt(totalLimite)}</div>
               {cartoes.length > 0 && (
                 <ul className="mt-2 space-y-1 text-xs">
                   {creditByCard.map(({ cartao, disponivel }) => (
@@ -1142,7 +1142,7 @@ const previsaoMes = React.useMemo(() => ({
                 </ul>
               )}
             </div>
-            <div className="p-4 rounded-2xl shadow bg-white dark:bg-gray-700 dark:text-gray-200">
+            <div className="p-4 rounded-2xl glass-card glass-card-hover">
               <div className="text-sm opacity-60">Gastos (Crédito)</div>              
               <div className="text-xl font-medium">{fmt(gastosCredito + assinaturasCreditoMensal)}</div>
               {assinaturasCreditoMensal > 0 && (
@@ -1151,11 +1151,11 @@ const previsaoMes = React.useMemo(() => ({
                 </div>
               )}
             </div>
-            <div className="p-4 rounded-2xl shadow bg-white dark:bg-gray-700 dark:text-gray-200">
+            <div className="p-4 rounded-2xl glass-card glass-card-hover">
               <div className="text-sm opacity-60">Gastos (Dinheiro)</div>
               <div className="text-xl font-medium">{fmt(gastosDebito)}</div>
             </div>
-            <div className="p-4 rounded-2xl shadow bg-white dark:bg-gray-700 dark:text-gray-200">
+            <div className="p-4 rounded-2xl glass-card glass-card-hover">
               <div className="text-sm opacity-60">Gastos (Total)</div>
               <div className="text-xl font-medium">{fmt(gastosTotal)}</div>
             </div>
@@ -1380,12 +1380,12 @@ const previsaoMes = React.useMemo(() => ({
               placeholder="ex: almoço ifood"
             />
 {sugestoesDescricao.length > 0 && (
-  <ul className="absolute z-10 w-full bg-white border rounded-lg mt-1 shadow-lg max-h-60 overflow-y-auto">
+  <ul className="absolute z-10 w-full bg-white border rounded-lg mt-1 shadow-lg max-h-60 overflow-y-auto dark:bg-gray-700 dark:border-gray-600">
     {sugestoesDescricao.map((s, index) => (
       <li
         key={s}
         className={`p-2 cursor-pointer text-sm ${
-          sugestaoDescricaoAtivaIndex === index ? 'bg-blue-50 border-l-2 border-blue-500' : 'hover:bg-gray-100'
+          sugestaoDescricaoAtivaIndex === index ? 'bg-blue-100 text-blue-800 border-l-2 border-blue-500 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-400' : 'hover:bg-gray-100 dark:hover:bg-gray-600'
         }`}
         onMouseDown={() => {
           if (s) {  // Adicione esta verificação
@@ -1491,10 +1491,10 @@ const previsaoMes = React.useMemo(() => ({
     <p className="text-sm opacity-60">Sem lançamentos</p>
   ) : ( 
     <div className="space-y-2">
-      {gastos.slice().reverse().map(g => (
-        <div key={g.id} className="p-3 rounded-lg border bg-white hover:shadow-sm transition">
+      {gastos.slice().reverse().map((g) => (
+        <div key={g.id} className="p-3 rounded-lg border bg-white hover:shadow-sm transition dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 dark:text-gray-200">
               <div className="flex items-center gap-2">
                 <span className="font-medium text-sm truncate">{g.descricao}</span>
                 {g.parcelasTotal && g.parcelasTotal > 1 && (
@@ -1609,8 +1609,8 @@ const previsaoMes = React.useMemo(() => ({
     <p className="text-sm opacity-60">Sem lançamentos</p>
   ) : (
     <div className="space-y-3">
-      {receitas.slice().reverse().map(r => (
-        <div key={r.id} className="p-4 rounded-xl border bg-white">
+      {receitas.slice().reverse().map((r) => (
+        <div key={r.id} className="p-4 rounded-xl border bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200">
           <div className="flex items-start justify-between mb-2">
             <div className="flex-1">
               <div className="font-medium text-base">{r.descricao}</div>
@@ -2153,8 +2153,7 @@ const previsaoMes = React.useMemo(() => ({
       }
 
       return (
-        <div key={c.id} className="p-4 rounded-2xl border border-gray-200 bg-white flex flex-col
-                                   dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600">
+        <div key={c.id} className="p-4 rounded-2xl flex flex-col glass-card glass-card-hover">
           <div className="flex-1">
             <div className="flex items-center justify-between">
               <div className="font-medium flex items-center gap-2">
