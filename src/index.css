@@ -190,8 +190,22 @@
 
 @layer base {
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  input,
+  select,
+  textarea {
+    color-scheme: light;
+  }
+
+  .dark input,
+  .dark select,
+  .dark textarea {
+    color-scheme: dark;
+    /* Força a cor de fundo para garantir a sobreposição dos estilos do navegador */
+    @apply bg-slate-700;
   }
 }
 
