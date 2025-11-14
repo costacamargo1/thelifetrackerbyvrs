@@ -1899,7 +1899,7 @@ const previsaoMes = React.useMemo(() => ({
                     </div>
                   </div>
                   
-                  <div className="text-right">
+                  <div className="text-right"> 
                     <div className="text-lg font-semibold">
                       {ehAcordo ? fmt(valorParcela) : fmt(toNum(a.valor))}
                       {ehAcordo && <span className="text-xs font-normal opacity-60">/mês</span>}
@@ -2310,7 +2310,6 @@ const previsaoMes = React.useMemo(() => ({
                   <div className="flex justify-between text-sm opacity-70 mt-1">
                     <span>Limite disponível</span>
                     <span>{fmt(f.disponivel)}</span>
-                </div>
               </div>
             </div>);
             })}
