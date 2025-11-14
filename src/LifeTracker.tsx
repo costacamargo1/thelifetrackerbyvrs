@@ -1,18 +1,15 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { LayoutDashboard, TrendingDown, TrendingUp, Repeat, CreditCard, Receipt, Calendar, Settings, Sun, Moon, Goal, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
-// --- ÍCONES SVG DOS BANCOS ---
-// (Colados do lifetracker.html, pois não podemos importar SVGs)
-const BANK_SVGS: Record<string, string> = {
-    NUBANK: `<svg viewBox="0 0 128 128" width="40" height="40"><path fill="#6A00A8" d="M116.2 32.1c-1.1-1.4-2.6-2.6-4.2-3.4-5.3-2.6-11.5-3.3-17.7-2.4-11.4 1.7-21.8 7.3-30.2 16.2-4.1 4.3-7.8 9.1-10.9 14.3-1.3 2.1-2.4 4.3-3.4 6.5l-.2.5c-.2.5-.4 1-.6 1.5-.5 1.4-1 2.8-1.4 4.2-.3 1.1-.6 2.2-.8 3.3-.2 1.1-.3 2.2-.3 3.3 0 1.7.2 3.4.5 5.1.5 2.5 1.2 5 2.1 7.4.2.5.4 1 .6 1.5.3.8.6 1.6.9 2.4.3.8.7 1.6 1.1 2.4.8 1.6 1.6 3.1 2.6 4.6.4.6.8 1.2 1.2 1.8.1.1.1.2.2.2 1 1.5 2.1 2.9 3.2 4.3.5.6 1 1.2 1.5 1.8 3.5 3.9 7.6 7.2 12.2 9.7 6.3 3.4 13.3 5.1 20.3 5.1 9 0 17.8-2.6 25.4-7.8 2.3-1.6 4.5-3.4 6.6-5.4 3-3 5.7-6.3 8-9.9 2.1-3.2 3.9-6.7 5.4-10.4 1.4-3.4 2.4-7 3.1-10.6.4-2.1.6-4.2.6-6.3 0-4.6-.8-9.2-2.3-13.6-1.1-3.1-2.4-6-4.1-8.8z M99.4 86.8c-1.4 2.6-3 5-4.9 7.2-1.9 2.2-4 4.2-6.4 5.9-6.8 4.6-14.6 6.9-23 6.9-6.1 0-12.2-1.5-17.7-4.5-4-2.1-7.6-5-10.6-8.4l-1.5-1.8c-.5-.6-1-1.2-1.5-1.8-1-1.3-2.1-2.7-3.1-4.1-.1-.1-.1-.2-.2-.2-1-1.5-1.8-3-2.6-4.6-.4-.8-.7-1.6-1.1-2.4-.3-.8-.6-1.6-.9-2.4-.2-.5-.4-1-.6-1.5-.9-2.4-1.6-4.8-2.1-7.3-.3-1.7-.5-3.3-.5-5 0-1 0-2 .2-3 .1-1 .4-2 .7-3 .3-1.1.7-2.2 1.2-3.3.2-.5.4-1 .6-1.5l.2-.5c.9-2.1 2-4.1 3.2-6.1 3-5 6.6-9.6 10.6-13.8 8-7.9 17.8-13.2 28.5-14.8 5.6-.8 11.2-.2 16.1 2.2 1.4.7 2.7 1.7 3.7 2.9 1.6 1.9 2.9 4.1 3.9 6.4 1.5 3.4 2.2 7 2.2 10.6 0 2-.2 4-.6 6-.6 3.4-1.6 6.8-3 10-1.4 3.4-3.1 6.6-5.1 9.6-2.2 3.4-4.8 6.5-7.7 9.3z"></path></svg>`,
-    ITAU: `<svg viewBox="0 0 100 100" width="32" height="32"><path fill="#EC7000" d="M12 12h76v76H12z"></path><path fill="#FFF" d="M35.6 67.5h7.2l3.4-11.4h17.8l3.4 11.4h7.2L58.5 32.5h-8.9L35.6 67.5zm19.5-16.9H44l4.9-16.4h1.1l4.9 16.4z"></path></svg>`,
-    BRADESCO: `<svg viewBox="0 0 100 100" width="32" height="32"><g fill="#C8102E"><path d="M50 10A40 40 0 0 0 10 50a40 40 0 0 0 40 40 40 40 0 0 0 40-40A40 40 0 0 0 50 10zM19.1 29h61.8a30 30 0 0 1 0 42H19.1a30 30 0 0 1 0-42z"></path><path d="M50 31.8a18.2 18.2 0 0 0-18.2 18.2A18.2 18.2 0 0 0 50 68.2a18.2 18.2 0 0 0 18.2-18.2A18.2 18.2 0 0 0 50 31.8z"></path></g></svg>`,
-    BB: `<svg viewBox="0 0 100 100" width="32" height="32"><path fill="#0033A0" d="M0 0h100v100H0z"></path><path fill="#FFD700" d="M10 50h30v30H10z m50 0h30v30H60z M25 10h30v30H25z m0 0v0"></path></svg>`,
-    CAIXA: `<svg viewBox="0 0 100 100" width="32" height="32"><path fill="#0064B4" d="M10 10h80v80H10z"></path><path fill="#FFF" d="M30 30l20 20 20-20h-15l-5 5-5-5z m0 40l20-20 20 20h-15l-5-5-5 5z"></path></svg>`,
-    SANTANDER: `<svg viewBox="0 0 100 100" width="32" height="32"><path fill="#EC0000" d="M50 10A40 40 0 1 0 50 90A40 40 0 1 0 50 10M25 40h50v10H25M25 55h50v10H25"></path></svg>`,
-    C6: `<svg viewBox="0 0 100 100" width="32" height="32"><rect width="100" height="100" fill="#2C2C2C"></rect><path fill="#FFF" d="M30 35a15 15 0 1 0 0 30h10v-5H30a10 10 0 1 1 0-20h10v-5H30z M60 35h10v30h-10v-5h5v-5h-5v-5h5v-5h-5v-5z"></path></svg>`,
-    INTER: `<svg viewBox="0 0 100 100" width="32" height="32"><rect width="100" height="100" fill="#FF7A00"></rect><path fill="#FFF" d="M30 30h10v40H30z m30 0h10v40H60z"></path></svg>`
-};
+import NubankIcon from './components/assets/icons/card-nubank.svg';
+import ItauIcon from './components/assets/icons/card-itau.svg';
+import BradescoIcon from './components/assets/icons/card-bradesco.svg';
+import BBIcon from './components/assets/icons/card-bb.svg';
+import CaixaIcon from './components/assets/icons/card-caixa.svg';
+import SantanderIcon from './components/assets/icons/card-santander.svg';
+import C6Icon from './components/assets/icons/card-c6.svg';
+// Adicionando um para o Inter, assumindo que exista ou será criado
+// import InterIcon from './components/assets/icons/card-inter.svg';
 
 
 /** =========================
@@ -87,15 +84,14 @@ interface Configuracoes {
 const getDadosCartao = (nomeCartao: string): { bg: string; text: string; imagem: string | null } => {
   const nome = (nomeCartao || '').toLowerCase();
 
-  // CORRIGIDO: Apontar para o objeto BANK_SVGS
-  if (nome.includes('nubank')) return { bg: 'bg-purple-600', text: 'text-white', imagem: BANK_SVGS.NUBANK };
-  if (nome.includes('santander')) return { bg: 'bg-red-600', text: 'text-white', imagem: BANK_SVGS.SANTANDER };
-  if (nome.includes('caixa')) return { bg: 'bg-blue-700', text: 'text-white', imagem: BANK_SVGS.CAIXA };
-  if (nome.includes('inter')) return { bg: 'bg-orange-500', text: 'text-white', imagem: BANK_SVGS.INTER }; // <-- CORRIGIDO: Adicionado SVG do Inter
-  if (nome.includes('bradesco')) return { bg: 'bg-red-700', text: 'text-white', imagem: BANK_SVGS.BRADESCO };
-  if (nome.includes('itau') || nome.includes('itaú')) return { bg: 'bg-orange-400', text: 'text-black', imagem: BANK_SVGS.ITAU };
-  if (nome.includes('c6')) return { bg: 'bg-gray-800', text: 'text-white', imagem: BANK_SVGS.C6 };
-  if (nome.includes('bb') || nome.includes('brasil')) return { bg: 'bg-yellow-400', text: 'text-blue-800', imagem: BANK_SVGS.BB };
+  if (nome.includes('nubank')) return { bg: 'bg-purple-600', text: 'text-white', imagem: NubankIcon };
+  if (nome.includes('santander')) return { bg: 'bg-red-600', text: 'text-white', imagem: SantanderIcon };
+  if (nome.includes('caixa')) return { bg: 'bg-blue-700', text: 'text-white', imagem: CaixaIcon };
+  if (nome.includes('inter')) return { bg: 'bg-orange-500', text: 'text-white', imagem: null /* InterIcon */ }; // Adicionar import do Inter se existir
+  if (nome.includes('bradesco')) return { bg: 'bg-red-700', text: 'text-white', imagem: BradescoIcon };
+  if (nome.includes('itau') || nome.includes('itaú')) return { bg: 'bg-orange-400', text: 'text-black', imagem: ItauIcon };
+  if (nome.includes('c6')) return { bg: 'bg-gray-800', text: 'text-white', imagem: C6Icon };
+  if (nome.includes('bb') || nome.includes('brasil')) return { bg: 'bg-yellow-400', text: 'text-blue-800', imagem: BBIcon };
 
   return { bg: 'bg-gray-200', text: 'text-black', imagem: null };
 };
@@ -2238,7 +2234,7 @@ const previsaoMes = React.useMemo(() => ({
                 <div className="font-medium flex items-center gap-2">
                 {/* CORRIGIDO: Renderiza SVG embutido */}
                 {dadosCartao.imagem ? (
-                  <div className="w-10 h-10" dangerouslySetInnerHTML={{ __html: dadosCartao.imagem as string }} />
+                  <img src={dadosCartao.imagem} alt={c.nome} className="w-16 h-10 object-cover rounded-md" />
                 ) : (
                   <span className={`w-4 h-4 rounded-full inline-block ${dadosCartao.bg}`}></span>
                 )}
@@ -2336,7 +2332,7 @@ const previsaoMes = React.useMemo(() => ({
               <div key={f.cartao.id} className="p-4 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700">
                 <div className="flex items-center gap-2 mb-4">
                   {getDadosCartao(f.cartao.nome).imagem && (
-                    <div className="w-8 h-8" dangerouslySetInnerHTML={{ __html: getDadosCartao(f.cartao.nome).imagem! }} />
+                    <img src={getDadosCartao(f.cartao.nome).imagem!} alt={f.cartao.nome} className="w-12 h-8 object-cover rounded" />
                   )}
                   <h3 className="font-medium text-base">{f.cartao.nome}</h3>
                 </div>
