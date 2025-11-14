@@ -188,6 +188,31 @@
   border-color: hsla(239, 84%, 67%, 0.4);
 }
 
+/* Animação de entrada */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* Estilo de input padronizado */
+.input-glass {
+  @apply w-full p-2 border rounded-lg bg-white/50 dark:bg-slate-900/50;
+  border-color: hsla(240, 10%, 90%, 0.4);
+}
+.dark .input-glass {
+  border-color: hsla(222, 47%, 20%, 0.5);
+}
+
 @layer base {
   body {
     @apply bg-background text-foreground antialiased;
@@ -204,8 +229,6 @@
   .dark select,
   .dark textarea {
     color-scheme: dark;
-    /* Força a cor de fundo para garantir a sobreposição dos estilos do navegador */
-    @apply bg-slate-700;
   }
 }
 
