@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import LifeTracker from './LifeTracker';
 
+
 class ErrorBoundary extends React.Component<React.PropsWithChildren, { hasError: boolean; err?: any }> {
   constructor(props: any) {
     super(props);

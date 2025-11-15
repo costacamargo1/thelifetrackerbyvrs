@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { LayoutDashboard, TrendingDown, TrendingUp, Repeat, CreditCard, Receipt, Calendar, Settings, Sun, Moon, Goal, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
+
 import NubankIcon from './components/assets/icons/card-nubank.svg';
 import ItauIcon from './components/assets/icons/card-itau.svg';
 import BradescoIcon from './components/assets/icons/card-bradesco.svg';
@@ -8,6 +9,8 @@ import BBIcon from './components/assets/icons/card-bb.svg';
 import CaixaIcon from './components/assets/icons/card-caixa.svg';
 import SantanderIcon from './components/assets/icons/card-santander.svg';
 import C6Icon from './components/assets/icons/card-c6.svg';
+import LifeTrackerCompactLogo from "./components/LifeTrackerCompactLogo";
+import LifeTrackerIcon from "./components/LifeTrackerLogo";
 // Adicionando um para o Inter, assumindo que exista ou será criado
 // import InterIcon from './components/assets/icons/card-inter.svg';
 
@@ -1157,15 +1160,17 @@ const previsaoMes = React.useMemo(() => ({
     <div className="flex h-screen w-full bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-gray-100">
       {/* Barra Lateral */}
       <aside className={`flex flex-col p-4 bg-white dark:bg-slate-800 shadow-lg transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-20 items-center' : 'w-64'}`}>
-        <div className={`flex items-center mb-8 ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
+    <div className={`flex items-center mb-8 ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
           {!isSidebarCollapsed && (
-            <h1 className="text-2xl font-bold text-emerald-500 transition-opacity duration-300">
-              Life<span className="font-light text-gray-800 dark:text-gray-100">Tracker</span>
-            </h1>
-          )}
+  <div className="transition-opacity duration-300">
+    <LifeTrackerCompactLogo/>
+  </div>
+)}
            {isSidebarCollapsed && (
-            <div className="font-bold text-2xl text-emerald-500">LT</div>
-          )}
+            <div className="transition-opacity duration-300">
+        <LifeTrackerIcon width={36} height={36} />
+      </div>
+    )}
         </div>
         <nav className="flex-1 flex flex-col gap-2 w-full">
           <SidebarButton id="dashboard" icon={<LayoutDashboard size={22} />} label="Dashboard" isCollapsed={isSidebarCollapsed} />
@@ -2371,6 +2376,76 @@ const previsaoMes = React.useMemo(() => ({
          </form>
         </section>
       ) : null}
+
+      {/* MODAL: Assinaturas Mensais */}
+      {showMensaisModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center animate-fadeIn" onClick={() => setShowMensaisModal(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-2xl m-4 animate-fadeInUp" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium">Assinaturas Mensais</h3>
+              <button onClick={() => setShowMensaisModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">&times;</button>
+            </div>
+            <div className="flex gap-4 mb-4">
+              <input
+                type="text"
+                placeholder="Buscar assinatura..."
+                value={mensaisQuery}
+                onChange={e => setMensaisQuery(e.target.value)}
+                className="input-glass flex-1"
+              />
+              <select value={mensaisSort} onChange={e => setMensaisSort(e.target.value as any)} className="input-glass">
+                <option value="vencimento">Ordenar por Vencimento</option>
+                <option value="nome">Ordenar por Nome</option>
+                <option value="valor">Ordenar por Valor</option>
+              </select>
+            </div>
+            <ul className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+              {mensaisList.map(a => (
+                <li key={a.id} className="flex justify-between items-center p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                  <div>
+                    <div className="font-medium">{a.nome}</div>
+                    <div className="text-xs opacity-60">
+                      Dia {a.diaCobranca} • {a.tipoPagamento} {a.cartaoNome ? `(${a.cartaoNome})` : ''}
+                    </div>
+                  </div>
+                  <div className="font-semibold">{fmt(toNum(a.valor))}</div>
+                </li>
+              ))}
+            </ul>
+            <div className="text-right font-bold mt-4 pt-4 border-t dark:border-slate-700">
+              Total Mensal: {fmt(totalAssinMensal)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Gastos de Crédito do Mês */}
+      {showCreditoMesModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center animate-fadeIn" onClick={() => setShowCreditoMesModal(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-2xl m-4 animate-fadeInUp" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium">Gastos em Crédito ({nomeMesAtual})</h3>
+              <button onClick={() => setShowCreditoMesModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">&times;</button>
+            </div>
+            <ul className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+              {creditGastosMesList.map(item => (
+                <li key={item.id} className="flex justify-between items-center p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                  <div>
+                    <div className="font-medium">{item.descricao}</div>
+                    <div className="text-xs opacity-60">
+                      {new Date(item.data + 'T12:00:00').toLocaleDateString('pt-BR')} • {item.cartaoNome}
+                    </div>
+                  </div>
+                  <div className="font-semibold">{fmt(item.valor)}</div>
+                </li>
+              ))}
+            </ul>
+            <div className="text-right font-bold mt-4 pt-4 border-t dark:border-slate-700">
+              Total: {fmt(gastosCreditoMes + assinaturasCreditoMensal)}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   </div>
   );

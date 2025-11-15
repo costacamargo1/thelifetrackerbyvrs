@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import LifeTrackerCompactLogo from "../components/LifeTrackerCompactLogo";
 
 export default function Landing() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -11,14 +12,9 @@ export default function Landing() {
           <div className="flex justify-between items-center h-16">
 
             {/* Logo */}
-            <a href="/" className="flex-shrink-0 flex items-center">
-  <h1 className="text-2xl font-bold text-emerald-500 transition-opacity duration-300">
-    Life
-    <span className="font-light text-gray-800 dark:text-gray-100">
-      Tracker
-    </span>
-  </h1>
-</a>
+            <a href="/" className="flex items-center">
+         <LifeTrackerCompactLogo/>
+     </a>
 
             {/* Navegação Desktop */}
             <nav className="hidden md:flex space-x-8">
