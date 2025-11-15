@@ -1166,7 +1166,7 @@ const previsaoMes = React.useMemo(() => ({
   
   // O JSX principal é retornado aqui, adaptado do seu código
   return (
-    <div className="flex h-screen w-full bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-gray-100">
+    <div className="flex min-h-screen w-full bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-gray-100">
       {/* Barra Lateral */}
       <aside className={`flex flex-col p-4 bg-white dark:bg-slate-800 shadow-lg transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-20 items-center' : 'w-64'}`}>
     <div className={`flex items-center mb-8 ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
