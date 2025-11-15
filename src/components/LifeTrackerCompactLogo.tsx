@@ -2,26 +2,59 @@ import React from "react";
 
 export default function LifeTrackerCompactLogo() {
   return (
-    <svg width="185" height="45" viewBox="0 0 180 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      width="185"
+      height="45"
+      viewBox="0 0 180 40"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="select-none"
+      style={{ display: "block" }}
+    >
+      {/* Ícone */}
       <g>
-        <circle cx="20" cy="20" r="18" fill="url(#grad2)" opacity="0.1"/>
-        <circle cx="20" cy="20" r="15" stroke="url(#grad2)" strokeWidth="2" fill="none"/>
-        <path d="M 8 24 L 14 18 L 20 14 L 26 10 L 32 6"
-              stroke="url(#grad2)"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"/>
-        <circle cx="14" cy="18" r="2" fill="#10B981"/>
-        <circle cx="20" cy="14" r="2" fill="#10B981"/>
-        <circle cx="26" cy="10" r="2.5" fill="#10B981"/>
+        <circle cx="20" cy="20" r="18" fill="url(#grad2)" opacity="0.1" />
+        <circle cx="20" cy="20" r="15" stroke="url(#grad2)" strokeWidth="2" fill="none" />
+
+        <path
+          d="M 8 24 L 14 18 L 20 14 L 26 10 L 32 6"
+          stroke="url(#grad2)"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+
+        <circle cx="14" cy="18" r="2" fill="#10B981" />
+        <circle cx="20" cy="14" r="2" fill="#10B981" />
+        <circle cx="26" cy="10" r="2.5" fill="#10B981" />
+
+        {/* Pulsar */}
+        <circle cx="26" cy="10" r="6" fill="#10B981" opacity="0.25">
+          <animate attributeName="r" values="6;10;6" dur="2s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.25;0;0.25" dur="2s" repeatCount="indefinite" />
+        </circle>
       </g>
-      <text x="45" y="29" fontFamily="system-ui" fontSize="24" fontWeight="700" fill="#10B981">
-        Life
-      </text>
-      <text x="85" y="29" fontFamily="system-ui" fontSize="24" fontWeight="300" fill="#1e293b">
-        Tracker
-      </text>
+
+      {/* Modo claro */}
+      <g className="dark:hidden">
+        <text x="45" y="29" fontFamily="system-ui" fontSize="24" fontWeight="700" fill="#10B981">
+          Life
+        </text>
+        <text x="85" y="29" fontFamily="system-ui" fontSize="24" fontWeight="300" fill="#1e293b">
+          Tracker
+        </text>
+      </g>
+
+      {/* Modo escuro */}
+      <g className="hidden dark:block">
+        <text x="45" y="29" fontFamily="system-ui" fontSize="24" fontWeight="700" fill="#10B981">
+          Life
+        </text>
+        <text x="85" y="29" fontFamily="system-ui" fontSize="24" fontWeight="300" fill="#f8fafc">
+          Tracker
+        </text>
+      </g>
 
       <defs>
         <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">

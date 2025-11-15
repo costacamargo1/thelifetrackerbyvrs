@@ -1162,12 +1162,12 @@ const previsaoMes = React.useMemo(() => ({
       <aside className={`flex flex-col p-4 bg-white dark:bg-slate-800 shadow-lg transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-20 items-center' : 'w-64'}`}>
     <div className={`flex items-center mb-8 ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
           {!isSidebarCollapsed && (
-  <div className="transition-opacity duration-300">
+  <div className="transition-opacity duration-300 text-transparent">
     <LifeTrackerCompactLogo/>
   </div>
 )}
            {isSidebarCollapsed && (
-            <div className="transition-opacity duration-300">
+            <div className="transition-opacity duration-300 text-transparent">
         <LifeTrackerIcon />
       </div>
     )}
