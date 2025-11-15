@@ -237,3 +237,15 @@
     text-wrap: balance;
   }
 }
+
+/* Adicione este código ao seu arquivo CSS principal, como src/index.css */
+@layer components {
+  .input-premium {
+    @apply w-full appearance-none rounded-lg border border-black/5 bg-white/60 px-4 py-3 text-sm text-gray-800 shadow-md shadow-black/5
+           backdrop-blur-sm transition-all
+           placeholder:text-gray-400
+           focus:outline-none focus:ring-2 focus:ring-emerald-500/50
+           dark:border-white/10 dark:bg-slate-800/50 dark:text-gray-200 dark:shadow-black/20 dark:placeholder:text-slate-500;
+    /* Efeito flutuante com sombra externa suave */
+  }
+}

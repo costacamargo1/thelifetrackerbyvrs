@@ -1400,18 +1400,19 @@ const previsaoMes = React.useMemo(() => ({
             )}
           </section>
         </div>
-      )}     
+      )}
+
       {tab === 'gastos' ? (
 // ... (JSX da aba 'gastos') ...
-        <section className="p-4 rounded-2xl glass-card space-y-4 animate-fadeInUp">
-          <h2 className="text-lg font-medium">{editingGastoId ? 'Alterar Gasto' : 'Lançar Gasto'}</h2>
-          <form className="grid grid-cols-1 md:grid-cols-10 gap-4 items-end"
+        <section className="p-4 rounded-sm glass-card space-y-4 animate-fadeInUp">
+          <h2 className="text-lg font-medium mb-2">{editingGastoId ? 'Alterar Gasto' : 'Lançar Gasto'}</h2>
+          <form className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end"
                 onSubmit={editingGastoId ? salvarEdicaoGasto : adicionarGasto}
                 key={`gasto-form-${editingGastoId || 'novo'}`}>
-          <div className="md:col-span-3 relative">
-            <label className="text-xs opacity-70">Descrição</label>
+          <div className="md:col-span-4 relative">
+            <label className="block text-xs opacity-70 mb-1">Descrição</label>
             <input
-              className="input-glass"
+              className="input-premium"
               value={novoGasto.descricao}
               onChange={(e) => {
   const desc = e.target.value;
@@ -1487,18 +1488,18 @@ const previsaoMes = React.useMemo(() => ({
   </ul>
 )}
           </div>
-            <div>
-              <label className="text-xs opacity-70">Valor (R$)</label>
+            <div className="md:col-span-2">
+              <label className="block text-xs opacity-70 mb-1">Valor (R$)</label>
               <input
-                type="number" step="0.01" min="0" className="input-glass"
+                type="number" step="0.01" min="0" className="input-premium w-full"
                 value={novoGasto.valor}
                 onChange={(e) => setNovoGasto({ ...novoGasto, valor: e.target.value })}
               />
             </div>
             <div className="md:col-span-2">
-              <label className="text-xs opacity-70">Pagamento</label>
+              <label className="block text-xs opacity-70 mb-1">Pagamento</label>
               <select
-                className="input-glass"
+                className="input-premium"
                 value={novoGasto.tipoPagamento}
                 onChange={(e) => {
                   const tipo = e.target.value as TipoPagamento;
@@ -1511,9 +1512,9 @@ const previsaoMes = React.useMemo(() => ({
             </div>
             {novoGasto.tipoPagamento === 'CRÉDITO' && (
               <div className="md:col-span-2">
-                <label className="text-xs opacity-70">Cartão</label>
+                <label className="block text-xs opacity-70 mb-1">Cartão</label>
                 <select
-                  required className="input-glass"
+                  required className="input-premium"
                   value={novoGasto.cartaoId ?? ''}
                   onChange={(e) => setNovoGasto({ ...novoGasto, cartaoId: e.target.value ? Number(e.target.value) : null })}
                 >
@@ -1524,40 +1525,41 @@ const previsaoMes = React.useMemo(() => ({
             )}
             {novoGasto.tipoPagamento === 'CRÉDITO' && (
               <div>
-                <label className="text-xs opacity-70">Parcelas</label>
+                <label className="block text-xs opacity-70 mb-1">Parcelas</label>
                 <input
                   type="number" min="1" max="24"
-                    disabled={!!editingGastoId} // Desabilita edição de parcela className="input-glass disabled:opacity-50"
+                    disabled={!!editingGastoId} // Desabilita edição de parcela
+                    className="input-premium disabled:opacity-50"
                   value={novoGasto.parcelasTotal || 1}
                   onChange={(e) => setNovoGasto({ ...novoGasto, parcelasTotal: Number(e.target.value) || 1 })}
                 />
               </div>
             )}
             <div className="md:col-span-2">
-              <label className="text-xs opacity-70">Categoria</label>
+              <label className="block text-xs opacity-70 mb-1">Categoria</label> 
               <select 
-                className="input-glass"
+                className="input-premium"
                 value={novoGasto.categoria}
                 onChange={(e) => setNovoGasto({ ...novoGasto, categoria: e.target.value })}>
                 {CATEGORIAS_GASTO.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
-            <div>
-              <label className="text-xs opacity-70">Data</label>
+            <div className="md:col-span-2">
+              <label className="block text-xs opacity-70 mb-1">Data</label>
               <input
                 type="date" 
-                className="input-glass"
+                className="input-premium"
                 value={novoGasto.data}
                 onChange={(e) => setNovoGasto({ ...novoGasto, data: e.target.value })}
               />
             </div>
-            <div className="flex gap-2">
-              <button className="w-full px-3 py-2 rounded-sm bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium shadow
+            <div className="flex gap-2 items-center">
+              <button className="w-[200px] px-4 py-2.5 rounded-sm bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium shadow
                                  dark:bg-emerald-600 dark:hover:bg-emerald-700">
                 {editingGastoId ? 'Salvar' : 'Adicionar'}
               </button>
               {editingGastoId && (
-                <button type="button" onClick={cancelarEdicaoGasto} className="px-3 py-2 rounded-lg bg-gray-200 text-sm dark:bg-slate-600">Cancelar</button>
+                <button type="button" onClick={cancelarEdicaoGasto} className="px-3 py-2.5 rounded-lg bg-gray-200 text-sm dark:bg-slate-600">Cancelar</button>
               )}
             </div>
           </form>
@@ -1568,61 +1570,110 @@ const previsaoMes = React.useMemo(() => ({
     <p className="text-sm opacity-60">Sem lançamentos</p>
   ) : ( 
     <div className="space-y-2">
-      {gastos.slice().reverse().map((g, index) => (
-        <div key={g.id} className="p-3 rounded-lg border bg-white hover:shadow-sm transition dark:bg-slate-800 dark:border-slate-700 animate-fadeInUp" style={{ animationDelay: `${index * 25}ms` }}>
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-sm truncate">{g.descricao}</span>
-                {g.parcelasTotal && g.parcelasTotal > 1 && (
-                  <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded flex-shrink-0 dark:bg-blue-900 dark:text-blue-300">
-                    {g.parcelaAtual}/{g.parcelasTotal}
-                  </span>
+      {gastos.slice().reverse().map((g, index) => {
+        if (editingGastoId === g.id) {
+          return (
+            <form key={g.id} onSubmit={salvarEdicaoGasto} className="p-4 rounded-lg border-2 border-emerald-500 bg-white dark:bg-slate-800 space-y-3 animate-fadeInUp">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                <div className="md:col-span-4">
+                  <label className="block text-xs opacity-70 mb-1">Descrição</label>
+                  <input className="input-premium" value={novoGasto.descricao} onChange={(e) => setNovoGasto({ ...novoGasto, descricao: e.target.value })} />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs opacity-70 mb-1">Valor (R$)</label>
+                  <input type="number" step="0.01" min="0" className="input-premium" value={novoGasto.valor} onChange={(e) => setNovoGasto({ ...novoGasto, valor: e.target.value })} />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs opacity-70 mb-1">Pagamento</label>
+                  <select className="input-premium" value={novoGasto.tipoPagamento} onChange={(e) => setNovoGasto({ ...novoGasto, tipoPagamento: e.target.value as TipoPagamento, cartaoId: e.target.value === 'DÉBITO' ? null : novoGasto.cartaoId })}>
+                    <option value="DÉBITO">DÉBITO</option>
+                    <option value="CRÉDITO">CRÉDITO</option>
+                  </select>
+                </div>
+                {novoGasto.tipoPagamento === 'CRÉDITO' && (
+                  <div className="md:col-span-2">
+                    <label className="block text-xs opacity-70 mb-1">Cartão</label>
+                    <select required className="input-premium" value={novoGasto.cartaoId ?? ''} onChange={(e) => setNovoGasto({ ...novoGasto, cartaoId: e.target.value ? Number(e.target.value) : null })}>
+                      <option value="">Selecione...</option>
+                      {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                    </select>
+                  </div>
                 )}
-              </div>
-              
-              <div className="text-xs opacity-60 mt-0.5 flex items-center gap-2 flex-wrap dark:text-gray-400">
-                <span>{new Date(g.data + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
-                <span>•</span>
-                <span>{g.categoria}</span>
-                <span>•</span>
-                <span>{g.tipoPagamento}{g.cartaoNome && ` - ${g.cartaoNome}`}</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <div className="text-right">
-                <div className="font-semibold text-sm whitespace-nowrap">
-                  {fmt(toNum(g.valor))}
+                <div className="md:col-span-2">
+                  <label className="block text-xs opacity-70 mb-1">Categoria</label>
+                  <select className="input-premium" value={novoGasto.categoria} onChange={(e) => setNovoGasto({ ...novoGasto, categoria: e.target.value })}>
+                    {CATEGORIAS_GASTO.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs opacity-70 mb-1">Data</label>
+                  <input type="date" className="input-premium" value={novoGasto.data} onChange={(e) => setNovoGasto({ ...novoGasto, data: e.target.value })} />
                 </div>
               </div>
-              
-              <div className="flex gap-1.5">
-                <button 
-                  type="button" 
-                  onClick={() => iniciarEdicaoGasto(g)}
-                  className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800 hover:bg-blue-200 transition dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900"
-                  title="Editar"
-                >
-                  Editar
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    if (window.confirm('Tem certeza que deseja remover este gasto?')) {
-                      removerGasto(g.id);
-                    }
-                  }}
-                  className="px-2 py-1 text-xs rounded bg-red-100 text-red-800 hover:bg-red-200 transition dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900"
-                  title="Excluir"
-                >
-                  Excluir
-                </button>
+              <div className="flex gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                <button type="submit" className="px-3 py-2 rounded-lg bg-emerald-500 text-white text-sm font-medium">Salvar</button>
+                <button type="button" onClick={cancelarEdicaoGasto} className="px-3 py-2 rounded-lg bg-gray-200 text-sm dark:bg-slate-600">Cancelar</button>
+              </div>
+            </form>
+          )
+        } else {
+          return (
+            <div key={g.id} className="p-3 rounded-lg border bg-white hover:shadow-sm transition dark:bg-slate-800 dark:border-slate-700 animate-fadeInUp" style={{ animationDelay: `${index * 25}ms` }}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm truncate">{g.descricao}</span>
+                    {g.parcelasTotal && g.parcelasTotal > 1 && (
+                      <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded flex-shrink-0 dark:bg-blue-900 dark:text-blue-300">
+                        {g.parcelaAtual}/{g.parcelasTotal}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="text-xs opacity-60 mt-0.5 flex items-center gap-2 flex-wrap dark:text-gray-400">
+                    <span>{new Date(g.data + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+                    <span>•</span>
+                    <span>{g.categoria}</span>
+                    <span>•</span>
+                    <span>{g.tipoPagamento}{g.cartaoNome && ` - ${g.cartaoNome}`}</span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="text-right">
+                    <div className="font-semibold text-sm whitespace-nowrap">
+                      {fmt(toNum(g.valor))}
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-1.5">
+                    <button 
+                      type="button" 
+                      onClick={() => iniciarEdicaoGasto(g)}
+                      className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800 hover:bg-blue-200 transition dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900"
+                      title="Editar"
+                    >
+                      Editar
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        if (window.confirm('Tem certeza que deseja remover este gasto?')) {
+                          removerGasto(g.id);
+                        }
+                      }}
+                      className="px-2 py-1 text-xs rounded bg-red-100 text-red-800 hover:bg-red-200 transition dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900"
+                      title="Excluir"
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      ))}
+          )
+        }
+      })}
     </div>
   )}
 </div>
@@ -1632,41 +1683,41 @@ const previsaoMes = React.useMemo(() => ({
       {tab === 'receitas' ? (
 // ... (JSX da aba 'receitas') ...
         <section className="p-4 rounded-2xl glass-card space-y-4 animate-fadeInUp">
-          <h2 className="text-lg font-medium">{editingReceitaId ? 'Alterar Receita' : 'Lançar Receita'}</h2>
+          <h2 className="text-lg font-medium mb-2">{editingReceitaId ? 'Alterar Receita' : 'Lançar Receita'}</h2>
           <form
-            className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end"
+            className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end"
             onSubmit={editingReceitaId ? salvarEdicaoReceita : adicionarReceita}
             key={`receita-form-${editingReceitaId || 'novo'}`}
           >
-            <div className="md:col-span-2">
-              <label className="text-xs opacity-70">Descrição</label>
+            <div className="md:col-span-5">
+              <label className="block text-xs opacity-70 mb-1">Descrição</label>
               <input
-                className="input-glass"
+                className="input-premium"
                 value={novaReceita.descricao}
                 onChange={(e) => setNovaReceita({ ...novaReceita, descricao: e.target.value })}
                 placeholder="Ex: Salário, Freelance"
               />
             </div>
-            <div>
-              <label className="text-xs opacity-70">Valor (R$)</label>
-              <input type="number" step="0.01" min="0" className="input-glass"
+            <div className="md:col-span-2">
+              <label className="block text-xs opacity-70 mb-1">Valor (R$)</label>
+              <input type="number" step="0.01" min="0" className="input-premium"
                 value={novaReceita.valor}
                 onChange={(e) => setNovaReceita({ ...novaReceita, valor: e.target.value })}
               />
             </div>
-            <div>
-              <label className="text-xs opacity-70">Data</label>
-              <input type="date" className="input-glass"
+            <div className="md:col-span-2">
+              <label className="block text-xs opacity-70 mb-1">Data</label>
+              <input type="date" className="input-premium"
                 value={novaReceita.data}
                 onChange={(e) => setNovaReceita({ ...novaReceita, data: e.target.value })} />
             </div>
-            <div className="flex gap-2">
-              <button className="w-full px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium shadow
+            <div className="md:col-span-3 flex gap-2 items-center">
+              <button className="w-[100px] px-4 py-3 rounded-sm bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium shadow
                                  dark:bg-emerald-600 dark:hover:bg-emerald-700">
                 {editingReceitaId ? 'Salvar' : 'Adicionar'}
               </button>
               {editingReceitaId && (
-                <button type="button" onClick={cancelarEdicaoReceita} className="px-3 py-2 rounded-lg bg-gray-200 text-sm dark:bg-slate-600">Cancelar</button>
+                <button type="button" onClick={cancelarEdicaoReceita} className="px-3 py-3 rounded-lg bg-gray-200 text-sm dark:bg-slate-600">Cancelar</button>
               )}
             </div>
           </form>
@@ -1724,7 +1775,7 @@ const previsaoMes = React.useMemo(() => ({
 </div>
         </section>
       ) : null}
-
+{/* ... (restante do JSX da aba 'receitas') ... */}
 {tab === 'contas-recorrentes' ? (
 // ... (JSX da aba 'contas-recorrentes') ...
   <section className="p-4 rounded-2xl glass-card space-y-4 animate-fadeInUp">
@@ -1737,27 +1788,27 @@ const previsaoMes = React.useMemo(() => ({
     >
       <div className="md:col-span-4">
         <label className="text-xs opacity-70">Nome</label>
-        <input className="input-glass"
+        <input className="input-premium"
           value={novaAssinatura.nome}
           onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, nome: e.target.value })} />
       </div>
       <div className="md:col-span-2">
         <label className="text-xs opacity-70">Valor {novaAssinatura.tipo === 'ACORDO' ? 'Total' : ''} (R$)</label>
-        <input type="number" step="0.01" min="0" className="input-glass"
+        <input type="number" step="0.01" min="0" className="input-premium"
           value={novaAssinatura.valor}
           onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, valor: e.target.value })} />
       </div>
       <div className="md:col-span-3 grid grid-cols-3 gap-2">
         <div>
           <label className="text-xs opacity-70">Dia</label>
-          <input type="number" min="1" max="31" className="input-glass"
+          <input type="number" min="1" max="31" className="input-premium"
             value={novaAssinatura.diaCobranca || ''}
             onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, diaCobranca: Number(e.target.value) })} />
         </div>
         {novaAssinatura.periodoCobranca === 'ANUAL' && (
           <div>
             <label className="text-xs opacity-70">Mês</label>
-            <select className="input-glass"
+            <select className="input-premium"
               value={novaAssinatura.mesCobranca}
               onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, mesCobranca: Number(e.target.value || 1) })}>
               {Array.from({length: 12}, (_, i) => i + 1).map(m => (
@@ -1769,7 +1820,7 @@ const previsaoMes = React.useMemo(() => ({
         {novaAssinatura.periodoCobranca === 'ANUAL' && (
           <div>
             <label className="text-xs opacity-70">Ano Adesão</label>
-            <input type="number" min="2000" max="2100" className="input-glass"
+            <input type="number" min="2000" max="2100" className="input-premium"
               value={novaAssinatura.anoAdesao || new Date().getFullYear()} onChange={(e) => setNovaAssinatura({ ...novaAssinatura, anoAdesao: Number(e.target.value) })} />
           </div>
         )}
@@ -1777,7 +1828,7 @@ const previsaoMes = React.useMemo(() => ({
       <div className="md:col-span-3">
         <label className="text-xs opacity-70">Tipo</label>
         <select 
-          className="input-glass"
+          className="input-premium"
           value={novaAssinatura.tipo}
           onChange={(e) => setNovaAssinatura({ ...novaAssinatura, tipo: e.target.value as TipoAssinatura })}
         >
@@ -1790,7 +1841,7 @@ const previsaoMes = React.useMemo(() => ({
       {novaAssinatura.tipo === 'CONTRATO - PERSONALIZADO' && (
         <div className="md:col-span-3">
           <label className="text-xs opacity-70">Categoria do contrato</label>
-          <input className="input-glass"
+          <input className="input-premium"
             value={novaAssinatura.categoriaPersonalizada || ''}
             onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, categoriaPersonalizada: e.target.value })} />
         </div>
@@ -1798,8 +1849,8 @@ const previsaoMes = React.useMemo(() => ({
       {novaAssinatura.tipo === 'ACORDO' && (
         <div className="md:col-span-2">
           <label className="text-xs opacity-70">Número de parcelas</label>
-          <input
-            type="number" min="1" className="input-glass"
+          <input 
+            type="number" min="1" className="input-premium"
             value={novaAssinatura.parcelasTotal || 1}
             onChange={(e) => setNovaAssinatura({ ...novaAssinatura, parcelasTotal: parseInt(e.target.value) || 1, parcelaAtual: editingAssinaturaId ? novaAssinatura.parcelaAtual : 1 })}
             placeholder="ex: 3"
@@ -1809,7 +1860,7 @@ const previsaoMes = React.useMemo(() => ({
       <div className="md:col-span-2">
         <label className="text-xs opacity-70">Periodicidade</label>
         <select 
-          className="input-glass"
+          className="input-premium"
           value={novaAssinatura.periodoCobranca}
           onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, periodoCobranca: e.target.value as Periodo })}>
           <option value="MENSAL">MENSAL</option>
@@ -1819,7 +1870,7 @@ const previsaoMes = React.useMemo(() => ({
       <div className="md:col-span-2">
         <label className="text-xs opacity-70">Pagamento</label>
         <select 
-          className="input-glass"
+          className="input-premium"
           value={novaAssinatura.tipoPagamento}
           onChange={(e)=>setNovaAssinatura({
             ...novaAssinatura,
@@ -1833,7 +1884,7 @@ const previsaoMes = React.useMemo(() => ({
       {novaAssinatura.tipoPagamento === 'CRÉDITO' && (
         <div className="md:col-span-3">
           <label className="text-xs opacity-70">Cartão</label>
-          <select className="input-glass"
+          <select className="input-premium"
             value={novaAssinatura.cartaoId ?? ''}
             onChange={(e)=>setNovaAssinatura({ ...novaAssinatura, cartaoId: e.target.value ? Number(e.target.value) : null })}>
             <option value="">Selecione...</option>
@@ -1842,7 +1893,7 @@ const previsaoMes = React.useMemo(() => ({
         </div>
       )}
       <div className="md:col-span-2 flex gap-2">
-        <button className="px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-sm w-full font-medium shadow
+        <button className="px-3 py-3 rounded-sm bg-emerald-500 hover:bg-emerald-600 text-white text-sm w-full font-medium shadow
                            dark:bg-emerald-600 dark:hover:bg-emerald-700">
           {editingAssinaturaId ? 'Salvar' : 'Adicionar'}
         </button>
@@ -1855,8 +1906,49 @@ const previsaoMes = React.useMemo(() => ({
       {assinaturas.length === 0 ? (
         <p className="text-sm opacity-60">Sem registros</p>
       ) : (
-        <div className="space-y-3">
-          {assinaturas.slice().reverse().map((a, index) => {
+        <div className="space-y-4">
+          {assinaturas.slice().reverse().map((a, index) => { 
+            if (editingAssinaturaId === a.id) {
+              return (
+                <form key={a.id} onSubmit={salvarEdicaoAssinatura} className="p-4 rounded-lg border-2 border-emerald-500 bg-white dark:bg-slate-800 space-y-3 animate-fadeInUp">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                    <div className="md:col-span-4">
+                      <label className="block text-xs opacity-70 mb-1">Nome</label>
+                      <input className="input-premium" value={novaAssinatura.nome} onChange={(e) => setNovaAssinatura({ ...novaAssinatura, nome: e.target.value })} />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs opacity-70 mb-1">Valor (R$)</label>
+                      <input type="number" step="0.01" min="0" className="input-premium" value={novaAssinatura.valor} onChange={(e) => setNovaAssinatura({ ...novaAssinatura, valor: e.target.value })} />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs opacity-70 mb-1">Dia Cobrança</label>
+                      <input type="number" min="1" max="31" className="input-premium" value={novaAssinatura.diaCobranca || ''} onChange={(e) => setNovaAssinatura({ ...novaAssinatura, diaCobranca: Number(e.target.value) })} />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs opacity-70 mb-1">Pagamento</label>
+                      <select className="input-premium" value={novaAssinatura.tipoPagamento} onChange={(e) => setNovaAssinatura({ ...novaAssinatura, tipoPagamento: e.target.value as TipoPagamento, cartaoId: e.target.value === 'DÉBITO' ? null : novaAssinatura.cartaoId })}>
+                        <option value="DÉBITO">DÉBITO</option>
+                        <option value="CRÉDITO">CRÉDITO</option>
+                      </select>
+                    </div>
+                    {novaAssinatura.tipoPagamento === 'CRÉDITO' && (
+                      <div className="md:col-span-2">
+                        <label className="block text-xs opacity-70 mb-1">Cartão</label>
+                        <select required className="input-premium" value={novaAssinatura.cartaoId ?? ''} onChange={(e) => setNovaAssinatura({ ...novaAssinatura, cartaoId: e.target.value ? Number(e.target.value) : null })}>
+                          <option value="">Selecione...</option>
+                          {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2 pt-3 border-t border-slate-200 dark:border-slate-700">
+                    <button type="submit" className="px-3 py-2 rounded-lg bg-emerald-500 text-white text-sm font-medium">Salvar</button>
+                    <button type="button" onClick={cancelarEdicaoAssinatura} className="px-3 py-2 rounded-lg bg-gray-200 text-sm dark:bg-slate-600">Cancelar</button>
+                  </div>
+                </form>
+              )
+            }
+
             const ehAcordo = a.tipo === 'ACORDO';
             const parcelaAtual = a.parcelaAtual ?? 1;
             const parcelasTotal = a.parcelasTotal ?? 1;
@@ -1989,19 +2081,19 @@ const previsaoMes = React.useMemo(() => ({
                 onSubmit={adicionarObjetivo}>
             <div className="md:col-span-2">
               <label className="text-xs opacity-70">Nome</label>
-              <input className="input-glass"
+              <input className="input-premium"
                 value={novoObjetivo.nome}
                 onChange={(e)=>setNovoObjetivo({ ...novoObjetivo, nome: e.target.value })} />
             </div>
             <div>
               <label className="text-xs opacity-70">Valor necessário (R$)</label>
-              <input type="number" step="0.01" min="0" className="input-glass"
+              <input type="number" step="0.01" min="0" className="input-premium"
                 value={String(novoObjetivo.valorNecessario || '')}
-                onChange={(e)=>setNovoObjetivo({ ...novoObjetivo, valorNecessario: e.target.value })} />
+                onChange={(e)=>setNovoObjetivo({ ...novoObjetivo, valorNecessario: e.target.valueAsNumber > 0 ? e.target.value : '' })} />
             </div>
             <div>
               <label className="text-xs opacity-70">Status</label>
-              <select className="input-glass"
+              <select className="input-premium"
                 value={novoObjetivo.status}
                 onChange={(e)=>setNovoObjetivo({ ...novoObjetivo, status: e.target.value as StatusObj })}>
                 <option>IMEDIATO</option>
@@ -2012,7 +2104,7 @@ const previsaoMes = React.useMemo(() => ({
               </select>
             </div>
             <div>
-              <button className="w-full px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium shadow dark:bg-emerald-600 dark:hover:bg-emerald-700">Adicionar</button>
+              <button className="w-[100px] px-3 py-3 rounded-sm bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium shadow dark:bg-emerald-600 dark:hover:bg-emerald-700">Adicionar</button>
             </div>
           </form>
 
@@ -2068,8 +2160,8 @@ const previsaoMes = React.useMemo(() => ({
           <form className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end" 
                 onSubmit={adicionarCartao}>
             <div className="relative">
-              <label className="text-xs opacity-70">Nome</label>
-              <input className="input-glass"
+              <label className="block text-xs opacity-70 mb-1">Nome</label>
+              <input className="input-premium"
                 value={novoCartao.nome}
                 onChange={(e) => {
                   const valor = e.target.value;
@@ -2112,26 +2204,26 @@ const previsaoMes = React.useMemo(() => ({
                 </ul>
               )}
             </div>
-            <div>
-              <label className="text-xs opacity-70">Limite (R$)</label>
-              <input type="number" step="0.01" min="0" className="input-glass"
+            <div className="md:col-span-1">
+              <label className="block text-xs opacity-70 mb-1">Limite (R$)</label>
+              <input type="number" step="0.01" min="0" className="input-premium"
                 value={novoCartao.limite}
                 onChange={(e)=>setNovoCartao({ ...novoCartao, limite: e.target.value })} />
             </div>
             <div>
-              <label className="text-xs opacity-70">Dia de vencimento</label>
-              <input type="number" min="1" max="28" className="input-glass"
+              <label className="block text-xs opacity-70 mb-1">Dia de vencimento</label>
+              <input type="number" min="1" max="28" className="input-premium"
                 value={novoCartao.diaVencimento || ''}
                 onChange={(e)=>setNovoCartao({ ...novoCartao, diaVencimento: Number(e.target.value) })} />
             </div>            
             <div>
-              <label className="text-xs opacity-70">Dia de fechamento</label>
-              <input type="number" min="1" max="31" className="input-glass"
+              <label className="block text-xs opacity-70 mb-1">Dia de fechamento</label>
+              <input type="number" min="1" max="31" className="input-premium"
                 value={novoCartao.diaFechamento || ''}
                 onChange={(e) => setNovoCartao({ ...novoCartao, diaFechamento: Number(e.target.value) })} />
             </div>
             <div> 
-              <button className="w-full px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium shadow dark:bg-emerald-600 dark:hover:bg-emerald-700 transition-colors">Adicionar</button>
+              <button className="w-[100px] px-3 py-3 rounded-sm bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium shadow dark:bg-emerald-600 dark:hover:bg-emerald-700 transition-colors">Adicionar</button>
             </div>
           </form>
 
@@ -2153,24 +2245,24 @@ const previsaoMes = React.useMemo(() => ({
             <div className="grid grid-cols-2 gap-2 text-sm">
 <label className="flex flex-col">
   <span className="opacity-60 text-xs">Nome</span>
-  <input className="input-glass"
+  <input className="input-premium"
     value={editCardDraft?.nome ?? ''}
     onChange={(e)=>setEditCardDraft(editCardDraft ? { ...editCardDraft, nome: e.target.value } : null)} />
 </label>
 <label className="flex flex-col">
   <span className="opacity-60 text-xs">Limite (R$)</span>
-  <input type="number" min="0" step="0.01" className="input-glass"
+  <input type="number" min="0" step="0.01" className="input-premium"
     value={editCardDraft?.limite ?? ''}
     onChange={(e)=>setEditCardDraft(editCardDraft ? { ...editCardDraft, limite: e.target.value } : null)} />
 </label>
 <label className="flex flex-col">
   <span className="opacity-60 text-xs">Dia de fechamento</span>
-  <input type="number" min="1" max="31" className="input-glass"
+  <input type="number" min="1" max="31" className="input-premium"
     value={editCardDraft.diaFechamento} onChange={(e) => setEditCardDraft(prev => prev ? { ...prev, diaFechamento: Number(e.target.value || 1) } : null)} />
 </label>
               <label className="flex flex-col">
                 <span className="opacity-60 text-xs">Dia de vencimento</span>
-                <input type="number" min="1" max="28" className="input-glass"
+                <input type="number" min="1" max="28" className="input-premium"
                   value={editCardDraft.diaVencimento}
                   onChange={(e)=>setEditCardDraft({ ...(editCardDraft as Cartao), diaVencimento: Number(e.target.value || 1) })} />
               </label>
@@ -2245,7 +2337,7 @@ const previsaoMes = React.useMemo(() => ({
                   type="number"
                   value={anoResumo}
                   onChange={e => setAnoResumo(Number(e.target.value))}
-                  className="input-glass p-2 w-24"
+                  className="input-premium p-2 w-24"
                 />
               </div>
             </div>
@@ -2272,13 +2364,13 @@ const previsaoMes = React.useMemo(() => ({
                 placeholder="Buscar lançamento..."
                 value={buscaFatura}
                 onChange={e => setBuscaFatura(e.target.value)}
-                className="input-glass w-full sm:w-48"
+                className="input-premium w-full sm:w-48"
               />
               <input
                 type="month"
                 value={mesFatura.toISOString().slice(0,7)}
                 onChange={e => setMesFatura(new Date(e.target.value + '-01T12:00:00'))} // Add time to avoid timezone issues
-                className="input-glass"/>
+                className="input-premium"/>
             </div>
           </div>
 
@@ -2338,17 +2430,17 @@ const previsaoMes = React.useMemo(() => ({
               <h3 className="font-medium">Crédito</h3>
               <label className="block">
                 <span className="text-xs opacity-70">Alerta (R$)</span>
-                <input type="number" min="0" className="input-glass"
+                <input type="number" min="0" className="input-premium"
                   value={configuracoes.credito.alerta} onChange={(e) => setConfiguracoes({ ...configuracoes, credito: { ...configuracoes.credito, alerta: e.target.value } })} />
               </label>
               <label className="block">
                 <span className="text-xs opacity-70">Crítico (R$)</span>
-                <input type="number" min="0" className="input-glass"
+                <input type="number" min="0" className="input-premium"
                   value={configuracoes.credito.critico} onChange={(e) => setConfiguracoes({ ...configuracoes, credito: { ...configuracoes.credito, critico: e.target.value } })} />
               </label>
               <label className="block">
                 <span className="text-xs opacity-70">Positivo (R$)</span>
-                <input type="number" min="0" className="input-glass"
+                <input type="number" min="0" className="input-premium"
                   value={configuracoes.credito.positivo} onChange={(e) => setConfiguracoes({ ...configuracoes, credito: { ...configuracoes.credito, positivo: e.target.value } })} />
               </label>
             </div>
@@ -2356,17 +2448,17 @@ const previsaoMes = React.useMemo(() => ({
               <h3 className="font-medium">Saldo</h3>
               <label className="block">
                 <span className="text-xs opacity-70">Alerta (R$)</span>
-                <input type="number" min="0" className="input-glass"
+                <input type="number" min="0" className="input-premium"
                   value={configuracoes.saldo.alerta} onChange={(e) => setConfiguracoes({ ...configuracoes, saldo: { ...configuracoes.saldo, alerta: e.target.value } })} />
               </label>
               <label className="block">
                 <span className="text-xs opacity-70">Crítico (R$)</span>
-                <input type="number" min="0" className="input-glass"
+                <input type="number" min="0" className="input-premium"
                   value={configuracoes.saldo.critico} onChange={(e) => setConfiguracoes({ ...configuracoes, saldo: { ...configuracoes.saldo, critico: e.target.value } })} />
               </label>
               <label className="block">
                 <span className="text-xs opacity-70">Positivo (R$)</span>
-                <input type="number" min="0" className="input-glass"
+                <input type="number" min="0" className="input-premium"
                   value={configuracoes.saldo.positivo} onChange={(e) => setConfiguracoes({ ...configuracoes, saldo: { ...configuracoes.saldo, positivo: e.target.value } })} />
               </label>
             </div>
@@ -2391,9 +2483,9 @@ const previsaoMes = React.useMemo(() => ({
                 placeholder="Buscar assinatura..."
                 value={mensaisQuery}
                 onChange={e => setMensaisQuery(e.target.value)}
-                className="input-glass flex-1"
+                className="input-premium flex-1"
               />
-              <select value={mensaisSort} onChange={e => setMensaisSort(e.target.value as any)} className="input-glass">
+              <select value={mensaisSort} onChange={e => setMensaisSort(e.target.value as any)} className="input-premium">
                 <option value="vencimento">Ordenar por Vencimento</option>
                 <option value="nome">Ordenar por Nome</option>
                 <option value="valor">Ordenar por Valor</option>
