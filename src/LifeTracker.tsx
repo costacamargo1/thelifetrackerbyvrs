@@ -414,6 +414,7 @@ const LifeTracker: React.FC<LifeTrackerProps> = ({ darkMode, toggleDarkMode }) =
   const [buscaFatura, setBuscaFatura] = React.useState('');
   const [anoResumo, setAnoResumo] = React.useState(new Date().getFullYear());
 
+  const [valorAdicionarObjetivo, setValorAdicionarObjetivo] = React.useState<Record<number, string>>({});
   const [sugestaoAtivaIndex, setSugestaoAtivaIndex] = React.useState(-1);
   const [sugestoesDescricao, setSugestoesDescricao] = React.useState<string[]>([]);
   const [sugestaoDescricaoAtivaIndex, setSugestaoDescricaoAtivaIndex] = React.useState(-1);
@@ -1088,6 +1089,14 @@ const previsaoMes = React.useMemo(() => ({
     setObjetivos(o => [...o, { ...novoObjetivo, id: Date.now(), valorAtual: novoObjetivo.valorAtual || 0 }]);
     setNovoObjetivo({ id: 0, nome: '', valorNecessario: '', valorAtual: 0, status: 'EM PROGRESSO' } as unknown as Objetivo);
   };
+
+  const adicionarValorObjetivo = (id: number) => {
+    const valor = toNum(valorAdicionarObjetivo[id]);
+    if (valor > 0) {
+      atualizarObjetivoValor(id, valor);
+      setValorAdicionarObjetivo(prev => ({ ...prev, [id]: '' }));
+    }
+  };
 // ... (restante das funções de ação: atualizarObjetivoValor, alterarStatusObjetivo, etc.) ...
   const atualizarObjetivoValor = (id: number, delta: number) => {
     setObjetivos(list => list.map(o => o.id === id ? { ...o, valorAtual: Math.max(0, o.valorAtual + delta) } : o));
@@ -1281,7 +1290,7 @@ const previsaoMes = React.useMemo(() => ({
                 <div className="opacity-60">Gastos em Crédito (mês)</div>
                 <div className="text-lg font-semibold">{fmt(previsaoMes.credito)}</div>
               </button>
-              <div className="p-3 rounded-xl bg-gray-900 text-white dark:bg-slate-950 md:col-start-4">
+             <div className=" p-3 rounded-xl bg-gray-900 text-white dark:bg-slate-950 md:col-start-2 md:col-span-2 flex flex-col items-center justify-center " >
                 <div className="opacity-80">
                   Total previsto para{' '}
                   <span className="font-bold text-emerald-400 [text-shadow:0_0_8px_#4ade80]">
@@ -2144,7 +2153,22 @@ const previsaoMes = React.useMemo(() => ({
                     <button className="px-2 py-1 bg-emerald-500 text-white rounded dark:bg-emerald-600" onClick={()=>atualizarObjetivoValor(o.id, 50)} type="button">+ R$50</button>
                     <button className="px-2 py-1 bg-gray-200 rounded dark:bg-slate-600" onClick={()=>atualizarObjetivoValor(o.id, -50)} type="button">- R$50</button>
                     <button className="px-2 py-1 rounded bg-red-600 text-white text-xs dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800"
-                            onClick={() => { if (window.confirm('Remover este objetivo?')) setObjetivos(prev => prev.filter(obj => obj.id !== o.id)); }} type="button">Remover</button>
+                        onClick={() => { if (window.confirm('Remover este objetivo?')) setObjetivos(prev => prev.filter(obj => obj.id !== o.id)); }} type="button">Remover</button>
+                        <div className="flex gap-2">
+                          <input 
+                            type="number" 
+                            placeholder="Adicionar valor" 
+                            className="input-premium flex-1 py-1 text-sm"
+                            value={valorAdicionarObjetivo[o.id] || ''}
+                            onChange={e => setValorAdicionarObjetivo(prev => ({ ...prev, [o.id]: e.target.value }))}
+                            onKeyDown={e => e.key === 'Enter' && adicionarValorObjetivo(o.id)}
+                          />
+                          <button className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-sm dark:bg-emerald-600" onClick={() => adicionarValorObjetivo(o.id)} type="button">Adicionar</button>
+                        </div>
+                        <div className="flex gap-2">
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-slate-600">
                   </div>
                 </div>
               );
