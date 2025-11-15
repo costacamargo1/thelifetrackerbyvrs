@@ -1,0 +1,32 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fundo quadrado preto com cantos arredondados -->
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="#020617" />
+
+  <!-- Área do gráfico: praticamente o máximo possível sem encostar feio nas bordas -->
+  <circle cx="32" cy="32" r="24" fill="url(#gradIcon)" opacity="0.12" />
+  <circle cx="32" cy="32" r="21" stroke="url(#gradIcon)" stroke-width="3.2" fill="none" />
+
+  <!-- Linha do gráfico ocupando quase toda a largura -->
+  <path
+    d="M 14 40 L 22 32 L 30 27 L 38 23 L 50 20"
+    stroke="url(#gradIcon)"
+    stroke-width="3.4"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+
+  <!-- Pontos maiores, bem visíveis -->
+  <circle cx="22" cy="32" r="3" fill="#22C55E" />
+  <circle cx="30" cy="27" r="3" fill="#22C55E" />
+  <circle cx="38" cy="23" r="3" fill="#22C55E" />
+  <circle cx="50" cy="20" r="3.4" fill="#22C55E" />
+
+  <defs>
+    <!-- Verde levemente mais aceso -->
+    <linearGradient id="gradIcon" x1="12" y1="12" x2="52" y2="52">
+      <stop offset="0%" stop-color="#22C55E" />   <!-- mais claro -->
+      <stop offset="100%" stop-color="#16A34A" /> <!-- um pouco mais escuro -->
+    </linearGradient>
+  </defs>
+</svg>

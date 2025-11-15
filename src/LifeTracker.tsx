@@ -1552,7 +1552,7 @@ const previsaoMes = React.useMemo(() => ({
               />
             </div>
             <div className="flex gap-2">
-              <button className="w-full px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium shadow
+              <button className="w-full px-3 py-2 rounded-sm bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium shadow
                                  dark:bg-emerald-600 dark:hover:bg-emerald-700">
                 {editingGastoId ? 'Salvar' : 'Adicionar'}
               </button>
