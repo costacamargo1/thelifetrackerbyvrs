@@ -1451,7 +1451,7 @@ const previsaoMes = React.useMemo(() => ({
                   setSugestaoDescricaoAtivaIndex(0);
                 }
               }}
-              placeholder="ex: almoço ifood"
+              placeholder="Ex: Supermercado, Uber, Netflix..."
             />
 {sugestoesDescricao.length > 0 && (
   <ul className="absolute z-10 w-full bg-white border rounded-lg mt-1 shadow-lg max-h-60 overflow-y-auto dark:bg-slate-700 dark:border-slate-600">
@@ -1635,7 +1635,7 @@ const previsaoMes = React.useMemo(() => ({
                 className="input-glass"
                 value={novaReceita.descricao}
                 onChange={(e) => setNovaReceita({ ...novaReceita, descricao: e.target.value })}
-                placeholder="ex: salário"
+                placeholder="Ex: Salário, Freelance"
               />
             </div>
             <div>
