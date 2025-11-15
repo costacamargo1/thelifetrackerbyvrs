@@ -1185,7 +1185,7 @@ const previsaoMes = React.useMemo(() => ({
       </aside>
 
       {/* Conteúdo Principal */}
-      <main className="flex-1 p-4 md:p-6 overflow-y-auto space-y-6"> {/* This div was missing its closing tag */}
+      <main className="flex-1 p-4 md:p-6 overflow-y-auto space-y-6">
       {/* Renderização da Aba Ativa */}
       {tab === 'dashboard' && (
         <div className="animate-fadeInUp space-y-8">
@@ -1388,8 +1388,8 @@ const previsaoMes = React.useMemo(() => ({
               </div>
             )}
           </section>
-      )}
-
+        </div>
+      )}     
       {tab === 'gastos' ? (
 // ... (JSX da aba 'gastos') ...
         <section className="p-4 rounded-2xl glass-card space-y-4 animate-fadeInUp">
@@ -1836,9 +1836,7 @@ const previsaoMes = React.useMemo(() => ({
                            dark:bg-emerald-600 dark:hover:bg-emerald-700">
           {editingAssinaturaId ? 'Salvar' : 'Adicionar'}
         </button>
-        {editingAssinaturaId && (
-          <button type="button" onClick={cancelarEdicaoAssinatura} className="px-3 py-2 rounded-lg bg-gray-200 text-sm dark:bg-slate-600">Cancelar</button>
-        )}
+        {editingAssinaturaId && ( <button type="button" onClick={cancelarEdicaoAssinatura} className="px-3 py-2 rounded-lg bg-gray-200 text-sm dark:bg-slate-600">Cancelar</button> )}
       </div>
     </form>
 
@@ -1899,7 +1897,7 @@ const previsaoMes = React.useMemo(() => ({
                     </div>
                   </div>
                   
-                  <div className="text-right"> 
+                  <div className="text-right">
                     <div className="text-lg font-semibold">
                       {ehAcordo ? fmt(valorParcela) : fmt(toNum(a.valor))}
                       {ehAcordo && <span className="text-xs font-normal opacity-60">/mês</span>}
@@ -1951,7 +1949,7 @@ const previsaoMes = React.useMemo(() => ({
                     >
                       ✓ Pagar parcela {parcelaAtual}
                     </button>
-                  ) }
+                  )}
                   <button 
                     type="button" 
                     onClick={() => removerAssinatura(a.id)}
@@ -2053,7 +2051,6 @@ const previsaoMes = React.useMemo(() => ({
             })}
           </div>
         </section>
-      )}
       ) : null}
 
       {tab === 'cartoes' ? (
@@ -2206,7 +2203,7 @@ const previsaoMes = React.useMemo(() => ({
   </div>
         </section>
       ) : null}
-
+ 
       {tab === 'resumo-anual' ? (() => {
 // ... (JSX da aba 'resumo-anual') ...
         const BarChart = ({ title, data, dataKey, colorClass }: { title: string; data: typeof dadosResumoAnual; dataKey: keyof typeof dadosResumoAnual[0]; colorClass: string }) => {
@@ -2273,12 +2270,11 @@ const previsaoMes = React.useMemo(() => ({
                 type="month"
                 value={mesFatura.toISOString().slice(0,7)}
                 onChange={e => setMesFatura(new Date(e.target.value + '-01T12:00:00'))} // Add time to avoid timezone issues
-                className="input-glass"
-              />
+                className="input-glass"/>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {/* This div was missing its closing tag */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {faturasFiltradas.map((f, index) => {
               return (<div key={f.cartao.id} className="p-4 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700 animate-fadeInUp" style={{ animationDelay: `${index * 50}ms` }}>
                 <div className="flex items-center gap-2 mb-4"> 
@@ -2310,9 +2306,11 @@ const previsaoMes = React.useMemo(() => ({
                   <div className="flex justify-between text-sm opacity-70 mt-1">
                     <span>Limite disponível</span>
                     <span>{fmt(f.disponivel)}</span>
+                </div>
               </div>
-            </div>);
-            })}
+            </div>
+          );
+        })}
           </div>
 
           <div className="p-4 rounded-xl bg-gray-50 dark:bg-slate-700 text-right font-medium text-sm">
@@ -2366,12 +2364,12 @@ const previsaoMes = React.useMemo(() => ({
             </div>
             <div className="md:col-span-2 flex justify-end">
               <button type="submit" className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-medium shadow dark:bg-emerald-600 dark:hover:bg-emerald-700">Salvar Configurações</button>
-            </div> 
-          </form>
+            </div>
+         </form>
         </section>
       ) : null}
     </main>
-    </div>
+  </div>
   );
 };
 
