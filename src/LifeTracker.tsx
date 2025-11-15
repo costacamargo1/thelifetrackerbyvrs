@@ -372,7 +372,7 @@ interface LifeTrackerProps {
 // Renomeado de 'export default function LifeTracker...'
 const LifeTracker: React.FC<LifeTrackerProps> = ({ darkMode, toggleDarkMode }) => {
   // Abas
-  const [tab, setTab] = React.useState<'dashboard' | 'gastos' | 'receitas' | 'assinaturas' | 'objetivos' | 'cartoes' | 'dividas' | 'faturas' | 'configuracoes' | 'resumo-anual'>('dashboard');
+  const [tab, setTab] = React.useState<'dashboard' | 'gastos' | 'receitas' | 'contas-recorrentes' | 'objetivos' | 'cartoes' | 'dividas' | 'faturas' | 'configuracoes' | 'resumo-anual'>('dashboard');
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
   // Modais e ordenação de listas
@@ -1165,7 +1165,7 @@ const previsaoMes = React.useMemo(() => ({
           <SidebarButton id="dashboard" icon={<LayoutDashboard size={22} />} label="Dashboard" isCollapsed={isSidebarCollapsed} />
           <SidebarButton id="gastos" icon={<TrendingDown size={22} />} label="Gastos" isCollapsed={isSidebarCollapsed} />
           <SidebarButton id="receitas" icon={<TrendingUp size={22} />} label="Receitas" isCollapsed={isSidebarCollapsed} />
-          <SidebarButton id="assinaturas" icon={<Repeat size={22} />} label="Assinaturas" isCollapsed={isSidebarCollapsed} />
+          <SidebarButton id="contas-recorrentes" icon={<Repeat size={22} />} label="Contas Recorrentes" isCollapsed={isSidebarCollapsed} />
           <SidebarButton id="objetivos" icon={<Goal size={22} />} label="Objetivos" isCollapsed={isSidebarCollapsed} />
           <SidebarButton id="cartoes" icon={<CreditCard size={22} />} label="Cartões" isCollapsed={isSidebarCollapsed} />
           <SidebarButton id="faturas" icon={<Receipt size={22} />} label="Faturas" isCollapsed={isSidebarCollapsed} />
@@ -1589,9 +1589,8 @@ const previsaoMes = React.useMemo(() => ({
               <div className="flex gap-1.5">
                 <button 
                   type="button" 
-                  onClick={() => iniciarEdicaoGasto(g)} 
-                  className="px-2 py-1 text-xs rounded bg-blue-50 text-blue-700 hover:bg-blue-100 transition
-                             dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800"
+                  onClick={() => iniciarEdicaoGasto(g)}
+                  className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800 hover:bg-blue-200 transition dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900"
                   title="Editar"
                 >
                   Editar
@@ -1603,8 +1602,7 @@ const previsaoMes = React.useMemo(() => ({
                       removerGasto(g.id);
                     }
                   }}
-                  className="px-2 py-1 text-xs rounded bg-red-50 text-red-700 hover:bg-red-100 transition
-                             dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800"
+                  className="px-2 py-1 text-xs rounded bg-red-100 text-red-800 hover:bg-red-200 transition dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900"
                   title="Excluir"
                 >
                   Excluir
@@ -1690,8 +1688,8 @@ const previsaoMes = React.useMemo(() => ({
             <button 
               type="button" 
               onClick={() => iniciarEdicaoReceita(r)} 
-              className="px-3 py-1.5 text-xs rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition
-                         dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800"
+              className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800 hover:bg-blue-200 transition dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900"
+                  title="Editar"
             >
               Editar
             </button>
@@ -1702,8 +1700,8 @@ const previsaoMes = React.useMemo(() => ({
                   removerReceita(r.id);
                 }
               }}
-              className="px-3 py-1.5 text-xs rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition
-                         dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800"
+              className="px-2 py-1 text-xs rounded bg-red-100 text-red-800 hover:bg-red-200 transition dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900"
+                  title="Excluir"
             >
               Excluir
             </button>
@@ -1716,10 +1714,11 @@ const previsaoMes = React.useMemo(() => ({
         </section>
       ) : null}
 
-{tab === 'assinaturas' ? (
-// ... (JSX da aba 'assinaturas') ...
+{tab === 'contas-recorrentes' ? (
+// ... (JSX da aba 'contas-recorrentes') ...
   <section className="p-4 rounded-2xl glass-card space-y-4 animate-fadeInUp">
-    <h2 className="text-lg font-medium">{editingAssinaturaId ? 'Alterar Assinatura/Contrato' : 'Adicionar Assinatura/Contrato'}</h2>
+    <h2 className="text-lg font-medium">{editingAssinaturaId ? 'Alterar Conta Recorrente' : 'Adicionar Conta Recorrente'}</h2>
+    <p className="text-sm opacity-70 -mt-2 mb-2">Insira suas contas fixas mensais ou anuais, como <strong>internet</strong>, <strong>assinaturas de streaming</strong> ou <strong>aluguel</strong>.</p>
     <form
       className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end"
       onSubmit={editingAssinaturaId ? salvarEdicaoAssinatura : adicionarAssinatura}
@@ -1841,7 +1840,7 @@ const previsaoMes = React.useMemo(() => ({
     </form>
 
     <div>
-      <h3 className="text-sm font-medium mb-2">Lista de Assinaturas e Contratos</h3>
+      <h3 className="text-sm font-medium mb-2">Lista de Contas Recorrentes</h3>
       {assinaturas.length === 0 ? (
         <p className="text-sm opacity-60">Sem registros</p>
       ) : (
@@ -1931,10 +1930,9 @@ const previsaoMes = React.useMemo(() => ({
                   <button 
                     type="button" 
                     onClick={() => iniciarEdicaoAssinatura(a)}
-                    className="px-3 py-1.5 text-xs rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition
-                               dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800"
+                    className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800 hover:bg-blue-200 transition dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900"
                   >
-                    ✏️ Editar
+                    Editar
                   </button>
                   {ehAcordo && !parcelaConcluida && (
                     <button 
@@ -1944,8 +1942,7 @@ const previsaoMes = React.useMemo(() => ({
                           pagarParcelaAcordo(a.id);
                         }
                       }}
-                      className="px-3 py-1.5 text-xs rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition
-                                 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800"
+                      className="px-3 py-1.5 text-xs rounded-lg bg-green-100 text-green-800 hover:bg-green-200 transition dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900"
                     >
                       ✓ Pagar parcela {parcelaAtual}
                     </button>
@@ -1953,10 +1950,10 @@ const previsaoMes = React.useMemo(() => ({
                   <button 
                     type="button" 
                     onClick={() => removerAssinatura(a.id)}
-                    className="px-3 py-1.5 text-xs rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition
-                               dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800"
+                    className="px-2 py-1 text-xs rounded bg-red-100 text-red-800 hover:bg-red-200 transition dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900"
+                  title="Excluir"
                   >
-                    🗑️ Excluir
+                    Excluir
                   </button>
                 </div>
               </div>
@@ -1966,7 +1963,7 @@ const previsaoMes = React.useMemo(() => ({
       )} 
       <div className="mt-4 p-3 bg-gray-50 rounded-lg dark:bg-slate-700">
         <div className="text-sm font-semibold text-right">
-          Valor Total Anual de Assinaturas: {fmt(totalAnualAssinaturas)}
+          Valor Total Anual de Contas Recorrentes: {fmt(totalAnualAssinaturas)}
         </div>
       </div>
     </div>
