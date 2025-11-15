@@ -375,6 +375,12 @@ const LifeTracker: React.FC<LifeTrackerProps> = ({ darkMode, toggleDarkMode }) =
   const [tab, setTab] = React.useState<'dashboard' | 'gastos' | 'receitas' | 'contas-recorrentes' | 'objetivos' | 'cartoes' | 'dividas' | 'faturas' | 'configuracoes' | 'resumo-anual'>('dashboard');
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
+  React.useEffect(() => {
+  // Mobile = telas menores que 640px (breakpoint do Tailwind)
+  if (window.innerWidth < 640) {
+    setIsSidebarCollapsed(true);
+  }
+}, []);
   // Modais e ordenação de listas
   const [showMensaisModal, setShowMensaisModal] = React.useState(false);
   const [mensaisSort, setMensaisSort] = React.useState<'nome' | 'valor' | 'vencimento'>('vencimento');
