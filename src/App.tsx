@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import LifeTracker from './LifeTracker';
 
-
-class ErrorBoundary extends React.Component<React.PropsWithChildren, { hasError: boolean; err?: any }> {
+class ErrorBoundary extends React.Component<
+  React.PropsWithChildren,
+  { hasError: boolean; err?: any }
+> {
   constructor(props: any) {
     super(props);
     this.state = { hasError: false, err: null };
@@ -17,8 +19,10 @@ class ErrorBoundary extends React.Component<React.PropsWithChildren, { hasError:
     if (this.state.hasError) {
       return (
         <div style={{ padding: 24 }}>
-          <h2>😵 Opa, algo quebrou no Life Tracker.</h2>
-          <p style={{ marginTop: 8 }}>Detalhe: {String(this.state.err?.message || this.state.err)}</p>
+          <h2>Opa, algo quebrou no LifeTracker.</h2>
+          <p style={{ marginTop: 8 }}>
+            Detalhe: {String(this.state.err?.message || this.state.err)}
+          </p>
           <p style={{ marginTop: 8, opacity: 0.7 }}>
             Veja o Console (F12 &gt; Console) para mais informações.
           </p>
@@ -32,22 +36,61 @@ class ErrorBoundary extends React.Component<React.PropsWithChildren, { hasError:
 export default function App() {
   const [darkMode, setDarkMode] = useState(false);
 
+  // -------------------------------
+  // DETECTA TEMA AUTOMÁTICO DO SISTEMA PARA NÃO CEGAR O USUÁRIO COM UMA POPFLASH DO PROFESSOR FALLEN
+  // -------------------------------
+  useEffect(() => {
+    const stored = localStorage.getItem("theme");
+
+    if (stored === "dark") {
+      document.documentElement.classList.add("dark");
+      setDarkMode(true);
+      return;
+    }
+
+    if (stored === "light") {
+      document.documentElement.classList.remove("dark");
+      setDarkMode(false);
+      return;
+    }
+
+    // Sem preferência → usa tema do sistema
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+    if (prefersDark) {
+      document.documentElement.classList.add("dark");
+      setDarkMode(true);
+    } else {
+      document.documentElement.classList.remove("dark");
+      setDarkMode(false);
+    }
+  }, []);
+
+  // -------------------------------
+  // BOTÃO PRA TROCAR O TEMA PADRÃO FIFA
+  // -------------------------------
   const toggleDarkMode = () => {
-    setDarkMode(prevMode => !prevMode);
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+
+    if (newMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
   };
 
-  useEffect(() => {
-    const root = window.document.documentElement;
-    root.classList.remove(darkMode ? 'light' : 'dark');
-    root.classList.add(darkMode ? 'dark' : 'light');
-  }, [darkMode]);
+  // -------------------------------
 
   return (
-    // A div principal não precisa mais controlar a classe 'dark' nem o fundo principal.
-    // O Tailwind vai cuidar disso através da classe no <html> e dos estilos no body.
     <div className="min-h-screen">
       <ErrorBoundary>
-        <LifeTracker darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+        <LifeTracker 
+          darkMode={darkMode} 
+          toggleDarkMode={toggleDarkMode} 
+        />
       </ErrorBoundary>
     </div>
   );
