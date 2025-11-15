@@ -1290,8 +1290,8 @@ const previsaoMes = React.useMemo(() => ({
                 <div className="opacity-60">Gastos em Crédito (mês)</div>
                 <div className="text-lg font-semibold">{fmt(previsaoMes.credito)}</div>
               </button>
-             <div className=" p-3 rounded-xl bg-gray-900 text-white dark:bg-slate-950 md:col-start-2 md:col-span-2 flex flex-col items-center justify-center " >
-                <div className="opacity-80">
+             <div className="h-[95px] p-3 rounded-xl bg-gray-900 text-white dark:bg-slate-950 md:col-start-2 md:col-span-2 flex flex-col items-center justify-center " >
+                <div className="opacity-80"> 
                   Total previsto para{' '}
                   <span className="font-bold text-emerald-400 [text-shadow:0_0_8px_#4ade80]">
                     {nomeMesAtual}
