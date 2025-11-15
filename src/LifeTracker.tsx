@@ -1168,7 +1168,7 @@ const previsaoMes = React.useMemo(() => ({
 )}
            {isSidebarCollapsed && (
             <div className="transition-opacity duration-300">
-        <LifeTrackerIcon width={36} height={36} />
+        <LifeTrackerIcon />
       </div>
     )}
         </div>
