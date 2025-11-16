@@ -885,8 +885,6 @@
 
     const nomeMesAtual = new Date().toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
     
-    function retirarValorObjetivo(id: number): void {
-      throw new Error('Function not implemented.');
     const retirarValorObjetivo = (id: number): void => {
       const valor = toNum(valorAdicionarObjetivo[id]);
       if (valor > 0) {
@@ -894,7 +892,6 @@
         atualizarObjetivoValor(id, -valor);
         setValorAdicionarObjetivo(prev => ({ ...prev, [id]: '' }));
       }
-    }
     };
 
     // O JSX principal é retornado aqui, adaptado do seu código
