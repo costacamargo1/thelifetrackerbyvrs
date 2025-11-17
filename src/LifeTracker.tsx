@@ -949,7 +949,7 @@
             {/* Cards do dashboard - Atualizado */}
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {/* Card de Saldo com variação mensal */}
-            <div className="inline-flex w-full flex-col rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm dark:border-slate-700 dark:bg-slate-900/80" style={{ animationDelay: '100ms' }}>
+            <div className="glass-card glass-card-hover inline-flex w-full flex-col rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm dark:border-slate-700 dark:bg-slate-900/80" style={{ animationDelay: '100ms' }}>
               <div className="p-4 pb-3 flex items-start justify-between gap-3">
                 <div>
                   <span className="text-[11px] font-medium tracking-[0.14em] text-slate-500 dark:text-slate-400 uppercase">
