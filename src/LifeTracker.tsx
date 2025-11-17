@@ -11,6 +11,7 @@
   import Configuracoes from './pages/Configuracoes';
   import Sidebar from './components/Sidebar';
   import { fmt, toNum, detectarCategoria, SUGESTOES_GLOBAIS, SUGESTOES_DESCRICAO, CATEGORIAS_GASTO, SUGESTOES_BANCOS } from '../utils/helpers';
+  import LifeTrackerIconOnly from "./components/LifeTrackerIconOnly";
 
   import NubankIcon from './components/assets/icons/card-nubank.svg';
   import ItauIcon from './components/assets/icons/card-itau.svg';
@@ -59,6 +60,15 @@
     if (!isoDate || isoDate.length < 10) return false; 
     const d = new Date(isoDate + 'T12:00:00'); // Adiciona hora do meio-dia
     return d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth();
+  };
+
+  const isPreviousMonth = (isoDate: string, ref = new Date()) => {
+    if (!isoDate || isoDate.length < 10) return false;
+    const d = new Date(isoDate + 'T12:00:00');
+    const prevMonthRef = new Date(ref);
+    prevMonthRef.setMonth(ref.getMonth() - 1);
+  
+    return d.getFullYear() === prevMonthRef.getFullYear() && d.getMonth() === prevMonthRef.getMonth();
   };
 
   const calcularGastosPorCategoria = (lista: Gasto[] = []) => {
@@ -337,6 +347,22 @@
       () => totalReceitas - gastosDebito - assinDebitoMensal,
       [totalReceitas, gastosDebito, assinDebitoMensal]
     );
+
+    const saldoMesAnterior = React.useMemo(() => {
+      const receitasMesAnterior = receitas
+        .filter(r => isPreviousMonth(r.data))
+        .reduce((acc, r) => acc + toNum(r.valor), 0);
+
+      const gastosDebitoMesAnterior = gastos
+        .filter(g => g.tipoPagamento === 'DÉBITO' && isPreviousMonth(g.data))
+        .reduce((acc, g) => acc + toNum(g.valor), 0);
+
+      // Assumindo que assinaturas de débito são constantes mês a mês
+      return receitasMesAnterior - gastosDebitoMesAnterior - assinDebitoMensal;
+    }, [receitas, gastos, assinDebitoMensal]);
+
+
+
 
     // Listas derivadas para modais
     const assinMensais = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'MENSAL' && a.tipo === 'ASSINATURA'), [assinaturas]);
@@ -884,6 +910,15 @@
     };
 
     const nomeMesAtual = new Date().toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
+
+    // --- Lógica para o novo card de Saldo ---
+    const diferencaSaldo = saldo - saldoMesAnterior;
+    const saldoMelhorou = diferencaSaldo >= 0;
+    const percentualVariacaoSaldo = saldoMesAnterior !== 0 ? Math.abs((diferencaSaldo / Math.abs(saldoMesAnterior)) * 100) : 0;
+    const badgeBgSaldo = saldoMelhorou ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400";
+    const diffTextoSaldo = fmt(Math.abs(diferencaSaldo));
+    const corValorSaldo = saldo < 0 ? 'text-rose-500' : 'text-slate-800 dark:text-slate-200';
+
     
     const retirarValorObjetivo = (id: number): void => {
       const valor = toNum(valorAdicionarObjetivo[id]);
@@ -911,14 +946,38 @@
         {/* Renderização da Aba Ativa */}
         {tab === 'dashboard' && (
           <div className="animate-fadeInUp space-y-8">
-            {/* Cards do dashboard */}
+            {/* Cards do dashboard - Atualizado */}
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="p-4 rounded-2xl glass-card glass-card-hover" style={{ animationDelay: '100ms' }}>
-                <div className="text-sm opacity-60">Saldo (Dinheiro)</div>
-                <div className={`text-2xl font-semibold ${getCorValor(saldo, configuracoes.saldo)}`}>
-                  {fmt(saldo)}
-                </div>
-              </div>
+            {/* Card de Saldo com variação mensal */}
+            <div className="inline-flex w-full flex-col rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm dark:border-slate-700 dark:bg-slate-900/80" style={{ animationDelay: '100ms' }}>
+              <div className="p-4 pb-3 flex items-start justify-between gap-3">
+                <div>
+                  <span className="text-[11px] font-medium tracking-[0.14em] text-slate-500 dark:text-slate-400 uppercase">
+                    Saldo (Dinheiro)
+                  </span>
+                  <div className={`mt-1 text-2xl font-semibold ${corValorSaldo}`}>
+                    {fmt(saldo)}
+                  </div>
+                  {/* Badge de variação percentual */}
+                  <div className={`mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium ${badgeBgSaldo}`}>
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full border border-current text-[10px]">
+                      {saldoMelhorou ? "↑" : "↓"}
+                    </span>
+                    {`${saldoMelhorou ? "+" : "-"}${percentualVariacaoSaldo.toFixed(1)}%`}
+                  </div>
+                </div>
+                {/* Logo pequena no canto superior direito */}
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-100/80 bg-emerald-500/5 dark:border-slate-700/80 dark:bg-emerald-400/10">
+                  <LifeTrackerIconOnly />
+
+                </div>
+              </div>
+              {/* Rodapé */}
+              <div className="px-4 py-3 border-t border-slate-100/80 text-xs text-slate-500 dark:text-slate-400 dark:border-slate-800 flex items-center justify-between">
+                <span>{`${saldoMelhorou ? "+" : "-"}${diffTextoSaldo} em relação ao mês anterior`}</span>
+              </div>
+            </div>
+
               <div className="p-4 rounded-2xl glass-card glass-card-hover">
                 <div className="text-sm opacity-60">
                   Crédito Disponível
