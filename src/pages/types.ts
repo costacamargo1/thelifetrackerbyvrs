@@ -34,7 +34,18 @@ export interface Cartao {
   diaVencimento: number; 
   diaFechamento: number;
 }
+
+export type CategoryType = 'receita' | 'despesa';
+
+export interface Category {
+  id: string;
+  name: string;
+  type: CategoryType;
+  icon: string;
+}
+
 export interface Configuracoes {
   credito: { alerta: string; critico: string; positivo: string; };
-  saldo: { alerta: string; critico: string; positivo: string; };
+  saldo: { alerta:string; critico: string; positivo: string; };
+  categories: Category[];
 }

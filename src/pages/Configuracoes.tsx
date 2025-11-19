@@ -1,5 +1,6 @@
 import React from 'react';
 import { Configuracoes as ConfiguracoesType } from './types';
+import CategoryManager from '../components/CategoryManager';
 
 interface ConfiguracoesProps {
   configuracoes: ConfiguracoesType;
@@ -54,6 +55,8 @@ const Configuracoes: React.FC<ConfiguracoesProps> = ({ configuracoes, setConfigu
           <button type="submit" className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-medium shadow dark:bg-emerald-600 dark:hover:bg-emerald-700">Salvar Configurações</button>
         </div>
       </form>
+
+      <CategoryManager />
     </section>
   );
 };
