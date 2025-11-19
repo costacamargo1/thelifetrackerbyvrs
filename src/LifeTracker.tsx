@@ -1,6 +1,6 @@
   import React, { useState, useEffect, useMemo, useCallback } from 'react';
-  import { LayoutDashboard, TrendingDown, TrendingUp, Repeat, CreditCard, Receipt, Calendar, Settings, Sun, Moon, Goal, ChevronsLeft, ChevronsRight } from 'lucide-react';
-  import { Gasto, Receita, Assinatura, Objetivo, Cartao, Configuracoes as ConfiguracoesType, TipoPagamento, StatusObj, Periodo, Category } from './pages/types';
+  import { LayoutDashboard, TrendingDown, TrendingUp, Repeat, CreditCard, Receipt, Calendar, Settings, Sun, Moon, Goal, ChevronsLeft, ChevronsRight, ShoppingCart, Truck, Home, Heart, School, Ticket, Gift, Smartphone, Banknote, Zap, Briefcase } from 'lucide-react';
+  import { Gasto, Receita, Assinatura, Objetivo, Cartao, Configuracoes as ConfiguracoesType, TipoPagamento, StatusObj, Periodo, Category, } from './pages/types';
   import Gastos from './pages/Gastos';
   import Receitas from './pages/Receitas'; 
   import ContasRecorrentes from './pages/ContasRecorrentes';
@@ -12,6 +12,7 @@
   import Sidebar from './components/Sidebar';
   import { fmt, toNum, detectarCategoria, SUGESTOES_GLOBAIS, SUGESTOES_DESCRICAO, CATEGORIAS_GASTO, SUGESTOES_BANCOS, capitalize } from '../utils/helpers';
   import LifeTrackerIconOnly from "./components/LifeTrackerIconOnly";
+  import { iconMap } from './components/CategoryIcon';
 
   import NubankIcon from './components/assets/icons/card-nubank.svg';
   import ItauIcon from './components/assets/icons/card-itau.svg';
@@ -22,22 +23,23 @@
   import C6Icon from './components/assets/icons/card-c6.svg';
 
 const initialCategories: Category[] = [
-  // Despesas
-  { id: 'd1', name: 'Alimentação', type: 'despesa', icon: 'ShoppingCartIcon' },
-  { id: 'd2', name: 'Transporte', type: 'despesa', icon: 'TruckIcon' },
-  { id: 'd3', name: 'Moradia', type: 'despesa', icon: 'HomeIcon' },
-  { id: 'd4', name: 'Saúde', type: 'despesa', icon: 'HeartIcon' },
-  { id: 'd5', name: 'Educação', type: 'despesa', icon: 'AcademicCapIcon' },
-  { id: 'd6', name: 'Lazer', type: 'despesa', icon: 'TicketIcon' },
-  { id: 'd7', name: 'Compras', type: 'despesa', icon: 'GiftIcon' },
-  { id: 'd8', name: 'Vestuário', type: 'despesa', icon: 'GiftIcon' }, // Reutilizando ícone
-  { id: 'd9', name: 'Eletrônicos', type: 'despesa', icon: 'DevicePhoneMobileIcon' },
-  { id: 'd10', name: 'Beleza & Cuidados', type: 'despesa', icon: 'HeartIcon' }, // Reutilizando ícone
-  { id: 'd11', name: 'Pets', type: 'despesa', icon: 'HeartIcon' }, // Reutilizando ícone
-  { id: 'd12', name: 'Utensílios Domésticos', type: 'despesa', icon: 'HomeIcon' }, // Reutilizando ícone
-  { id: 'd13', name: 'Investimentos', type: 'despesa', icon: 'BanknotesIcon' },
-  { id: 'd14', name: 'Imprevisto', type: 'despesa', icon: 'BoltIcon' },
-  { id: 'd15', name: 'Outros', type: 'despesa', icon: 'BuildingLibraryIcon' },
+
+    // Despesas
+    { id: 'd1', name: 'Alimentação', type: 'despesa', icon: 'CakeIcon' },
+    { id: 'd2', name: 'Transporte', type: 'despesa', icon: 'TruckIcon' },
+    { id: 'd3', name: 'Moradia', type: 'despesa', icon: 'HomeIcon' },
+    { id: 'd4', name: 'Saúde', type: 'despesa', icon: 'HeartIcon' },
+    { id: 'd5', name: 'Educação', type: 'despesa', icon: 'AcademicCapIcon' },
+    { id: 'd6', name: 'Lazer', type: 'despesa', icon: 'TicketIcon' },
+    { id: 'd7', name: 'Compras', type: 'despesa', icon: 'GiftIcon' },
+    { id: 'd8', name: 'Vestuário', type: 'despesa', icon: 'GiftIcon' }, // Reutilizando ícone
+    { id: 'd9', name: 'Eletrônicos', type: 'despesa', icon: 'DevicePhoneMobileIcon' },
+    { id: 'd10', name: 'Beleza & Cuidados', type: 'despesa', icon: 'HeartIcon' }, // Reutilizando ícone
+    { id: 'd11', name: 'Pets', type: 'despesa', icon: 'HeartIcon' }, // Reutilizando ícone
+    { id: 'd12', name: 'Utensílios Domésticos', type: 'despesa', icon: 'HomeIcon' }, // Reutilizando ícone
+    { id: 'd13', name: 'Investimentos', type: 'despesa', icon: 'BanknotesIcon' },
+    { id: 'd14', name: 'Imprevisto', type: 'despesa', icon: 'BoltIcon' },
+    { id: 'd15', name: 'Outros', type: 'despesa', icon: 'BuildingLibraryIcon' },
   // Receitas
   { id: 'r1', name: 'Salário', type: 'receita', icon: 'BriefcaseIcon' },
   { id: 'r2', name: 'Vendas', type: 'receita', icon: 'BanknotesIcon' },
@@ -70,6 +72,22 @@ const initialCategories: Category[] = [
     return 'bg-red-600';
   };
   // ... (restante das funções auxiliares: getCorTextoProgresso, fmt, toNum, isSameMonth, etc.) ...
+
+  const IconeCategoria: React.FC<{ iconName: string | undefined; className?: string }> = ({ iconName, className }) => {
+    // Obtém o componente do ícone do mapa
+    const Icon = iconName ? iconMap[iconName] : null;
+
+    // Renderiza o ícone se encontrado, caso contrário, um ícone padrão
+    const FallbackIcon = iconMap['QuestionMarkCircleIcon'];
+    return Icon ? <Icon className={className} /> : (FallbackIcon ? <FallbackIcon className={className} /> : null);
+  };
+
+  const getIconForCategory = (categoryName: string, categories: Category[]) => {
+    const foundCategory = categories.find(c => c.name.toUpperCase() === categoryName.toUpperCase());
+    return foundCategory?.icon;
+  };
+
+
   const getCorTextoProgresso = (percent: number) => {
     if (percent < 50) return 'text-green-600';
     if (percent < 75) return 'text-yellow-600';
@@ -1103,12 +1121,17 @@ const initialCategories: Category[] = [
                   <p className="text-sm opacity-60">Sem lançamentos</p>
                 ) : (
                   <ul className="text-sm space-y-1">
-                    {Object.entries(porCategoria).sort((a,b) => b[1] - a[1]).map(([cat, total]) => (
-                      <li key={cat} className="flex justify-between">
-                        <span>{cat}</span>
-                        <span>{fmt(total)}</span>
+                    {Object.entries(porCategoria).sort((a,b) => b[1] - a[1]).map(([cat, total]) => {
+                    const iconName = getIconForCategory(cat, categories);
+                    return (
+                      <li key={cat} className="flex justify-between items-center">
+                        <span className="flex items-center gap-2">
+                          <IconeCategoria iconName={iconName} className="w-4 h-4 opacity-70" />
+                          {capitalize(cat)}</span>
+                        <span className="font-medium">{fmt(total)}</span>
                       </li>
-                    ))}
+                    );
+                  })}
                   </ul>
                 )}
               </section>

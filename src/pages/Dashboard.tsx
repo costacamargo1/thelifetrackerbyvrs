@@ -1,4 +1,5 @@
 import React from 'react';
+import { FaPlus, FaMinus } from 'react-icons/fa';
 
 interface Player {
   id: number;
@@ -20,8 +21,8 @@ const Dashboard: React.FC<DashboardProps> = ({ players, onLifeChange, onReset })
           <div key={player.id} className="player-card">
             <h3>{player.name}</h3>
             <h1>{player.life}</h1>
-            <button onClick={() => onLifeChange(player.id, 1)}>+</button>
-            <button onClick={() => onLifeChange(player.id, -1)}>-</button>
+            <button onClick={() => onLifeChange(player.id, 1)}><FaPlus /></button>
+            <button onClick={() => onLifeChange(player.id, -1)}><FaMinus /></button>
           </div>
         ))}
       </div>
