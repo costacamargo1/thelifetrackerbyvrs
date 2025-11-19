@@ -1,6 +1,6 @@
   import React, { useState, useEffect, useMemo, useCallback } from 'react';
   import { LayoutDashboard, TrendingDown, TrendingUp, Repeat, CreditCard, Receipt, Calendar, Settings, Sun, Moon, Goal, ChevronsLeft, ChevronsRight } from 'lucide-react';
-  import { Gasto, Receita, Assinatura, Objetivo, Cartao, Configuracoes as ConfiguracoesType, TipoPagamento, StatusObj, Periodo } from './pages/types';
+  import { Gasto, Receita, Assinatura, Objetivo, Cartao, Configuracoes as ConfiguracoesType, TipoPagamento, StatusObj, Periodo, Category } from './pages/types';
   import Gastos from './pages/Gastos';
   import Receitas from './pages/Receitas'; 
   import ContasRecorrentes from './pages/ContasRecorrentes';
@@ -10,7 +10,7 @@
   import ResumoAnual from './pages/ResumoAnual';
   import Configuracoes from './pages/Configuracoes';
   import Sidebar from './components/Sidebar';
-  import { fmt, toNum, detectarCategoria, SUGESTOES_GLOBAIS, SUGESTOES_DESCRICAO, CATEGORIAS_GASTO, SUGESTOES_BANCOS } from '../utils/helpers';
+  import { fmt, toNum, detectarCategoria, SUGESTOES_GLOBAIS, SUGESTOES_DESCRICAO, CATEGORIAS_GASTO, SUGESTOES_BANCOS, capitalize } from '../utils/helpers';
   import LifeTrackerIconOnly from "./components/LifeTrackerIconOnly";
 
   import NubankIcon from './components/assets/icons/card-nubank.svg';
@@ -20,6 +20,29 @@
   import CaixaIcon from './components/assets/icons/card-caixa.svg';
   import SantanderIcon from './components/assets/icons/card-santander.svg';
   import C6Icon from './components/assets/icons/card-c6.svg';
+
+const initialCategories: Category[] = [
+  // Despesas
+  { id: 'd1', name: 'Alimentação', type: 'despesa', icon: 'ShoppingCartIcon' },
+  { id: 'd2', name: 'Transporte', type: 'despesa', icon: 'TruckIcon' },
+  { id: 'd3', name: 'Moradia', type: 'despesa', icon: 'HomeIcon' },
+  { id: 'd4', name: 'Saúde', type: 'despesa', icon: 'HeartIcon' },
+  { id: 'd5', name: 'Educação', type: 'despesa', icon: 'AcademicCapIcon' },
+  { id: 'd6', name: 'Lazer', type: 'despesa', icon: 'TicketIcon' },
+  { id: 'd7', name: 'Compras', type: 'despesa', icon: 'GiftIcon' },
+  { id: 'd8', name: 'Vestuário', type: 'despesa', icon: 'GiftIcon' }, // Reutilizando ícone
+  { id: 'd9', name: 'Eletrônicos', type: 'despesa', icon: 'DevicePhoneMobileIcon' },
+  { id: 'd10', name: 'Beleza & Cuidados', type: 'despesa', icon: 'HeartIcon' }, // Reutilizando ícone
+  { id: 'd11', name: 'Pets', type: 'despesa', icon: 'HeartIcon' }, // Reutilizando ícone
+  { id: 'd12', name: 'Utensílios Domésticos', type: 'despesa', icon: 'HomeIcon' }, // Reutilizando ícone
+  { id: 'd13', name: 'Investimentos', type: 'despesa', icon: 'BanknotesIcon' },
+  { id: 'd14', name: 'Imprevisto', type: 'despesa', icon: 'BoltIcon' },
+  { id: 'd15', name: 'Outros', type: 'despesa', icon: 'BuildingLibraryIcon' },
+  // Receitas
+  { id: 'r1', name: 'Salário', type: 'receita', icon: 'BriefcaseIcon' },
+  { id: 'r2', name: 'Vendas', type: 'receita', icon: 'BanknotesIcon' },
+  { id: 'r3', name: 'Freelance', type: 'receita', icon: 'BriefcaseIcon' },
+];
 
 
   /** =========================
@@ -138,10 +161,12 @@
     const [assinaturas, setAssinaturas] = React.useState<Assinatura[]>([]);
     const [objetivos, setObjetivos] = React.useState<Objetivo[]>([]);
     const [cartoes, setCartoes] = React.useState<Cartao[]>([]);
-    const [configuracoes, setConfiguracoes] = React.useState<ConfiguracoesType>({
+    const [categories, setCategories] = React.useState<Category[]>(initialCategories);
+    const [configuracoes, setConfiguracoes] = React.useState<ConfiguracoesType>({ categories: initialCategories,
       credito: { alerta: '2500', critico: '1000', positivo: '5000' },
       saldo: { alerta: '500', critico: '100', positivo: '2000' },
     });
+
     // --- Edição de cartões ---
     const [editingCardId, setEditingCardId] = React.useState<number | null>(null);
     const [editCardDraft, setEditCardDraft] = React.useState<Cartao | null>(null);
@@ -287,13 +312,19 @@
       setGastos(load<Gasto[]>('ltf_gastos', []));
       setReceitas(load<Receita[]>('ltf_receitas', []));
       setAssinaturas(load<Assinatura[]>('ltf_assinaturas', []));
-      setObjetivos(load<Objetivo[]>('ltf_objetivos', []));
+ setObjetivos(load<Objetivo[]>('ltf_objetivos', []));
       setCartoes(load<Cartao[]>('ltf_cartoes', []));
+      setCategories(load<Category[]>('ltf_categories', initialCategories));
+      // CORRIGIDO: Adicionando categories ao fallback de configuracoes
       setConfiguracoes(load<ConfiguracoesType>('ltf_configuracoes', {
+        categories: initialCategories, // Adicionado categories ao fallback
         credito: { alerta: '2500', critico: '1000', positivo: '5000' },
         saldo: { alerta: '500', critico: '100', positivo: '2000' },
       }));
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+
+ // Removida a linha duplicada: setConfiguracoes(load<ConfiguracoesType>('ltf_configuracoes', { ...fallbackConfig, categories: categories }));
+
+ // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // CORRIGIDO: Usando chaves prefixadas e únicas
@@ -302,6 +333,7 @@
     React.useEffect(() => { localStorage.setItem('ltf_assinaturas', JSON.stringify(assinaturas)); }, [assinaturas]);
     React.useEffect(() => { localStorage.setItem('ltf_objetivos', JSON.stringify(objetivos)); }, [objetivos]);
     React.useEffect(() => { localStorage.setItem('ltf_cartoes', JSON.stringify(cartoes)); }, [cartoes]);
+    React.useEffect(() => { localStorage.setItem('ltf_categories', JSON.stringify(categories)); }, [categories]);
     // CORRIGIDO: Removido useEffect duplicado
     React.useEffect(() => { localStorage.setItem('ltf_configuracoes', JSON.stringify(configuracoes)); }, [configuracoes]);
 
@@ -1174,6 +1206,7 @@
         {tab === 'gastos' && (
           <Gastos
             gastos={gastos}
+            categories={categories}
             cartoes={cartoes}
             editingGastoId={editingGastoId}
             novoGasto={novoGasto}
@@ -1280,6 +1313,8 @@
           <Configuracoes
             configuracoes={configuracoes}
             setConfiguracoes={setConfiguracoes}
+            categories={categories}
+            setCategories={setCategories}
           />
         )}
 

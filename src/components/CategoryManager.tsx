@@ -1,50 +1,13 @@
 import React, { useState } from 'react';
-import { Category, CategoryType } from '../pages/types';
-import {
-  ShoppingCartIcon,
-  TruckIcon,
-  BriefcaseIcon,
-  HomeIcon,
-  GiftIcon,
-  BanknotesIcon,
-  BuildingLibraryIcon,
-  BoltIcon,
-  HeartIcon,
-  AcademicCapIcon,
-  TicketIcon,
-  DevicePhoneMobileIcon,
-} from '@heroicons/react/24/solid';
+import { Category, CategoryType, Receita } from '../pages/types';
+import { IconComponent, iconMap } from './CategoryIcon';
 
-// Mock data for initial categories
-const initialCategories: Category[] = [
-  { id: '1', name: 'Alimentação', type: 'despesa', icon: 'ShoppingCartIcon' },
-  { id: '2', name: 'Transporte', type: 'despesa', icon: 'TruckIcon' },
-  { id: '3', name: 'Salário', type: 'receita', icon: 'BriefcaseIcon' },
-];
+interface CategoryManagerProps {
+  categories: Category[];
+  setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
+}
 
-// Mapa de ícones para renderização dinâmica
-const iconMap: { [key: string]: React.FC<React.ComponentProps<'svg'>> } = {
-  ShoppingCartIcon,
-  TruckIcon,
-  BriefcaseIcon,
-  HomeIcon,
-  GiftIcon,
-  BanknotesIcon,
-  BuildingLibraryIcon,
-  BoltIcon,
-  HeartIcon,
-  AcademicCapIcon,
-  TicketIcon,
-  DevicePhoneMobileIcon,
-};
-
-const IconComponent: React.FC<{ iconName: string; className?: string }> = ({ iconName, className = "w-6 h-6" }) => {
-  const Icon = iconMap[iconName];
-  return Icon ? <Icon className={className} /> : null;
-};
-
-const CategoryManager: React.FC = () => {
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
+const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, setCategories }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [categoryForm, setCategoryForm] = useState<{ name: string; type: CategoryType; icon: string }>({

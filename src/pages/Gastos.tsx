@@ -1,9 +1,11 @@
 import React from 'react';
-import { Gasto, Cartao, TipoPagamento } from './types';
-import { fmt, toNum, detectarCategoria, SUGESTOES_GLOBAIS, SUGESTOES_DESCRICAO, CATEGORIAS_GASTO } from '../../utils/helpers';
+import { Gasto, Cartao, TipoPagamento, Category } from './types';
+import { fmt, toNum, detectarCategoria, SUGESTOES_GLOBAIS, SUGESTOES_DESCRICAO, CATEGORIAS_GASTO, capitalize } from '../../utils/helpers';
+import { IconComponent } from '../components/CategoryIcon';
 
 interface GastosProps {
   gastos: Gasto[];
+  categories: Category[];
   cartoes: Cartao[];
   editingGastoId: number | null;
   novoGasto: Gasto;
@@ -21,6 +23,7 @@ interface GastosProps {
 
 const Gastos: React.FC<GastosProps> = ({
   gastos,
+  categories,
   cartoes,
   editingGastoId,
   novoGasto,
@@ -167,7 +170,9 @@ const Gastos: React.FC<GastosProps> = ({
             className="input-premium"
             value={novoGasto.categoria}
             onChange={(e) => setNovoGasto({ ...novoGasto, categoria: e.target.value })}>
-            {CATEGORIAS_GASTO.map(c => <option key={c} value={c}>{c}</option>)}
+            {categories.filter(c => c.type === 'despesa').map(c => (
+              <option key={c.id} value={c.name}>{c.name}</option>
+            ))}
           </select>
         </div>
         <div className="md:col-span-2">
@@ -196,24 +201,30 @@ const Gastos: React.FC<GastosProps> = ({
           <p className="text-sm opacity-60">Sem lançamentos</p>
         ) : (
           <div className="space-y-2">
-            {gastos.slice().reverse().map((g, index) => (
-              <div key={g.id} className="p-3 rounded-lg border bg-white hover:shadow-sm transition dark:bg-slate-800 dark:border-slate-700 animate-fadeInUp" style={{ animationDelay: `${index * 25}ms` }}>
+            {gastos.slice().reverse().map((g, index) => {
+              const category = categories.find(c => c.name === g.categoria);
+              const iconName = category?.icon || 'QuestionMarkCircleIcon';
+
+              return (<div key={g.id} className="p-3 rounded-lg border bg-white hover:shadow-sm transition dark:bg-slate-800 dark:border-slate-700 animate-fadeInUp" style={{ animationDelay: `${index * 25}ms` }}>
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm truncate">{g.descricao}</span>
-                      {g.parcelasTotal && g.parcelasTotal > 1 && (
-                        <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded flex-shrink-0 dark:bg-blue-900 dark:text-blue-300">
-                          {g.parcelaAtual}/{g.parcelasTotal}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs opacity-60 mt-0.5 flex items-center gap-2 flex-wrap dark:text-gray-400">
-                      <span>{new Date(g.data + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
-                      <span>•</span>
-                      <span>{g.categoria}</span>
-                      <span>•</span>
-                      <span>{g.tipoPagamento}{g.cartaoNome && ` - ${g.cartaoNome}`}</span>
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <IconComponent iconName={iconName} className="w-6 h-6 text-gray-400 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm truncate">{g.descricao}</span>
+                        {g.parcelasTotal && g.parcelasTotal > 1 && (
+                          <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded flex-shrink-0 dark:bg-blue-900 dark:text-blue-300">
+                            {g.parcelaAtual}/{g.parcelasTotal}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs opacity-60 mt-0.5 flex items-center gap-2 flex-wrap dark:text-gray-400">
+                        <span>{new Date(g.data + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+                        <span>•</span>
+                        <span>{g.categoria}</span>
+                        <span>•</span>
+                        <span>{g.tipoPagamento}{g.cartaoNome && ` - ${g.cartaoNome}`}</span>
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
@@ -247,7 +258,7 @@ const Gastos: React.FC<GastosProps> = ({
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         )}
       </div>
