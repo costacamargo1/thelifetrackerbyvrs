@@ -1,4 +1,5 @@
 import React from 'react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { Receita } from './types';
 import { fmt, toNum } from '../../utils/helpers';
 
@@ -71,43 +72,45 @@ const Receitas: React.FC<ReceitasProps> = ({
         {receitas.length === 0 ? (
           <p className="text-sm opacity-60">Sem lançamentos</p>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {receitas.slice().reverse().map((r, index) => (
-              <div key={r.id} className="p-4 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700 animate-fadeInUp" style={{ animationDelay: `${index * 25}ms` }}>
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1">
-                    <div className="font-medium text-base">{r.descricao}</div>
-                    <div className="text-sm opacity-70 mt-1 dark:text-gray-400">
-                      <span className="font-medium">Data:</span> {new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}
+              <div key={r.id} className="p-3 rounded-lg border bg-white hover:shadow-sm transition dark:bg-slate-800 dark:border-slate-700 animate-fadeInUp" style={{ animationDelay: `${index * 25}ms` }}>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm truncate">{r.descricao}</div>
+                    <div className="text-xs opacity-60 mt-0.5 dark:text-gray-400">
+                      {new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-lg font-semibold text-green-600 dark:text-green-400">
-                      {fmt(toNum(r.valor))}
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <div className="text-right">
+                      <div className="font-semibold text-sm whitespace-nowrap text-green-600 dark:text-green-400">
+                        {fmt(toNum(r.valor))}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => iniciarEdicaoReceita(r)}
+                        className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded-full transition-colors duration-200 dark:text-blue-400 dark:hover:text-blue-200 dark:hover:bg-blue-900/50"
+                        title="Editar"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm('Tem certeza que deseja remover esta receita?')) {
+                            removerReceita(r.id);
+                          }
+                        }}
+                        className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-full transition-colors duration-200 dark:text-red-400 dark:hover:text-red-200 dark:hover:bg-red-900/50"
+                        title="Excluir"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   </div>
-                </div>
-                <div className="flex gap-2 mt-3 pt-3 border-t dark:border-slate-700">
-                  <button
-                    type="button"
-                    onClick={() => iniciarEdicaoReceita(r)}
-                    className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800 hover:bg-blue-200 transition dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900"
-                    title="Editar"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (window.confirm('Tem certeza que deseja remover esta receita?')) {
-                        removerReceita(r.id);
-                      }
-                    }}
-                    className="px-2 py-1 text-xs rounded bg-red-100 text-red-800 hover:bg-red-200 transition dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900"
-                    title="Excluir"
-                  >
-                    Excluir
-                  </button>
                 </div>
               </div>
             ))}

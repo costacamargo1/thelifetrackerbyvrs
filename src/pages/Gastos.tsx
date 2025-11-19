@@ -1,4 +1,5 @@
 import React from 'react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { Gasto, Cartao, TipoPagamento, Category } from './types';
 import { fmt, toNum, detectarCategoria, SUGESTOES_GLOBAIS, SUGESTOES_DESCRICAO, CATEGORIAS_GASTO, capitalize } from '../../utils/helpers';
 import { IconComponent } from '../components/CategoryIcon';
@@ -233,14 +234,14 @@ const Gastos: React.FC<GastosProps> = ({
                         {fmt(toNum(g.valor))}
                       </div>
                     </div>
-                    <div className="flex gap-1.5">
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={() => iniciarEdicaoGasto(g)}
-                        className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800 hover:bg-blue-200 transition dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900"
+                        className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded-full transition-colors duration-200 dark:text-blue-400 dark:hover:text-blue-200 dark:hover:bg-blue-900/50"
                         title="Editar"
                       >
-                        Editar
+                        <Pencil size={16} />
                       </button>
                       <button
                         type="button"
@@ -249,10 +250,10 @@ const Gastos: React.FC<GastosProps> = ({
                             removerGasto(g.id);
                           }
                         }}
-                        className="px-2 py-1 text-xs rounded bg-red-100 text-red-800 hover:bg-red-200 transition dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900"
+                        className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-full transition-colors duration-200 dark:text-red-400 dark:hover:text-red-200 dark:hover:bg-red-900/50"
                         title="Excluir"
                       >
-                        Excluir
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </div>

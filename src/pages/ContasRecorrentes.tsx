@@ -1,4 +1,4 @@
-import React from 'react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { Assinatura, Cartao, TipoAssinatura, Periodo, TipoPagamento } from './types';
 import { fmt, toNum } from '../../utils/helpers';
 
@@ -191,16 +191,32 @@ const ContasRecorrentes: React.FC<ContasRecorrentesProps> = ({
                     )}
                   </div>
                 </div>
-                <div className="flex gap-2 mt-3 pt-3 border-t dark:border-slate-700">
-                  <button type="button" onClick={() => iniciarEdicaoAssinatura(a)} className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800 hover:bg-blue-200 transition dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900">
-                    Editar
-                  </button>
-                  <button type="button" onClick={() => removerAssinatura(a.id)} className="px-2 py-1 text-xs rounded bg-red-100 text-red-800 hover:bg-red-200 transition dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900">
-                    Excluir
-                  </button>
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t dark:border-slate-700">
                   {a.tipo === 'ACORDO' && (a.parcelaAtual || 0) < (a.parcelasTotal || 1) && (
                     <button type="button" onClick={() => pagarParcelaAcordo(a.id)} className="px-2 py-1 text-xs rounded bg-green-100 text-green-800 hover:bg-green-200 transition dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900">Pagar Parcela</button>
                   )}
+                  <div className="flex items-center gap-1 ml-auto">
+                    <button
+                      type="button"
+                      onClick={() => iniciarEdicaoAssinatura(a)}
+                      className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded-full transition-colors duration-200 dark:text-blue-400 dark:hover:text-blue-200 dark:hover:bg-blue-900/50"
+                      title="Editar"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm('Tem certeza que deseja remover esta conta recorrente?')) {
+                          removerAssinatura(a.id);
+                        }
+                      }}
+                      className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-full transition-colors duration-200 dark:text-red-400 dark:hover:text-red-200 dark:hover:bg-red-900/50"
+                      title="Excluir"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

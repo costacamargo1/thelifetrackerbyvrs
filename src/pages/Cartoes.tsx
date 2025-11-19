@@ -1,4 +1,4 @@
-import React from 'react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { Cartao } from './types';
 import { fmt, toNum, SUGESTOES_BANCOS } from '../../utils/helpers';
 
@@ -152,12 +152,26 @@ const Cartoes: React.FC<CartoesProps> = ({
                   </div>
                 </div>
               </div>
-              <div className="flex gap-2 mt-4 pt-3 border-t border-black/10 dark:border-white/10">
-                <button type="button" onClick={() => startEditCard(c)} className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800 hover:bg-blue-200 transition dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900">
-                  Editar
+              <div className="flex items-center gap-1 ml-auto">
+                <button
+                  type="button"
+                  onClick={() => startEditCard(c)}
+                  className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded-full transition-colors duration-200 dark:text-blue-400 dark:hover:text-blue-200 dark:hover:bg-blue-900/50"
+                  title="Editar"
+                >
+                  <Pencil size={16} />
                 </button>
-                <button type="button" onClick={() => deleteCard(c.id)} className="px-2 py-1 text-xs rounded bg-red-100 text-red-800 hover:bg-red-200 transition dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900">
-                  Excluir
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('Tem certeza que deseja remover este cartão?')) {
+                      deleteCard(c.id);
+                    }
+                  }}
+                  className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-full transition-colors duration-200 dark:text-red-400 dark:hover:text-red-200 dark:hover:bg-red-900/50"
+                  title="Excluir"
+                >
+                  <Trash2 size={16} />
                 </button>
               </div>
             </div>

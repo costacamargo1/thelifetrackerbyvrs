@@ -1,4 +1,4 @@
-import React from 'react';
+import { Trash2 } from 'lucide-react';
 import { Objetivo, StatusObj } from './types';
 import { fmt, toNum } from '../../utils/helpers';
 
@@ -117,8 +117,17 @@ const Objetivos: React.FC<ObjetivosProps> = ({
                   +100
                 </button>
                 <div className="flex-grow" />
-                <button onClick={() => removerObjetivo(o.id)} className="px-2 py-1 text-xs rounded bg-red-100 text-red-800 hover:bg-red-200 transition dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900">
-                  Excluir
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('Tem certeza que deseja remover este objetivo?')) {
+                      removerObjetivo(o.id);
+                    }
+                  }}
+                  className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-full transition-colors duration-200 dark:text-red-400 dark:hover:text-red-200 dark:hover:bg-red-900/50"
+                  title="Excluir"
+                >
+                  <Trash2 size={16} />
                 </button>
               </div>
             </div>
