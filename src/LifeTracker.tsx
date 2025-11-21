@@ -16,7 +16,7 @@ import ResumoAnual from './pages/ResumoAnual';
 import Configuracoes from './pages/Configuracoes';
 import Modal from './components/Modal';
 import { Gasto, Receita, Assinatura, Cartao, Category, Objetivo, Tab } from './pages/types';
-import { capitalize, fmt, toNum, CATEGORIAS_GASTO } from '../utils/helpers';
+import { capitalize, fmt, toNum, CATEGORIAS_GASTO, addMonths, generateUUID } from '../utils/helpers';
 import LifeTrackerCompactLogo from './components/LifeTrackerCompactLogo';
 import LifeTrackerIconOnly from './components/LifeTrackerIconOnly';
 import { Toaster, toast } from 'sonner';
@@ -188,17 +188,70 @@ export default function LifeTracker() {
 
   // --- CRUD HANDLERS ---
   const handleSaveGasto = (gasto: Gasto) => {
-    const newGastos = gasto.id ? gastos.map(g => g.id === gasto.id ? gasto : g) : [...gastos, { ...gasto, id: Date.now() }];
-    setGastos(newGastos);
-    saveData('gastos', newGastos);
+    let updatedGastos = [...gastos];
+
+    // If editing an existing installment, remove all associated parcels first
+    if (gasto.parcelaId) {
+      updatedGastos = updatedGastos.filter(g => g.parcelaId !== gasto.parcelaId);
+    } else if (gasto.id && gastos.some(g => g.id === gasto.id && g.parcelasTotal && g.parcelasTotal > 1)) {
+        // If editing a single expense that *was* part of an installment before (but now is being saved as single),
+        // we need to remove all prior installments.
+        const originalGasto = gastos.find(g => g.id === gasto.id);
+        if (originalGasto && originalGasto.parcelaId) {
+            updatedGastos = updatedGastos.filter(g => g.parcelaId !== originalGasto.parcelaId);
+        }
+    } else if (gasto.id) { // Editing a single non-installment expense
+        updatedGastos = updatedGastos.filter(g => g.id !== gasto.id);
+    }
+
+    if (gasto.parcelasTotal && gasto.parcelasTotal > 1) {
+      const newParcelaId = gasto.parcelaId || generateUUID();
+      const parcelValue = toNum(gasto.valor) / gasto.parcelasTotal;
+      const originalDate = new Date(gasto.data);
+
+      for (let i = 0; i < gasto.parcelasTotal; i++) {
+        const parcelDate = addMonths(originalDate, i).toISOString().split('T')[0];
+        updatedGastos.push({
+          ...gasto,
+          id: Date.now() + i, // Unique ID for each parcel
+          valor: String(parcelValue),
+          parcelaAtual: i + 1,
+          parcelasTotal: gasto.parcelasTotal,
+          parcelaId: newParcelaId,
+          data: parcelDate!,
+          // pago: i === 0 ? gasto.pago : false, // Only the first parcel inherits `pago` status, others start as unpaid
+        });
+      }
+    } else {
+      // Single expense or updated single expense
+      updatedGastos.push({
+        ...gasto,
+        id: gasto.id || Date.now(),
+        parcelaAtual: 1,
+        parcelasTotal: 1,
+        parcelaId: undefined, // Ensure no parcelaId for single expenses
+      });
+    }
+    setGastos(updatedGastos.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime()));
+    saveData('gastos', updatedGastos);
     toast.success('Gasto salvo com sucesso!');
   };
 
   const handleDeleteGasto = (id: number) => {
-    const newGastos = gastos.filter(g => g.id !== id);
+    const gastoToDelete = gastos.find(g => g.id === id);
+    let newGastos = [...gastos];
+  
+    if (gastoToDelete?.parcelaId) {
+      // If it's part of an installment, delete all parcels with the same parcelaId
+      newGastos = gastos.filter(g => g.parcelaId !== gastoToDelete.parcelaId);
+    } else {
+      // Otherwise, delete only the single gasto
+      newGastos = gastos.filter(g => g.id !== id);
+    }
+  
     setGastos(newGastos);
     saveData('gastos', newGastos);
-    toast.success('Gasto excluído com sucesso!');
+    toast.success('Gasto(s) excluído(s) com sucesso!');
   };
   
   const handleSaveReceita = (receita: Receita) => {
@@ -343,15 +396,21 @@ const creditData = useMemo(() => {
   const totalLimite = cartoes.reduce((acc, c) => acc + toNum(c.limite), 0);    
   const gastosPorCartao: { [cardId: number]: number } = {};
 
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+
   cartoes.forEach(cartao => {
     gastosPorCartao[cartao.id] = 0;
   });
 
   gastos.forEach(gasto => {
     if (gasto.tipoPagamento === 'CRÉDITO' && typeof gasto.cartaoId === 'number') {
-      // Use o operador de coalescência nula para garantir um valor padrão
-      const valorAtual = gastosPorCartao[gasto.cartaoId] ?? 0;
-      gastosPorCartao[gasto.cartaoId] = valorAtual + toNum(gasto.valor);
+      const gastoDate = new Date(gasto.data);
+      if (gastoDate.getFullYear() === currentYear && gastoDate.getMonth() === currentMonth) {
+        const valorAtual = gastosPorCartao[gasto.cartaoId] ?? 0;
+        gastosPorCartao[gasto.cartaoId] = valorAtual + toNum(gasto.valor);
+      }
     }
   });
 
@@ -403,13 +462,8 @@ const creditData = useMemo(() => {
     const gastosCreditoMes = gastos
       .filter(g => {
         if (g.tipoPagamento !== 'CRÉDITO') return false;
-        const parts = g.data.split('-');
-        if (parts.length < 2 || !parts[0] || !parts[1]) return false;
-        const year = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10);
-
-        if (isNaN(year) || isNaN(month)) return false;
-        return year === currentYear && (month - 1) === currentMonth;
+        const gastoDate = new Date(g.data);
+        return gastoDate.getFullYear() === currentYear && gastoDate.getMonth() === currentMonth;
       })
       .reduce((acc, g) => acc + toNum(g.valor), 0);
 

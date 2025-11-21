@@ -12,6 +12,26 @@ export const toNum = (s: string | number | null | undefined) => {
 export const capitalize = (s: string) =>
   s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 
+export const addMonths = (date: Date, months: number): Date => {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + months);
+  // If the day of the month is greater than the new month's last day,
+  // set it to the last day of the new month.
+  // This handles cases like Jan 31 + 1 month = Feb 28/29.
+  if (d.getDate() !== date.getDate()) {
+    d.setDate(0); // Set to last day of previous month, then add 1 to get last day of target month
+  }
+  return d;
+};
+
+export const generateUUID = (): string => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0,
+      v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
 export const CATEGORIAS_GASTO = ['Alimentação', 'Transporte', 'Lazer', 'Saúde', 'Moradia', 'Educação', 'Compras', 'Vestuário', 'Eletrônicos', 'Utensílios Domésticos', 'Beleza & Cuidados', 'Pets', 'Investimentos', 'Imprevisto', 'Outros'] as const;
 
 export const detectarCategoria = (descricao: string): typeof CATEGORIAS_GASTO[number] => {
