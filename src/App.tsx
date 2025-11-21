@@ -87,7 +87,7 @@ export default function App() {
   return (
     <div className="min-h-screen">
       <ErrorBoundary>
-        <LifeTracker darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+        <LifeTracker />
       </ErrorBoundary>
     </div>
   );
