@@ -339,25 +339,27 @@ export default function LifeTracker() {
   const totalGastos = gastosDebito + gastosCredito;
   const saldo = totalReceitas - gastosDebito;
 
-  const creditData = useMemo(() => {
-    const totalLimite = cartoes.reduce((acc, c) => acc + toNum(c.limite), 0);    
-    const gastosPorCartao: { [cardId: number]: number } = {};
+const creditData = useMemo(() => {
+  const totalLimite = cartoes.reduce((acc, c) => acc + toNum(c.limite), 0);    
+  const gastosPorCartao: { [cardId: number]: number } = {};
 
-    cartoes.forEach(cartao => {
-      gastosPorCartao[cartao.id] = 0;
-    });
+  cartoes.forEach(cartao => {
+    gastosPorCartao[cartao.id] = 0;
+  });
 
-    gastos.forEach(gasto => {
-      if (gasto.tipoPagamento === 'CRÉDITO' && typeof gasto.cartaoId === 'number' && gastosPorCartao.hasOwnProperty(gasto.cartaoId)) {
-        gastosPorCartao[gasto.cartaoId] += toNum(gasto.valor);
-      }
-    })
+  gastos.forEach(gasto => {
+    if (gasto.tipoPagamento === 'CRÉDITO' && typeof gasto.cartaoId === 'number') {
+      // Use o operador de coalescência nula para garantir um valor padrão
+      const valorAtual = gastosPorCartao[gasto.cartaoId] ?? 0;
+      gastosPorCartao[gasto.cartaoId] = valorAtual + toNum(gasto.valor);
+    }
+  });
 
-    const totalGastosCredito = Object.values(gastosPorCartao).reduce((acc, val) => acc + val, 0);
-    const disponivel = totalLimite - totalGastosCredito;
+  const totalGastosCredito = Object.values(gastosPorCartao).reduce((acc, val) => acc + val, 0);
+  const disponivel = totalLimite - totalGastosCredito;
 
-    return { totalLimite, disponivel, gastosPorCartao };
-  }, [cartoes, gastos]);
+  return { totalLimite, disponivel, gastosPorCartao };
+}, [cartoes, gastos]);
 
   const porCategoria = useMemo(() => {
     const map: Record<string, {valor: number, icon: string}> = {};
