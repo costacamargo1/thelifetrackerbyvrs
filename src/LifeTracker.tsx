@@ -347,11 +347,11 @@ export default function LifeTracker() {
       gastosPorCartao[cartao.id] = 0;
     });
 
-    gastos.filter(g => g.tipoPagamento === 'CRÉDITO' && g.cartaoId).forEach(gasto => {
-        if (gasto.cartaoId && gastosPorCartao.hasOwnProperty(gasto.cartaoId)) {
-            gastosPorCartao[gasto.cartaoId] += toNum(gasto.valor);
-        }
-    });
+    gastos.forEach(gasto => {
+      if (gasto.tipoPagamento === 'CRÉDITO' && typeof gasto.cartaoId === 'number' && gastosPorCartao.hasOwnProperty(gasto.cartaoId)) {
+        gastosPorCartao[gasto.cartaoId] += toNum(gasto.valor);
+      }
+    })
 
     const totalGastosCredito = Object.values(gastosPorCartao).reduce((acc, val) => acc + val, 0);
     const disponivel = totalLimite - totalGastosCredito;
@@ -575,7 +575,7 @@ export default function LifeTracker() {
                   <Card className="p-6">
                     <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">Top Categorias</h3>
                     <div className="space-y-4">
-                                        {porCategoria.length > 0 ? (() => {
+ {porCategoria.length > 0 && porCategoria[0] ? (() => {
                       const maxVal = porCategoria[0].valor; // Guaranteed to exist here
                       return porCategoria.slice(0, 4).map(({nome, valor}, idx) => {
                           const percent = maxVal > 0 ? (valor / maxVal) * 100 : 0;
