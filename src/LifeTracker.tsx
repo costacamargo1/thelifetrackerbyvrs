@@ -575,19 +575,20 @@ export default function LifeTracker() {
                   <Card className="p-6">
                     <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">Top Categorias</h3>
                     <div className="space-y-4">
-                      {porCategoria.length > 0 ? porCategoria.slice(0, 4).map(({nome, valor}, idx) => {
-                          const maxVal = porCategoria[0]!.valor;
-                          const percent = maxVal > 0 ? (valor / maxVal) * 100 : 0;
-                          return (
-                            <div key={nome}>
-                                <div className="flex justify-between text-sm mb-1"><span className="capitalize font-medium">{nome.toLowerCase()}</span><span className="text-slate-500">{fmt(valor)}</span></div>
-                                <div className="h-2 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                                  <div className={`h-full rounded-full ${['bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500'][idx % 4]}`} style={{ width: `${percent}%` }}></div>
-                                </div>
-                            </div>
-                          )
-                      }) : <p className="text-sm text-slate-500">Sem gastos para exibir categorias.</p>}
-                    </div>
+                                        {porCategoria.length > 0 ? (() => {
+                                            const maxVal = porCategoria[0].valor;
+                                            return porCategoria.slice(0, 4).map(({nome, valor}, idx) => {
+                                                const percent = maxVal > 0 ? (valor / maxVal) * 100 : 0;
+                                                return (
+                                                  <div key={nome}>
+                                                      <div className="flex justify-between text-sm mb-1"><span className="capitalize font-medium">{nome.toLowerCase()}</span><span className="text-slate-500">{fmt(valor)}</span></div>
+                                                      <div className="h-2 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                                        <div className={`h-full rounded-full ${['bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500'][idx % 4]}`} style={{ width: `${percent}%` }}></div>
+                                                      </div>
+                                                  </div>
+                                                )
+                                            })
+                                        })() : <p className="text-sm text-slate-500">Sem gastos para exibir categorias.</p>}                    </div>
                   </Card>
                   
                   {objetivoPrincipal && (
