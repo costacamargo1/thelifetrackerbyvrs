@@ -18,7 +18,7 @@ const Configuracoes: React.FC<ConfiguracoesProps> = ({
     <section className="space-y-6 animate-fadeInUp">
       <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Configurações</h2>
       <div className="p-6 rounded-2xl border bg-white dark:bg-slate-800 dark:border-slate-700/60 shadow-sm">
-        <CategoryManager categories={categories} onSave={onSaveCategoria} onDelete={onDeleteCategoria} />
+        <CategoryManager categories={categories} onSave={onSaveCategoria as any} onDelete={onDeleteCategoria} />
       </div>
     </section>
   );

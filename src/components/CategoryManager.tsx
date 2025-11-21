@@ -1,126 +1,81 @@
 import React, { useState } from 'react';
-import { Category, CategoryType, Receita } from '../pages/types';
-import { IconComponent, iconMap } from './CategoryIcon';
+import { Plus, Trash2 } from 'lucide-react';
+import { Category } from '../pages/types';
 
 interface CategoryManagerProps {
   categories: Category[];
-  onSave: (category: Category) => void;
+  onSave: (category: Omit<Category, 'id'>) => void;
   onDelete: (id: string) => void;
 }
 
 const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onSave, onDelete }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [categoryForm, setCategoryForm] = useState<{ name: string; type: CategoryType; icon: string }>({
-    name: '',
-    type: 'despesa',
-    icon: 'HomeIcon',
-  });
+  const [newCategoryName, setNewCategoryName] = useState('');
 
-  const handleOpenModal = (category: Category | null = null) => {
-    if (category) {
-      setEditingCategory(category);
-      setCategoryForm(category);
-    } else {
-      setEditingCategory(null);
-      setCategoryForm({ name: '', type: 'despesa', icon: 'HomeIcon' });
+  const handleAddCategory = () => {
+    if (newCategoryName.trim() === '') {
+      alert('O nome da categoria não pode estar vazio.');
+      return;
     }
-    setIsModalOpen(true);
+    // Chama a função onSave do componente pai para adicionar a categoria, com valores padrão para type e icon
+    onSave({ name: newCategoryName.trim(), type: 'despesa', icon: 'QuestionMarkCircleIcon' });
+    setNewCategoryName(''); // Limpa o input
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingCategory(null);
-  };
-
-  const handleSaveCategory = () => {
-    if (!categoryForm.name) return;
-
-    if (editingCategory) {
-      onSave({ ...editingCategory, ...categoryForm });
-    } else {
-      onSave({ ...categoryForm, id: Date.now().toString() });
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleAddCategory();
     }
-    handleCloseModal();
-  };
-
-  const handleDeleteCategory = (id: string) => {
-    onDelete(id);
   };
 
   return (
-    <div className="mt-6 space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="font-medium">Gerenciamento de Categorias</h3>
-        <button onClick={() => handleOpenModal()} className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium shadow dark:bg-blue-600 dark:hover:bg-blue-700">
-          Adicionar Categoria
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">Gerenciar Categorias</h3>
+      
+      {/* Formulário para adicionar nova categoria */}
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          value={newCategoryName}
+          onChange={(e) => setNewCategoryName(e.target.value)}
+          onKeyPress={handleKeyPress}
+          placeholder="Nome da nova categoria"
+          className="flex-grow bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+        />
+        <button
+          onClick={handleAddCategory}
+          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-700 transition-colors text-sm font-medium"
+        >
+          <Plus size={16} />
+          Adicionar
         </button>
       </div>
 
-      {/* Category List */}
-      <div className="space-y-2">
-        {categories.map(category => (
-          <div key={category.id} className="flex items-center justify-between p-3 rounded-lg bg-white/10">
-            <div className="flex items-center gap-3">
-              <IconComponent iconName={category.icon} className="w-6 h-6" />
-              <span className="font-medium">{category.name}</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${category.type === 'despesa' ? 'bg-red-500/20 text-red-500' : 'bg-green-500/20 text-green-500'}`}>
-                {category.type}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => handleOpenModal(category)} className="p-1 text-gray-400 hover:text-white">
-                {/* Placeholder for Edit Icon */}
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L14.732 3.732z" /></svg>
+      {/* Lista de categorias existentes */}
+      <div className="space-y-2 pt-4">
+        {categories.length > 0 ? (
+          categories.map((cat) => (
+            <div
+              key={cat.id}
+              className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg"
+            >
+              <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{cat.name}</span>
+              <button
+                onClick={() => {
+                  if (window.confirm(`Tem certeza que deseja remover a categoria "${cat.name}"?`)) {
+                    onDelete(cat.id);
+                  }
+                }}
+                className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-500/10 rounded-full transition-colors"
+                title="Excluir categoria"
+              >
+                <Trash2 size={16} />
               </button>
-              <button onClick={() => handleDeleteCategory(category.id)} className="p-1 text-gray-400 hover:text-red-500">
-                {/* Placeholder for Delete Icon */}
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-              </button>
             </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <p className="text-sm text-center text-slate-500 dark:text-slate-400 py-4">Nenhuma categoria cadastrada.</p>
+        )}
       </div>
-
-      {/* Add/Edit Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="p-6 rounded-2xl glass-card w-full max-w-md space-y-4 animate-fadeInUp">
-            <h3 className="text-lg font-medium">{editingCategory ? 'Editar Categoria' : 'Adicionar Nova Categoria'}</h3>
-            <div className="space-y-4">
-              <label className="block">
-                <span className="text-xs opacity-70">Nome da Categoria</span>
-                <input type="text" className="input-premium" value={categoryForm.name} onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })} />
-              </label>
-              <label className="block">
-                <span className="text-xs opacity-70">Tipo</span>
-                <select className="input-premium" value={categoryForm.type} onChange={(e) => setCategoryForm({ ...categoryForm, type: e.target.value as CategoryType })}>
-                  <option value="despesa">Despesa</option>
-                  <option value="receita">Receita</option>
-                </select>
-              </label>
-              <div>
-                <span className="text-xs opacity-70">Ícone</span>
-                <div className="grid grid-cols-8 gap-2 mt-2 p-3 rounded-lg bg-white/10">
-                  {Object.keys(iconMap).map(iconName => (
-                    <button
-                      key={iconName}
-                      onClick={() => setCategoryForm({ ...categoryForm, icon: iconName })}
-                      className={`flex items-center justify-center p-2 rounded-lg transition-colors ${categoryForm.icon === iconName ? 'bg-blue-500' : 'hover:bg-white/20'}`}
-                    >
-                      <IconComponent iconName={iconName} className="w-6 h-6" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end gap-4">
-              <button onClick={handleCloseModal} className="px-4 py-2 rounded-lg text-white/70 hover:text-white">Cancelar</button>
-              <button onClick={handleSaveCategory} className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium">{editingCategory ? 'Salvar Alterações' : 'Adicionar'}</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
