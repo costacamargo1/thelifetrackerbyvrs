@@ -23,7 +23,7 @@ const BarChart = ({ title, data, dataKey, colorClass }: { title: string; data: D
   return (
     <div className="p-6 rounded-2xl border bg-white dark:bg-slate-800 dark:border-slate-700/60 shadow-sm">
       <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100 mb-6">{title}</h3>
-      <div className="flex justify-between gap-2 h-48">
+      <div className="flex justify-around h-48 flex-nowrap overflow-x-auto p-1">
         {allZero ? (
           <div className="flex items-center justify-center w-full h-full text-sm text-slate-500">
             <p>Nenhum dado para exibir.</p>
@@ -34,8 +34,8 @@ const BarChart = ({ title, data, dataKey, colorClass }: { title: string; data: D
             const heightPercent = maxValue > 0 ? Math.max(0, (value / maxValue) * 100) : 0;
 
             return (
-              <div key={d.mes} className="flex-1 flex flex-col items-center justify-end gap-2 group">
-                <div className="text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity bg-slate-700 text-white px-1.5 py-0.5 rounded">
+              <div key={d.mes} className="relative flex-1 flex flex-col items-center justify-end gap-2 group min-w-[30px]">
+                <div className="absolute -top-6 text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity bg-slate-700 text-white px-1.5 py-0.5 rounded whitespace-nowrap">
                   {fmt(value)}
                 </div>
                 <div className="w-full flex-grow flex items-end">
