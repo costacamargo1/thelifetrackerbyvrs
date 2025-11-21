@@ -87,15 +87,15 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Nav Items */}
-        <div className="flex-1 overflow-y-auto py-6 px-3 space-y-1 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
+        <div className="flex-1 overflow-y-auto py-6 px-3 space-y-4 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
           <SidebarItem icon={LayoutDashboard} label="Dashboard" active={tab === 'dashboard'} collapsed={isSidebarCollapsed} onClick={() => handleSetTab('dashboard')} />
           
-          <div className={`mt-6 mb-2 px-3 text-xs font-bold text-slate-400 uppercase tracking-wider ${isSidebarCollapsed ? 'text-center' : ''}`}>Transações</div>
+          <div className={`mt-10 mb-2 px-3 text-xs font-bold text-slate-400 uppercase tracking-wider ${isSidebarCollapsed ? 'text-center' : ''}`}>Transações</div>
           <SidebarItem icon={TrendingDown} label="Meus Gastos" active={tab === 'gastos'} collapsed={isSidebarCollapsed} onClick={() => handleSetTab('gastos')} />
           <SidebarItem icon={TrendingUp} label="Receitas" active={tab === 'receitas'} collapsed={isSidebarCollapsed} onClick={() => handleSetTab('receitas')} />
           <SidebarItem icon={Calendar} label="Contas Recorrentes" active={tab === 'contas-recorrentes'} collapsed={isSidebarCollapsed} onClick={() => handleSetTab('contas-recorrentes')} />
           
-          <div className={`mt-6 mb-2 px-3 text-xs font-bold text-slate-400 uppercase tracking-wider ${isSidebarCollapsed ? 'text-center' : ''}`}>Gestão</div>
+          <div className={`mt-10 mb-2 px-3 text-xs font-bold text-slate-400 uppercase tracking-wider ${isSidebarCollapsed ? 'text-center' : ''}`}>Gestão</div>
           <SidebarItem icon={CreditCard} label="Cartões" active={tab === 'cartoes'} collapsed={isSidebarCollapsed} onClick={() => handleSetTab('cartoes')} />
           <SidebarItem icon={PieChart} label="Faturas" active={tab === 'faturas'} collapsed={isSidebarCollapsed} onClick={() => handleSetTab('faturas')} />
           <SidebarItem icon={Goal} label="Objetivos" active={tab === 'objetivos'} collapsed={isSidebarCollapsed} onClick={() => handleSetTab('objetivos')} />

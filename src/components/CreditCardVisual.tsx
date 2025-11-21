@@ -4,11 +4,14 @@ import { fmt, toNum } from '../../utils/helpers';
 const CreditCardVisual = ({ nome, limite, gastos }: { nome: string, limite: string, gastos: number }) => {
     const getStyle = (n: string) => {
       const lower = n.toLowerCase();
-      if (lower.includes('nubank')) return 'from-purple-700 via-purple-600 to-purple-800 text-white';
-      if (lower.includes('itau') || lower.includes('itaú')) return 'from-orange-500 via-orange-400 to-orange-600 text-white';
-      if (lower.includes('bradesco')) return 'from-red-600 via-red-500 to-red-700 text-white';
-      if (lower.includes('c6')) return 'from-slate-900 via-slate-800 to-black text-white';
-      if (lower.includes('inter')) return 'from-orange-400 via-orange-300 to-orange-500 text-white';
+      if (lower.includes('nubank')) return 'from-purple-700 to-purple-800 text-white';
+      if (lower.includes('santander')) return 'from-red-600 to-red-700 text-white';
+      if (lower.includes('inter')) return 'from-orange-500 to-orange-600 text-white';
+      if (lower.includes('itau') || lower.includes('itaú')) return 'from-orange-600 to-orange-700 text-white';
+      if (lower.includes('caixa')) return 'from-blue-600 to-blue-800 text-white';
+      if (lower.includes('bradesco')) return 'from-red-700 to-red-800 text-white';
+      if (lower.includes('c6')) return 'from-slate-800 to-black text-white';
+      if (lower.includes('banco do brasil') || lower.includes('bb')) return 'from-yellow-400 to-yellow-500 text-black';
       if (lower.includes('xp')) return 'from-slate-900 via-yellow-600 to-slate-900 text-white border border-yellow-500/30';
       return 'from-slate-700 via-slate-600 to-slate-800 text-white';
     };
