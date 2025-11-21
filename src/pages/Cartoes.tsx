@@ -1,181 +1,124 @@
-import { Pencil, Trash2 } from 'lucide-react';
-import { Cartao } from './types';
-import { fmt, toNum, SUGESTOES_BANCOS } from '../../utils/helpers';
+import React from 'react';
+import { Pencil, Trash2, Plus, Star } from 'lucide-react';
+import { Cartao, Gasto } from './types';
+import CreditCardVisual from '../components/CreditCardVisual';
+import { fmt, toNum } from '../../utils/helpers';
 
 interface CartoesProps {
   cartoes: Cartao[];
-  novoCartao: { nome: string; limite: string; diaVencimento: number; diaFechamento: number; };
-  setNovoCartao: React.Dispatch<React.SetStateAction<{ nome: string; limite: string; diaVencimento: number; diaFechamento: number; }>>;
-  adicionarCartao: (e: React.FormEvent) => void;
-  sugestoesCartao: string[];
-  setSugestoesCartao: React.Dispatch<React.SetStateAction<string[]>>;
-  sugestaoAtivaIndex: number;
-  setSugestaoAtivaIndex: React.Dispatch<React.SetStateAction<number>>;
-  editingCardId: number | null;
-  editCardDraft: Cartao | null;
-  setEditCardDraft: React.Dispatch<React.SetStateAction<Cartao | null>>;
-  startEditCard: (cartao: Cartao) => void;
-  cancelEditCard: () => void;
-  saveEditCard: () => void;
-  deleteCard: (id: number) => void;
-  getDadosCartao: (nome: string) => { bg: string; text: string; imagem: string | null };
+  gastos: Gasto[];
+  gastosNoPeriodo: { [cardId: number]: number }; // New prop
+  openModal: (type: 'cartao', item?: Cartao) => void;
+  onDelete: (id: number) => void;
+  onSetPrincipal: (id: number) => void;
 }
 
 const Cartoes: React.FC<CartoesProps> = ({
   cartoes,
-  novoCartao,
-  setNovoCartao,
-  adicionarCartao,
-  sugestoesCartao,
-  setSugestoesCartao,
-  sugestaoAtivaIndex,
-  setSugestaoAtivaIndex,
-  editingCardId,
-  editCardDraft,
-  setEditCardDraft,
-  startEditCard,
-  cancelEditCard,
-  saveEditCard,
-  deleteCard,
-  getDadosCartao,
+  // Remove `gastos` from destructuring as it's no longer directly used for `gastosDoCartao` calculation here
+  gastosNoPeriodo, // Use the new prop
+  openModal,
+  onDelete,
+  onSetPrincipal,
 }) => {
   return (
-    <section className="p-4 rounded-2xl glass-card space-y-4 animate-fadeInUp">
-      <h2 className="text-lg font-medium">Cartões de Crédito</h2>
-      <form className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end" onSubmit={adicionarCartao}>
-        <div className="relative">
-          <label className="block text-xs opacity-70 mb-1">Nome</label>
-          <input className="input-premium"
-            value={novoCartao.nome}
-            onChange={(e) => {
-              const valor = e.target.value;
-              setNovoCartao({ ...novoCartao, nome: valor.toUpperCase() });
-              if (valor.trim()) {
-                const sugestoes = SUGESTOES_BANCOS.filter(b => b.toLowerCase().startsWith(valor.toLowerCase()));
-                setSugestoesCartao(sugestoes);
-                setSugestaoAtivaIndex(sugestoes.length > 0 ? 0 : -1);
-              } else {
-                setSugestoesCartao([]);
-              }
-            }}
-            onBlur={() => setTimeout(() => setSugestoesCartao([]), 150)}
-            onKeyDown={(e) => {
-              if (sugestoesCartao.length > 0) {
-                if (e.key === 'ArrowDown') { e.preventDefault(); setSugestaoAtivaIndex(prev => (prev + 1) % sugestoesCartao.length); }
-                else if (e.key === 'ArrowUp') { e.preventDefault(); setSugestaoAtivaIndex(prev => (prev - 1 + sugestoesCartao.length) % sugestoesCartao.length); }
-                else if (e.key === 'Enter' || e.key === 'Tab') {
-                  if (sugestaoAtivaIndex > -1) {
-                    e.preventDefault();
-                    if (sugestoesCartao[sugestaoAtivaIndex]) { setNovoCartao(c => ({ ...c, nome: sugestoesCartao[sugestaoAtivaIndex] ?? '' })); }
-                    setSugestoesCartao([]);
-                  }
-                } else if (e.key === 'Escape') { setSugestoesCartao([]); }
-              }
-            }}
-          />
-          {sugestoesCartao.length > 0 && novoCartao.nome.trim() && (
-            <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg mt-1 shadow-lg max-h-40 overflow-y-auto dark:bg-slate-700 dark:border-slate-600">
-              {sugestoesCartao.map((s, index) => <li key={s} className={`p-2 cursor-pointer ${sugestaoAtivaIndex === index ? 'bg-gray-200 dark:bg-slate-600' : 'hover:bg-gray-100 dark:hover:bg-slate-600'}`} onMouseDown={() => { setNovoCartao(c => ({ ...c, nome: s })); setSugestoesCartao([]); }}>{s}</li>)}
-            </ul>
-          )}
-        </div>
-        <div className="md:col-span-1">
-          <label className="block text-xs opacity-70 mb-1">Limite (R$)</label>
-          <input type="number" step="0.01" min="0" className="input-premium" value={novoCartao.limite} onChange={(e) => setNovoCartao({ ...novoCartao, limite: e.target.value })} />
-        </div>
-        <div>
-          <label className="block text-xs opacity-70 mb-1">Dia de vencimento</label>
-          <input type="number" min="1" max="28" className="input-premium" value={novoCartao.diaVencimento || ''} onChange={(e) => setNovoCartao({ ...novoCartao, diaVencimento: Number(e.target.value) })} />
-        </div>
-        <div>
-          <label className="block text-xs opacity-70 mb-1">Dia de fechamento</label>
-          <input type="number" min="1" max="31" className="input-premium" value={novoCartao.diaFechamento || ''} onChange={(e) => setNovoCartao({ ...novoCartao, diaFechamento: Number(e.target.value) })} />
-        </div>
-        <div>
-          <button className="w-[100px] px-3 py-3 rounded-sm bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium shadow dark:bg-emerald-600 dark:hover:bg-emerald-700 transition-colors">Adicionar</button>
-        </div>
-      </form>
+    <section className="space-y-6 animate-fadeInUp">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Meus Cartões</h2>
+        <button 
+          onClick={() => openModal('cartao')}
+          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-700 transition-colors"
+        >
+          <Plus size={20} />
+          Novo Cartão
+        </button>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {cartoes.length === 0 ? (
-          <p className="text-sm opacity-60">Nenhum cartão</p>
-        ) : cartoes.map(c => {
-          const dadosCartao = getDadosCartao(c.nome);
-          const isEditing = editingCardId === c.id;
-          if (isEditing && editCardDraft) {
+          <div className="col-span-full text-center py-12 px-6 bg-white dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">Nenhum cartão cadastrado</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Adicione um novo cartão de crédito para começar.</p>
+          </div>
+        ) : cartoes.map((c, index) => {
+            // Use the pre-calculated value from gastosNoPeriodo
+            const gastosDoCartao = gastosNoPeriodo[c.id] || 0;
+            const limiteNum = toNum(c.limite);
+            const disponivel = limiteNum - gastosDoCartao;
+            const disponivelPercent = limiteNum > 0 ? Math.max(0, Math.min(100, (disponivel / limiteNum) * 100)) : 0;
+            const gastoPercent = limiteNum > 0 ? Math.max(0, Math.min(100, (gastosDoCartao / limiteNum) * 100)) : 0;
+
             return (
-              <div key={c.id} className="p-4 rounded-2xl border-2 border-blue-400 bg-white dark:bg-slate-800 space-y-3 animate-fadeInUp">
+              <div key={c.id} className="space-y-4 animate-fadeInUp" style={{ animationDelay: `${index * 50}ms` }}>
                 <div className="relative">
-                  <label className="block text-xs opacity-70 mb-1">Nome</label>
-                  <input className="input-premium" value={editCardDraft.nome} onChange={(e) => setEditCardDraft({ ...editCardDraft, nome: e.target.value.toUpperCase() })} />
+                  <CreditCardVisual {...c} gastos={gastosDoCartao} />
+                  {c.isPrincipal && (
+                    <div className="absolute top-3 right-3 bg-yellow-400 p-1.5 rounded-full shadow-lg">
+                      <Star size={16} className="text-white fill-current" />
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-xs opacity-70 mb-1">Limite (R$)</label>
-                  <input type="number" step="0.01" min="0" className="input-premium" value={editCardDraft.limite} onChange={(e) => setEditCardDraft({ ...editCardDraft, limite: e.target.value })} />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-xs opacity-70 mb-1">Dia de vencimento</label>
-                    <input type="number" min="1" max="28" className="input-premium" value={editCardDraft.diaVencimento || ''} onChange={(e) => setEditCardDraft({ ...editCardDraft, diaVencimento: Number(e.target.value) })} />
+                <div className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-2xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Limite total</p>
+                      <p className="text-lg font-semibold text-slate-800 dark:text-white">{fmt(limiteNum)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Gasto no período</p>
+                      <p className="text-lg font-semibold text-rose-600 dark:text-rose-400">{fmt(gastosDoCartao)}</p>
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-xs opacity-70 mb-1">Dia de fechamento</label>
-                    <input type="number" min="1" max="31" className="input-premium" value={editCardDraft.diaFechamento || ''} onChange={(e) => setEditCardDraft({ ...editCardDraft, diaFechamento: Number(e.target.value) })} />
+                    <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
+                      <span>Disponível ({disponivelPercent.toFixed(0)}%)</span>
+                      <span>{fmt(disponivel)}</span>
+                    </div>
+                    <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-600 dark:bg-blue-500 transition-all duration-700"
+                        style={{ width: `${gastoPercent}%` }}
+                        title={`Gasto ${gastoPercent.toFixed(0)}%`}
+                      />
+                    </div>
                   </div>
                 </div>
-                <div className="flex gap-2 pt-2">
-                  <button onClick={saveEditCard} className="flex-1 px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium shadow dark:bg-emerald-600 dark:hover:bg-emerald-700">Salvar</button>
-                  <button type="button" onClick={cancelEditCard} className="px-3 py-2 rounded-lg bg-gray-200 text-sm dark:bg-slate-600">Cancelar</button>
+                <div className="flex items-center justify-between p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-2xl">
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="checkbox"
+                      id={`principal-card-${c.id}`}
+                      checked={c.isPrincipal || false}
+                      onChange={() => onSetPrincipal(c.id)}
+                      className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-700"
+                    />
+                    <label htmlFor={`principal-card-${c.id}`} className="text-xs font-medium text-slate-600 dark:text-slate-300 cursor-pointer">Principal</label>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => openModal('cartao', c)}
+                      className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors duration-200 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-blue-500/10"
+                      title="Editar"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm('Tem certeza que deseja remover este cartão?')) {
+                          onDelete(c.id);
+                        }
+                      }}
+                      className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-100 rounded-full transition-colors duration-200 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-rose-500/10"
+                      title="Excluir"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
-            );
-          }
-          return (
-            <div key={c.id} className="p-4 rounded-2xl flex flex-col glass-card glass-card-hover animate-fadeInUp" style={{ animationDelay: `${cartoes.findIndex(card => card.id === c.id) * 50}ms` }}>
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-3">
-                  {dadosCartao.imagem && <img src={dadosCartao.imagem} alt={c.nome} className="w-12 h-8 object-contain rounded-md" />}
-                  <h3 className="font-semibold text-base">{c.nome}</h3>
-                </div>
-                <div className="text-sm space-y-1">
-                  <div className="flex justify-between">
-                    <span className="opacity-70">Limite:</span>
-                    <span className="font-medium">{fmt(toNum(c.limite))}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="opacity-70">Fecha dia:</span>
-                    <span className="font-medium">{c.diaFechamento}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="opacity-70">Vence dia:</span>
-                    <span className="font-medium">{c.diaVencimento}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-1 ml-auto">
-                <button
-                  type="button"
-                  onClick={() => startEditCard(c)}
-                  className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded-full transition-colors duration-200 dark:text-blue-400 dark:hover:text-blue-200 dark:hover:bg-blue-900/50"
-                  title="Editar"
-                >
-                  <Pencil size={16} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (window.confirm('Tem certeza que deseja remover este cartão?')) {
-                      deleteCard(c.id);
-                    }
-                  }}
-                  className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-full transition-colors duration-200 dark:text-red-400 dark:hover:text-red-200 dark:hover:bg-red-900/50"
-                  title="Excluir"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </div>
-          );
+            )
         })}
       </div>
     </section>

@@ -1,1418 +1,749 @@
-  import React, { useState, useEffect, useMemo, useCallback } from 'react';
-  import { LayoutDashboard, TrendingDown, TrendingUp, Repeat, CreditCard, Receipt, Calendar, Settings, Sun, Moon, Goal, ChevronsLeft, ChevronsRight, ShoppingCart, Truck, Home, Heart, School, Ticket, Gift, Smartphone, Banknote, Zap, Briefcase } from 'lucide-react';
-  import { Gasto, Receita, Assinatura, Objetivo, Cartao, Configuracoes as ConfiguracoesType, TipoPagamento, StatusObj, Periodo, Category, } from './pages/types';
-  import Gastos from './pages/Gastos';
-  import Receitas from './pages/Receitas'; 
-  import ContasRecorrentes from './pages/ContasRecorrentes';
-  import Objetivos from './pages/Objetivos';
-  import Cartoes from './pages/Cartoes'; // Keep this line
-  import Faturas from './pages/Faturas';
-  import ResumoAnual from './pages/ResumoAnual';
-  import Configuracoes from './pages/Configuracoes';
-  import Sidebar from './components/Sidebar';
-  import { fmt, toNum, detectarCategoria, SUGESTOES_GLOBAIS, SUGESTOES_DESCRICAO, CATEGORIAS_GASTO, SUGESTOES_BANCOS, capitalize } from '../utils/helpers';
-  import LifeTrackerIconOnly from "./components/LifeTrackerIconOnly";
-  import { iconMap } from './components/CategoryIcon';
-
-  import NubankIcon from './components/assets/icons/card-nubank.svg';
-  import ItauIcon from './components/assets/icons/card-itau.svg';
-  import BradescoIcon from './components/assets/icons/card-bradesco.svg';
-  import BBIcon from './components/assets/icons/card-bb.svg';
-  import CaixaIcon from './components/assets/icons/card-caixa.svg';
-  import SantanderIcon from './components/assets/icons/card-santander.svg';
-  import C6Icon from './components/assets/icons/card-c6.svg';
-
-const initialCategories: Category[] = [
-
-    // Despesas
-    { id: 'd1', name: 'Alimentação', type: 'despesa', icon: 'CakeIcon' },
-    { id: 'd2', name: 'Transporte', type: 'despesa', icon: 'TruckIcon' },
-    { id: 'd3', name: 'Moradia', type: 'despesa', icon: 'HomeIcon' },
-    { id: 'd4', name: 'Saúde', type: 'despesa', icon: 'HeartIcon' },
-    { id: 'd5', name: 'Educação', type: 'despesa', icon: 'AcademicCapIcon' },
-    { id: 'd6', name: 'Lazer', type: 'despesa', icon: 'TicketIcon' },
-    { id: 'd7', name: 'Compras', type: 'despesa', icon: 'GiftIcon' },
-    { id: 'd8', name: 'Vestuário', type: 'despesa', icon: 'GiftIcon' }, // Reutilizando ícone
-    { id: 'd9', name: 'Eletrônicos', type: 'despesa', icon: 'DevicePhoneMobileIcon' },
-    { id: 'd10', name: 'Beleza & Cuidados', type: 'despesa', icon: 'HeartIcon' }, // Reutilizando ícone
-    { id: 'd11', name: 'Pets', type: 'despesa', icon: 'HeartIcon' }, // Reutilizando ícone
-    { id: 'd12', name: 'Utensílios Domésticos', type: 'despesa', icon: 'HomeIcon' }, // Reutilizando ícone
-    { id: 'd13', name: 'Investimentos', type: 'despesa', icon: 'BanknotesIcon' },
-    { id: 'd14', name: 'Imprevisto', type: 'despesa', icon: 'BoltIcon' },
-    { id: 'd15', name: 'Outros', type: 'despesa', icon: 'BuildingLibraryIcon' },
-  // Receitas
-  { id: 'r1', name: 'Salário', type: 'receita', icon: 'BriefcaseIcon' },
-  { id: 'r2', name: 'Vendas', type: 'receita', icon: 'BanknotesIcon' },
-  { id: 'r3', name: 'Freelance', type: 'receita', icon: 'BriefcaseIcon' },
-];
-
-
-  /** =========================
-   * Helpers
-   * ========================= */
-  const getDadosCartao = (nomeCartao: string): { bg: string; text: string; imagem: string | null } => {
-    const nome = (nomeCartao || '').toLowerCase();
-
-    if (nome.includes('nubank')) return { bg: 'bg-purple-600', text: 'text-white', imagem: NubankIcon };
-    if (nome.includes('santander')) return { bg: 'bg-red-600', text: 'text-white', imagem: SantanderIcon };
-    if (nome.includes('caixa')) return { bg: 'bg-blue-700', text: 'text-white', imagem: CaixaIcon };
-    if (nome.includes('inter')) return { bg: 'bg-orange-500', text: 'text-white', imagem: null /* InterIcon */ }; // Adicionar import do Inter se existir
-    if (nome.includes('bradesco')) return { bg: 'bg-red-700', text: 'text-white', imagem: BradescoIcon };
-    if (nome.includes('itau') || nome.includes('itaú')) return { bg: 'bg-orange-400', text: 'text-black', imagem: ItauIcon };
-    if (nome.includes('c6')) return { bg: 'bg-gray-800', text: 'text-white', imagem: C6Icon };
-    if (nome.includes('bb') || nome.includes('brasil')) return { bg: 'bg-yellow-400', text: 'text-blue-800', imagem: BBIcon };
-
-    return { bg: 'bg-gray-200', text: 'text-black', imagem: null };
-  };
-
-  export const getCorProgresso = (percent: number) => {
-    if (percent < 50) return 'bg-green-500';
-    if (percent < 75) return 'bg-yellow-500';
-    if (percent < 90) return 'bg-orange-500';
-    return 'bg-red-600';
-  };
-  // ... (restante das funções auxiliares: getCorTextoProgresso, fmt, toNum, isSameMonth, etc.) ...
-
-  const IconeCategoria: React.FC<{ iconName: string | undefined; className?: string }> = ({ iconName, className }) => {
-    // Obtém o componente do ícone do mapa
-    const Icon = iconName ? iconMap[iconName] : null;
-
-    // Renderiza o ícone se encontrado, caso contrário, um ícone padrão
-    const FallbackIcon = iconMap['QuestionMarkCircleIcon'];
-    return Icon ? <Icon className={className} /> : (FallbackIcon ? <FallbackIcon className={className} /> : null);
-  };
-
-  const getIconForCategory = (categoryName: string, categories: Category[]) => {
-    const foundCategory = categories.find(c => c.name.toUpperCase() === categoryName.toUpperCase());
-    return foundCategory?.icon;
-  };
-
-
-  const getCorTextoProgresso = (percent: number) => {
-    if (percent < 50) return 'text-green-600';
-    if (percent < 75) return 'text-yellow-600';
-    if (percent < 90) return 'text-orange-600';
-    return 'text-red-600';
-  };
-
-
-  const isSameMonth = (isoDate: string, ref = new Date()) => {
-    // CORRIGIDO: Lógica de data mais robusta para evitar problemas de fuso
-    if (!isoDate || isoDate.length < 10) return false; 
-    const d = new Date(isoDate + 'T12:00:00'); // Adiciona hora do meio-dia
-    return d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth();
-  };
-
-  const isPreviousMonth = (isoDate: string, ref = new Date()) => {
-    if (!isoDate || isoDate.length < 10) return false;
-    const d = new Date(isoDate + 'T12:00:00');
-    const prevMonthRef = new Date(ref);
-    prevMonthRef.setMonth(ref.getMonth() - 1);
+import React, { useState, useEffect, useMemo } from 'react';
+import {
   
-    return d.getFullYear() === prevMonthRef.getFullYear() && d.getMonth() === prevMonthRef.getMonth();
+  LayoutDashboard, TrendingDown, TrendingUp, CreditCard,
+  Calendar, Settings, Goal, Menu,
+  ArrowUpRight, PieChart, ChevronRight, Bell, Search, Sun, Moon, Wallet, Plus
+} from 'lucide-react';
+
+import Gastos from './pages/Gastos';
+import Receitas from './pages/Receitas';
+import ContasRecorrentes from './pages/ContasRecorrentes';
+import Objetivos from './pages/Objetivos';
+import Cartoes from './pages/Cartoes';
+import Faturas from './pages/Faturas';
+import ResumoAnual from './pages/ResumoAnual';
+import Configuracoes from './pages/Configuracoes';
+import Modal from './components/Modal';
+import { Gasto, Receita, Assinatura, Cartao, Category, Objetivo, Tab } from './pages/types';
+import { capitalize, fmt, toNum, CATEGORIAS_GASTO } from '../utils/helpers';
+import LifeTrackerCompactLogo from './components/LifeTrackerCompactLogo';
+import LifeTrackerIconOnly from './components/LifeTrackerIconOnly';
+import { Toaster, toast } from 'sonner';
+import { IconComponent } from './components/CategoryIcon';
+import CreditCardVisual from './components/CreditCardVisual';
+
+// --- VISUAL COMPONENTS (from new design) ---
+
+const Card = ({ children, className = "", ...props }: { children: React.ReactNode, className?: string } & React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={`bg-white dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300 ${className}`} {...props}>
+    {children}
+  </div>
+);
+
+const Badge = ({ children, type = 'neutral' }: { children: React.ReactNode, type?: 'success' | 'danger' | 'warning' | 'neutral' }) => {
+  const colors = {
+    success: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20',
+    danger: 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 border-rose-200 dark:border-rose-500/20',
+    warning: 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border-amber-200 dark:border-amber-500/20',
+    neutral: 'bg-slate-100 text-slate-700 dark:bg-slate-700/50 dark:text-slate-300 border-slate-200 dark:border-slate-600',
+  };
+  return (
+    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${colors[type]}`}>{children}</span>
+  );
+};
+
+
+
+const SidebarItem = ({ icon: Icon, label, active, collapsed, onClick }: { icon: any, label:string, active: boolean, collapsed: boolean, onClick: () => void }) => (
+  <button
+    onClick={onClick}
+    title={collapsed ? label : undefined}
+    className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all duration-200 group relative ${active ? 'bg-[#10B981] text-white shadow-lg shadow-[#10B981]/30' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100'}`}>
+    <Icon size={20} strokeWidth={active ? 2.5 : 2} className={`transition-transform duration-300 ${active ? 'scale-110' : 'group-hover:scale-110'}`} />
+    {!collapsed && (<span className="font-medium text-sm whitespace-nowrap overflow-hidden">{label}</span>)}
+    {collapsed && (<div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">{label}</div>)}
+  </button>
+);
+
+// --- MAIN APP COMPONENT ---
+
+export default function LifeTracker() {
+  // --- STATES ---
+  const [darkMode, setDarkMode] = useState(false);
+  const [tab, setTab] = useState<Tab>('dashboard');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const [gastos, setGastos] = useState<Gasto[]>([]);
+  const [receitas, setReceitas] = useState<Receita[]>([]);
+  const [assinaturas, setAssinaturas] = useState<Assinatura[]>([]);
+  const [cartoes, setCartoes] = useState<Cartao[]>([]);
+  const [categorias, setCategorias] = useState<Category[]>([]);
+  const [objetivos, setObjetivos] = useState<Objetivo[]>([]);
+  
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState<'gasto' | 'receita' | 'assinatura' | 'cartao' | 'categoria' | 'objetivo' | null>(null);
+  const [itemToEdit, setItemToEdit] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const getBankColorClass = (n: string) => {
+    const lower = n.toLowerCase();
+    if (lower.includes('nubank')) return 'bg-purple-600';
+    if (lower.includes('santander')) return 'bg-red-600';
+    if (lower.includes('inter')) return 'bg-orange-500';
+    if (lower.includes('itau') || lower.includes('itaú')) return 'bg-orange-600';
+    if (lower.includes('caixa')) return 'bg-blue-700';
+    if (lower.includes('bradesco')) return 'bg-red-700';
+    if (lower.includes('c6')) return 'bg-slate-800';
+    if (lower.includes('banco do brasil') || lower.includes('bb')) return 'bg-yellow-400';
+    if (lower.includes('xp')) return 'bg-slate-800';
+    return 'bg-slate-600';
   };
 
-  const calcularGastosPorCategoria = (lista: Gasto[] = []) => {
-    return lista.reduce((acc: Record<string, number>, g) => {
-      const cat = (g?.categoria ?? 'OUTROS') as string;
-      const v = toNum(g?.valor);
-      acc[cat] = (acc[cat] || 0) + v;
-      return acc;
-    }, {} as Record<string, number>);
-  };
+  // --- EFFECTS ---
 
-  const calcularProximoVencimentoAnual = (assinatura: Assinatura) => {
-    if (assinatura.periodoCobranca !== 'ANUAL') return null;
-
-    const hoje = new Date();
-    const anoAtual = hoje.getFullYear();
-    const mesAtual = hoje.getMonth() + 1; // Mês de 1 a 12
-    const diaAtual = hoje.getDate();
-
-    let anoVencimento = anoAtual;
-    // Se o mês de cobrança já passou ou é o mês atual e o dia de cobrança já passou
-    if (assinatura.mesCobranca! < mesAtual || (assinatura.mesCobranca === mesAtual && assinatura.diaCobranca! < diaAtual)) {
-      anoVencimento++;
-    }
-
-    const dataVencimento = new Date(anoVencimento, assinatura.mesCobranca! - 1, assinatura.diaCobranca!);
-    const diffDias = Math.ceil((dataVencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
-
-    return {
-      data: dataVencimento,
-      ehProximo: diffDias <= 30 && diffDias >= 0, // Considera próximo se for nos próximos 30 dias
-      texto: `em ${diffDias} dias`,
-    };
-  };
-
-  /** =========================
-   * Componente principal
-   * ========================= */
-
-  // Define as props que o LifeTracker receberá do App.tsx
-  interface LifeTrackerProps {
-    darkMode: boolean;
-    toggleDarkMode: () => void;
-  }
-
-  // Renomeado de 'export default function LifeTracker...'
-  const LifeTracker: React.FC<LifeTrackerProps> = ({ darkMode, toggleDarkMode }) => {
-    // Abas
-    const [tab, setTab] = React.useState<'dashboard' | 'gastos' | 'receitas' | 'contas-recorrentes' | 'objetivos' | 'cartoes' | 'dividas' | 'faturas' | 'configuracoes' | 'resumo-anual'>('dashboard');
-
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
-    React.useEffect(() => {
-    // Mobile = telas menores que 640px (breakpoint do Tailwind)
-    if (window.innerWidth < 640) {
-      setIsSidebarCollapsed(true);
+  // Dark Mode
+  useEffect(() => {
+    const isDark = localStorage.getItem('theme') === 'dark' || (localStorage.getItem('theme') === null && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    setDarkMode(isDark);
+    if (isDark) {
+      document.documentElement.classList.add('dark');
     }
   }, []);
-    // Modais e ordenação de listas
-    const [showMensaisModal, setShowMensaisModal] = React.useState(false);
-    const [mensaisSort, setMensaisSort] = React.useState<'nome' | 'valor' | 'vencimento'>('vencimento');
-    const [mensaisQuery, setMensaisQuery] = React.useState('');
-    const [showCreditoMesModal, setShowCreditoMesModal] = React.useState(false);
 
-    // Estados
-    const [gastos, setGastos] = React.useState<Gasto[]>([]);
-    const [receitas, setReceitas] = React.useState<Receita[]>([]);
-    const [assinaturas, setAssinaturas] = React.useState<Assinatura[]>([]);
-    const [objetivos, setObjetivos] = React.useState<Objetivo[]>([]);
-    const [cartoes, setCartoes] = React.useState<Cartao[]>([]);
-    const [categories, setCategories] = React.useState<Category[]>(initialCategories);
-    const [configuracoes, setConfiguracoes] = React.useState<ConfiguracoesType>({ categories: initialCategories,
-      credito: { alerta: '2500', critico: '1000', positivo: '5000' },
-      saldo: { alerta: '500', critico: '100', positivo: '2000' },
-    });
-
-    // --- Edição de cartões ---
-    const [editingCardId, setEditingCardId] = React.useState<number | null>(null);
-    const [editCardDraft, setEditCardDraft] = React.useState<Cartao | null>(null);
-    // --- Edição de gastos e receitas ---
-    const [editingGastoId, setEditingGastoId] = React.useState<number | null>(null);
-    const [editingReceitaId, setEditingReceitaId] = React.useState<number | null>(null);
-    const [editingAssinaturaId, setEditingAssinaturaId] = React.useState<number | null>(null);
-    // --- Sugestões de cartões ---
-    const [sugestoesCartao, setSugestoesCartao] = React.useState<string[]>([]);
-    // --- Faturas ---
-    const [mesFatura, setMesFatura] = React.useState(new Date());
-    const [buscaFatura, setBuscaFatura] = React.useState('');
-    const [anoResumo, setAnoResumo] = React.useState(new Date().getFullYear());
-
-    const [valorAdicionarObjetivo, setValorAdicionarObjetivo] = React.useState<Record<number, string>>({});
-    const [sugestaoAtivaIndex, setSugestaoAtivaIndex] = React.useState(-1);
-    const [sugestoesDescricao, setSugestoesDescricao] = React.useState<string[]>([]);
-    const [sugestaoDescricaoAtivaIndex, setSugestaoDescricaoAtivaIndex] = React.useState(-1);
-
-
-    const startEditCard = (c: Cartao) => {
-      setEditingCardId(c.id);
-      setEditCardDraft({ ...c });
-    };
-
-    const cancelEditCard = () => {
-      setEditingCardId(null);
-      setEditCardDraft(null);
-    };
-
-  const saveEditCard = () => {
-    if (!editCardDraft || editCardDraft.id === undefined) return;
-    
-    const updatedCartoes = cartoes.map(x => {
-      if (x.id === editCardDraft.id) {
-        return {
-          id: editCardDraft.id,
-          nome: editCardDraft.nome ?? "",
-          limite: editCardDraft.limite ?? "0",
-          // CORRIGIDO: Acessa 'diaFechamento' diretamente, pois corrigimos a interface
-          diaFechamento: editCardDraft.diaFechamento ?? 1, 
-          diaVencimento: editCardDraft.diaVencimento ?? 1 
-        };
-      }
-      return x;
-    });
-    
-    setCartoes(updatedCartoes);
-    setEditingCardId(null);
-    setEditCardDraft(null);
+  const toggleDarkMode = () => {
+    setDarkMode(prevMode => {
+      const newMode = !prevMode;
+      if (newMode) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+      }
+      return newMode;
+    });
   };
 
-    const deleteCard = (id: number) => {
-      const toDelete = cartoes.find(c => c.id == id);
-      if (!toDelete) return;
-      if (!window.confirm(`Remover o cartão "${toDelete.nome}"? Seus gastos antigos permanecem, apenas deixam de apontar para este cartão.`)) return;
+  // Load data from localStorage
+  useEffect(() => {
+    try {
+      const storedGastos = localStorage.getItem('gastos');
+      if (storedGastos) setGastos(JSON.parse(storedGastos));
 
-      // Remover cartão e, se era padrão, definir o primeiro restante como padrão
-      setCartoes((prev: Cartao[]) => prev.filter((x: Cartao) => x.id !== id));
+      const storedReceitas = localStorage.getItem('receitas');
+      if (storedReceitas) setReceitas(JSON.parse(storedReceitas));
 
-      // Para não quebrar referências: zera cartaoId dos gastos que apontavam para ele (mantém cartaoNome como histórico)
-      setGastos(prev => prev.map(g => g.cartaoId === id ? { ...g, cartaoId: null } : g));
-      // Também para assinaturas
-      setAssinaturas(prev => prev.map(a => a.cartaoId === id ? { ...a, cartaoId: null } : a));
-    };
+      const storedAssinaturas = localStorage.getItem('assinaturas');
+      if (storedAssinaturas) setAssinaturas(JSON.parse(storedAssinaturas));
 
-    const removerAssinatura = (id: number): void => {
-      const assinaturaParaRemover = assinaturas.find(a => a.id === id);
+      const storedCartoes = localStorage.getItem('cartoes');
+      if (storedCartoes) setCartoes(JSON.parse(storedCartoes));
 
-      if (!assinaturaParaRemover) return;
-      
-      // Adicionado confirm
-      if (!window.confirm(`Tem certeza que deseja remover a assinatura "${assinaturaParaRemover.nome}"?`)) {
-        return;
+      const storedCategorias = localStorage.getItem('categorias');
+      if (storedCategorias && JSON.parse(storedCategorias).length > 0) {
+        setCategorias(JSON.parse(storedCategorias));
+      } else {
+        const iconMap: { [key: string]: string } = {
+          'Alimentação': 'ShoppingCartIcon',
+          'Transporte': 'TruckIcon',
+          'Lazer': 'TicketIcon',
+          'Saúde': 'HeartIcon',
+          'Moradia': 'HomeIcon',
+          'Educação': 'AcademicCapIcon',
+          'Compras': 'GiftIcon',
+          'Vestuário': 'BriefcaseIcon',
+          'Eletrônicos': 'DevicePhoneMobileIcon',
+          'Utensílios Domésticos': 'BuildingLibraryIcon',
+          'Beleza & Cuidados': 'CakeIcon',
+          'Pets': 'QuestionMarkCircleIcon',
+          'Investimentos': 'BanknotesIcon',
+          'Imprevisto': 'BoltIcon',
+          'Outros': 'QuestionMarkCircleIcon',
+        };
+
+        const defaultCategories: Category[] = CATEGORIAS_GASTO.map((name, index) => ({
+          id: String(index + 1),
+          name,
+          type: 'despesa',
+          icon: iconMap[name] || 'QuestionMarkCircleIcon',
+        }));
+        setCategorias(defaultCategories);
+        saveData('categorias', defaultCategories);
       }
+      
+      const storedObjetivos = localStorage.getItem('objetivos');
+      if (storedObjetivos) setObjetivos(JSON.parse(storedObjetivos));
 
-      // Se for um aluguel pago, remove também o gasto correspondente para estornar o valor.
-      if (assinaturaParaRemover.tipo === 'CONTRATO - ALUGUEL' && assinaturaParaRemover.pagoEsteMes) {
-        const descricaoGastoAluguel = `Pagamento Aluguel: ${assinaturaParaRemover.nome}`;
-        setGastos(prevGastos => prevGastos.filter(g => 
-          !(g.descricao === descricaoGastoAluguel && g.categoria === 'MORADIA' && isSameMonth(g.data))
-        ));
-      }
-
-      setAssinaturas(prev => prev.filter(a => a.id !== id));
-    };
-
-    const pagarParcelaAcordo = (id: number): void => {
-      setAssinaturas((prev: Assinatura[]) =>
-        prev.map((a: Assinatura) => {
-          if (a.id === id && a.tipo === 'ACORDO') {
-            const proximaParcela = (a.parcelaAtual ?? 0) + 1;
-            return { ...a, parcelaAtual: proximaParcela };
-          }
-          return a;
-        })
-      );
-    };
-
-    // Forms
-    
-    const [novoGasto, setNovoGasto] = React.useState<Gasto>({
-      id: 0, descricao: '', valor: '', data: new Date().toISOString().slice(0,10),
-      categoria: 'ALIMENTAÇÃO', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null,
-      parcelasTotal: 1
-    });
-
-    const [novaReceita, setNovaReceita] = React.useState<Receita>({
-      id: 0, descricao: '', valor: '', data: new Date().toISOString().slice(0,10)
-    });
-
-    const [novaAssinatura, setNovaAssinatura] = React.useState<Assinatura>({
-      id: 0, nome: '', valor: '', diaCobranca: 1, tipo: 'ASSINATURA',
-      categoriaPersonalizada: '', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null, periodoCobranca: 'MENSAL', mesCobranca: new Date().getMonth() + 1, anoAdesao: new Date().getFullYear()
-    });
-
-    const [novoObjetivo, setNovoObjetivo] = React.useState<Objetivo>({
-      id: 0, nome: '', valorNecessario: '', valorAtual: 0, status: 'EM PROGRESSO'
-    } as unknown as Objetivo);
-
-    interface NovoCartaoDraft {
-      nome: string;
-      limite: string;
-      diaVencimento: number; 
-      diaFechamento: number; 
+    } catch (error) {
+      console.error("Failed to parse data from localStorage", error);
+      toast.error("Erro ao carregar dados salvos.");
+    } finally {
+      setLoading(false);
     }
-    // CORRIGIDO: Removida a segunda definição de NovoCartaoDraft
+  }, []);
 
-    const [novoCartao, setNovoCartao] = React.useState<NovoCartaoDraft>({
-      nome: '',
-      limite: '',
-      diaVencimento: 1, 
-      diaFechamento: 1, 
+  // Mobile sidebar management
+  useEffect(() => {
+    const handleResize = () => window.innerWidth >= 1024 && setIsMobileMenuOpen(false);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // --- DATA PERSISTENCE ---
+  const saveData = (key: string, data: any) => {
+    localStorage.setItem(key, JSON.stringify(data));
+  };
+
+  // --- CRUD HANDLERS ---
+  const handleSaveGasto = (gasto: Gasto) => {
+    const newGastos = gasto.id ? gastos.map(g => g.id === gasto.id ? gasto : g) : [...gastos, { ...gasto, id: Date.now() }];
+    setGastos(newGastos);
+    saveData('gastos', newGastos);
+    toast.success('Gasto salvo com sucesso!');
+  };
+
+  const handleDeleteGasto = (id: number) => {
+    const newGastos = gastos.filter(g => g.id !== id);
+    setGastos(newGastos);
+    saveData('gastos', newGastos);
+    toast.success('Gasto excluído com sucesso!');
+  };
+  
+  const handleSaveReceita = (receita: Receita) => {
+    const newReceitas = receita.id ? receitas.map(r => r.id === receita.id ? receita : r) : [...receitas, { ...receita, id: Date.now() }];
+    setReceitas(newReceitas);
+    saveData('receitas', newReceitas);
+    toast.success('Receita salva com sucesso!');
+  };
+
+  const handleDeleteReceita = (id: number) => {
+    const newReceitas = receitas.filter(r => r.id !== id);
+    setReceitas(newReceitas);
+    saveData('receitas', newReceitas);
+    toast.success('Receita excluída com sucesso!');
+  };
+
+  const handleSaveAssinatura = (assinatura: Assinatura) => {
+    const newAssinaturas = assinatura.id ? assinaturas.map(a => a.id === assinatura.id ? assinatura : a) : [...assinaturas, { ...assinatura, id: Date.now() }];
+    setAssinaturas(newAssinaturas);
+    saveData('assinaturas', newAssinaturas);
+    toast.success('Assinatura salva com sucesso!');
+  };
+
+  const handleDeleteAssinatura = (id: number) => {
+    const newAssinaturas = assinaturas.filter(a => a.id !== id);
+    setAssinaturas(newAssinaturas);
+    saveData('assinaturas', newAssinaturas);
+    toast.success('Assinatura excluída com sucesso!');
+  };
+
+  const handleSaveCartao = (cartao: Cartao) => {
+    const newCartoes = cartao.id ? cartoes.map(c => c.id === cartao.id ? cartao : c) : [...cartoes, { ...cartao, id: Date.now() }];
+    setCartoes(newCartoes);
+    saveData('cartoes', newCartoes);
+    toast.success('Cartão salvo com sucesso!');
+  };
+
+  const handleDeleteCartao = (id: number) => {
+    const newCartoes = cartoes.filter(c => c.id !== id);
+    setCartoes(newCartoes);
+    saveData('cartoes', newCartoes);
+    toast.success('Cartão excluído com sucesso!');
+  };
+
+  const handleSetCartaoPrincipal = (id: number) => {
+    const newCartoes = cartoes.map(c => ({
+      ...c,
+      isPrincipal: c.id === id
+    }));
+    setCartoes(newCartoes);
+    saveData('cartoes', newCartoes);
+    toast.success('Cartão principal definido!');
+  };
+
+  const handleSaveObjetivo = (objetivo: Objetivo) => {
+    const newObjetivos = objetivo.id ? objetivos.map(o => o.id === objetivo.id ? objetivo : o) : [...objetivos, { ...objetivo, id: Date.now() }];
+    setObjetivos(newObjetivos);
+    saveData('objetivos', newObjetivos);
+    toast.success('Objetivo salvo com sucesso!');
+  };
+
+  const handleDeleteObjetivo = (id: number) => {
+    const newObjetivos = objetivos.filter(o => o.id !== id);
+    setObjetivos(newObjetivos);
+    saveData('objetivos', newObjetivos);
+    toast.success('Objetivo excluído com sucesso!');
+  };
+
+  const handleUpdateValorObjetivo = (id: number, amount: number) => {
+    const newObjetivos = objetivos.map(o => {
+      if (o.id === id) {
+        const novoValor = o.valorAtual + amount;
+        const valorNecessario = toNum(o.valorNecessario);
+        // Clamp the value between 0 and the required amount
+        const valorAtual = Math.max(0, Math.min(novoValor, valorNecessario));
+        return { ...o, valorAtual };
+      }
+      return o;
+    });
+    setObjetivos(newObjetivos);
+    saveData('objetivos', newObjetivos);
+    toast.success(`Valor do objetivo atualizado!`);
+  };
+
+  const handleSetObjetivoPrincipal = (id: number) => {
+    const newObjetivos = objetivos.map(o => ({
+      ...o,
+      isPrincipal: o.id === id
+    }));
+    setObjetivos(newObjetivos);
+    saveData('objetivos', newObjetivos);
+    toast.success('Objetivo principal definido!');
+  };
+
+  const handleSaveCategoria = (categoria: Category) => {
+    const newCategorias = categoria.id ? categorias.map(c => c.id === categoria.id ? categoria : c) : [...categorias, { ...categoria, id: String(Date.now()) }];
+    setCategorias(newCategorias);
+    saveData('categorias', newCategorias);
+    toast.success('Categoria salva com sucesso!');
+  };
+
+  const handleDeleteCategoria = (id: string) => {
+    const newCategorias = categorias.filter(c => c.id !== id);
+    setCategorias(newCategorias);
+    saveData('categorias', newCategorias);
+    toast.success('Categoria excluída com sucesso!');
+  };
+
+  const handleTogglePagamentoAssinatura = (id: number) => {
+    const newAssinaturas = assinaturas.map(a => a.id === id ? { ...a, pagoEsteMes: !a.pagoEsteMes } : a);
+    setAssinaturas(newAssinaturas);
+    saveData('assinaturas', newAssinaturas);
+    toast.success('Status da assinatura atualizado!');
+  };
+
+  // --- MODAL HANDLERS ---
+  const openModal = (type: 'gasto' | 'receita' | 'assinatura' | 'cartao' | 'categoria' | 'objetivo', item?: any) => {
+    setModalType(type);
+    setItemToEdit(item);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setModalType(null);
+    setItemToEdit(null);
+  };
+
+  const changeTab = (newTab: Tab) => {
+    setTab(newTab);
+    setIsMobileMenuOpen(false);
+  }
+
+  // --- DERIVED DATA ---
+  const totalReceitas = useMemo(() => receitas.reduce((acc, r) => acc + toNum(r.valor), 0), [receitas]);
+  const gastosDebito = useMemo(() => gastos.filter(g => g.tipoPagamento === 'DÉBITO').reduce((acc, g) => acc + toNum(g.valor), 0), [gastos]);
+  const gastosCredito = useMemo(() => gastos.filter(g => g.tipoPagamento === 'CRÉDITO').reduce((acc, g) => acc + toNum(g.valor), 0), [gastos]);
+  const totalGastos = gastosDebito + gastosCredito;
+  const saldo = totalReceitas - gastosDebito;
+
+  const creditData = useMemo(() => {
+    const totalLimite = cartoes.reduce((acc, c) => acc + toNum(c.limite), 0);    
+    const gastosPorCartao: { [cardId: number]: number } = {};
+
+    cartoes.forEach(cartao => {
+      gastosPorCartao[cartao.id] = 0;
     });
 
+    gastos.filter(g => g.tipoPagamento === 'CRÉDITO' && g.cartaoId).forEach(gasto => {
+        if (gasto.cartaoId && gastosPorCartao.hasOwnProperty(gasto.cartaoId)) {
+            gastosPorCartao[gasto.cartaoId] += toNum(gasto.valor);
+        }
+    });
 
-    // Persistência (localStorage)
-    React.useEffect(() => {
-      const load = <T,>(k: string, fallback: T) => {
-        try { const s = localStorage.getItem(k); return s ? JSON.parse(s) as T : fallback; }
-        catch { return fallback; }
-      };
-      setGastos(load<Gasto[]>('ltf_gastos', []));
-      setReceitas(load<Receita[]>('ltf_receitas', []));
-      setAssinaturas(load<Assinatura[]>('ltf_assinaturas', []));
- setObjetivos(load<Objetivo[]>('ltf_objetivos', []));
-      setCartoes(load<Cartao[]>('ltf_cartoes', []));
-      setCategories(load<Category[]>('ltf_categories', initialCategories));
-      // CORRIGIDO: Adicionando categories ao fallback de configuracoes
-      setConfiguracoes(load<ConfiguracoesType>('ltf_configuracoes', {
-        categories: initialCategories, // Adicionado categories ao fallback
-        credito: { alerta: '2500', critico: '1000', positivo: '5000' },
-        saldo: { alerta: '500', critico: '100', positivo: '2000' },
-      }));
+    const totalGastosCredito = Object.values(gastosPorCartao).reduce((acc, val) => acc + val, 0);
+    const disponivel = totalLimite - totalGastosCredito;
 
- // Removida a linha duplicada: setConfiguracoes(load<ConfiguracoesType>('ltf_configuracoes', { ...fallbackConfig, categories: categories }));
+    return { totalLimite, disponivel, gastosPorCartao };
+  }, [cartoes, gastos]);
 
- // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    // CORRIGIDO: Usando chaves prefixadas e únicas
-    React.useEffect(() => { localStorage.setItem('ltf_gastos', JSON.stringify(gastos)); }, [gastos]);
-    React.useEffect(() => { localStorage.setItem('ltf_receitas', JSON.stringify(receitas)); }, [receitas]);
-    React.useEffect(() => { localStorage.setItem('ltf_assinaturas', JSON.stringify(assinaturas)); }, [assinaturas]);
-    React.useEffect(() => { localStorage.setItem('ltf_objetivos', JSON.stringify(objetivos)); }, [objetivos]);
-    React.useEffect(() => { localStorage.setItem('ltf_cartoes', JSON.stringify(cartoes)); }, [cartoes]);
-    React.useEffect(() => { localStorage.setItem('ltf_categories', JSON.stringify(categories)); }, [categories]);
-    // CORRIGIDO: Removido useEffect duplicado
-    React.useEffect(() => { localStorage.setItem('ltf_configuracoes', JSON.stringify(configuracoes)); }, [configuracoes]);
-
-    // Derivados
-    const totalReceitas = React.useMemo(
-      () => receitas.reduce((acc, r) => acc + toNum(r.valor), 0),
-      [receitas]
-    );
-  // ... (restante dos useMemo: gastosDebito, gastosCredito, etc.) ...
-    const gastosDebito = React.useMemo(
-      () => gastos.filter(g => g.tipoPagamento === 'DÉBITO').reduce((acc, g) => acc + toNum(g.valor), 0),
-      [gastos]
-    );
-
-    const gastosCredito = React.useMemo(
-      () => gastos.filter(g => g.tipoPagamento === 'CRÉDITO').reduce((acc, g) => acc + toNum(g.valor), 0),
-      [gastos]
-    );
-
-    const gastosCreditoMes = React.useMemo(
-      () => gastos.filter(g => g.tipoPagamento === 'CRÉDITO' && isSameMonth(g.data)).reduce((acc, g) => acc + toNum(g.valor), 0),
-      [gastos]
-    );
-
-    const totalLimite = React.useMemo(
-      () => cartoes.reduce((acc, c) => acc + toNum(c.limite), 0),
-      [cartoes]
-    );
-
-    const gastosTotal = React.useMemo(
-      () => gastosCredito + gastosDebito,
-      [gastosCredito, gastosDebito]
-    );
-
-    const assinDebitoMensal = React.useMemo(
-      () => assinaturas
-        .filter(a => a.tipoPagamento === 'DÉBITO' && a.periodoCobranca === 'MENSAL' && a.tipo !== 'CONTRATO - ALUGUEL')
-        .reduce((acc, a) => acc + toNum(a.valor), 0),
-      [assinaturas]
-    );
-
-    const saldo = React.useMemo(
-      () => totalReceitas - gastosDebito - assinDebitoMensal,
-      [totalReceitas, gastosDebito, assinDebitoMensal]
-    );
-
-    const saldoMesAnterior = React.useMemo(() => {
-      const receitasMesAnterior = receitas
-        .filter(r => isPreviousMonth(r.data))
-        .reduce((acc, r) => acc + toNum(r.valor), 0);
-
-      const gastosDebitoMesAnterior = gastos
-        .filter(g => g.tipoPagamento === 'DÉBITO' && isPreviousMonth(g.data))
-        .reduce((acc, g) => acc + toNum(g.valor), 0);
-
-      // Assumindo que assinaturas de débito são constantes mês a mês
-      return receitasMesAnterior - gastosDebitoMesAnterior - assinDebitoMensal;
-    }, [receitas, gastos, assinDebitoMensal]);
-
-
-
-
-    // Listas derivadas para modais
-    const assinMensais = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'MENSAL' && a.tipo === 'ASSINATURA'), [assinaturas]);
-
-    // Assinaturas mensais pagas no crédito também contam como gasto de crédito do mês
-    const assinaturasCreditoMensal = React.useMemo(
-      () => assinMensais.filter(a => a.tipoPagamento === 'CRÉDITO').reduce((s, a) => s + toNum(a.valor), 0),
-      [assinMensais]
-    );
-
-
-    const porCategoria = React.useMemo(() => calcularGastosPorCategoria(gastos), [gastos]);
-    const anuaisTodos = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'ANUAL'), [assinaturas]);
-    const anuaisProximas = React.useMemo(() => anuaisTodos.filter(a => {
-      const vencimento = calcularProximoVencimentoAnual(a); 
-      return !!vencimento && (vencimento.ehProximo ?? false); // Use the renamed helper
-    }), [anuaisTodos]);
-
-    // Assinaturas anuais que vencem no mês atual
-    const anuaisVencendoMes = React.useMemo(() => anuaisTodos.filter(a => {
-      const vencimento = calcularProximoVencimentoAnual(a);
-      return vencimento ? isSameMonth(vencimento.data.toISOString()) : false;
-    }), [anuaisTodos]);
-
-    const totalAssinAnualMesCorrenteCredito = React.useMemo(
-      () => anuaisVencendoMes.filter(a => a.tipoPagamento === 'CRÉDITO').reduce((acc, a) => acc + toNum(a.valor), 0),
-      [anuaisVencendoMes]
-    );
-
-    // Lógica da aba Faturas
-    const faturasPorCartao = React.useMemo(() => {
-      const isMesFatura = (data: string) => {
-        const d = new Date(data + 'T12:00:00');
-        return d.getFullYear() === mesFatura.getFullYear() && d.getMonth() === mesFatura.getMonth();
-      };
-
-      const faturas = cartoes.map(cartao => {
-        const gastosDoCartao = gastos.filter(g => g.cartaoId === cartao.id && g.tipoPagamento === 'CRÉDITO' && isMesFatura(g.data));
-        const assinaturasDoCartao = assinaturas.filter(a => a.cartaoId === cartao.id && a.tipoPagamento === 'CRÉDITO' && a.periodoCobranca === 'MENSAL');
-        
-        const lancamentos = [
-          ...gastosDoCartao.map(g => ({ ...g, dataObj: new Date(g.data + 'T12:00:00') })),
-          ...assinaturasDoCartao.map(a => ({
-            id: `ass-${a.id}`,
-            descricao: a.nome,
-            valor: a.valor,
-            data: new Date(mesFatura.getFullYear(), mesFatura.getMonth(), a.diaCobranca).toISOString().slice(0, 10),
-            dataObj: new Date(mesFatura.getFullYear(), mesFatura.getMonth(), a.diaCobranca),
-            categoria: a.categoriaPersonalizada || a.tipo,
-            // Adiciona os campos que faltam para Gasto
-            tipoPagamento: a.tipoPagamento,
-            cartaoId: a.cartaoId,
-            cartaoNome: a.cartaoNome,
-          }))
-        ].sort((a, b) => a.dataObj.getTime() - b.dataObj.getTime());
-
-        const total = lancamentos.reduce((acc, item) => acc + toNum(item.valor), 0);
-
-        return {
-          cartao,
-          lancamentos: lancamentos as (Gasto & { dataObj: Date })[], // Cast para unificar o tipo
-          total,
-          disponivel: toNum(cartao.limite) - total,
-        };
-      });
-
-
-      // Ordenação especial para layout
-      if (faturas.length > 1) {
-        faturas.sort((a, b) => toNum(b.cartao.limite) - toNum(a.cartao.limite));
-        if (faturas.length > 2) {
-          // Move o segundo maior para o início (será o da esquerda)
-          const segundo = faturas.splice(1, 1)[0];
-          if (segundo) {
-            faturas.unshift(segundo);
-          }
-        }
-      }
-      return faturas;
-    }, [cartoes, gastos, assinaturas, mesFatura]);
-
-    const faturasFiltradas = React.useMemo(() => {
-      if (!buscaFatura.trim()) return faturasPorCartao;
-      const query = buscaFatura.toLowerCase();
-
-      return faturasPorCartao.map(fatura => ({
-        ...fatura,
-        lancamentos: fatura.lancamentos.filter(l => 
-          l.descricao.toLowerCase().includes(query) ||
-          (l.categoria || '').toLowerCase().includes(query) || // Adiciona verificação para categoria
-          String(l.valor).includes(query)
-        ),
-      }));
-    }, [faturasPorCartao, buscaFatura]);
-  // ... (restante dos useMemo: totalFaturasMes, creditoDisponivel, etc.) ...
-    const totalFaturasMes = React.useMemo(() => faturasPorCartao.reduce((acc, f) => acc + f.total, 0), [faturasPorCartao]);
-
-
-    const creditoDisponivel = React.useMemo(
-      () =>
-        Math.max(
-          0,
-          totalLimite - (gastosCredito + assinaturasCreditoMensal + totalAssinAnualMesCorrenteCredito)
-        ),
-      [totalLimite, gastosCredito, assinaturasCreditoMensal, totalAssinAnualMesCorrenteCredito]
-    ); 
-
-    // Compras parceladas ativas
-   const comprasParceladasAtivas = React.useMemo(() => {
-      const parcelados = gastos.filter(g => g.parcelaId && g.tipoPagamento === 'CRÉDITO');
-      const grouped = parcelados.reduce((acc, g) => {
-        if (!g.parcelaId) return acc;
-        if (!acc[g.parcelaId]) {
-          acc[g.parcelaId] = {
-            descricao: g.descricao,
-            // Ensure g.valor is a string before passing to toNum
-            // And g.parcelasTotal is a number before multiplication
-            valorTotal: toNum(String(g.valor)) * (g.parcelasTotal || 1),
-            parcelasPagas: 0,
-            parcelasTotal: g.parcelasTotal || 0,
-            valorParcela: toNum(g.valor),
-            cartaoNome: g.cartaoNome || 'Não identificado',
-          };
-        }
-        // Conta quantas parcelas já passaram (parcelas com data <= hoje)
-        const hoje = new Date();
-        const dataParcela = new Date(g.data + "T12:00:00"); // Adiciona T12 para evitar fuso
-        // Check if acc[g.parcelaId] is defined before accessing its properties
-        if (dataParcela <= hoje && acc[g.parcelaId]) {
-          acc[g.parcelaId]!.parcelasPagas = Math.max(acc[g.parcelaId]!.parcelasPagas, g.parcelaAtual || 0);
-        }
-        return acc;
-      }, {} as Record<string, { descricao: string; valorTotal: number; parcelasPagas: number; parcelasTotal: number; valorParcela: number; cartaoNome: string }>);
-
-      return Object.values(grouped).filter(g => g.parcelasPagas < g.parcelasTotal);
-    }, [gastos]);
-
-    const totalAssinMensal = React.useMemo(
-      () => assinaturas
-        .filter(a => a.periodoCobranca === 'MENSAL' && a.tipo === 'ASSINATURA')
-        .reduce((acc, a) => acc + toNum(a.valor), 0),
-      [assinaturas]
-    );
-
-    const totalAluguelMensal = React.useMemo(
-      () => assinaturas.filter(a => a.tipo === 'CONTRATO - ALUGUEL' && a.periodoCobranca === 'MENSAL')
-                       .reduce((acc, a) => acc + toNum(a.valor), 0),
-      [assinaturas]
-    );
-
-    const totalAssinAnualMesCorrente = React.useMemo(
-      () => anuaisVencendoMes.reduce((acc, a) => acc + toNum(a.valor), 0),
-      [anuaisVencendoMes]
-    );
-
-    const totalAnualAssinaturas = React.useMemo(() => {
-      return assinaturas.reduce((acc, a) => {
-        return acc + (toNum(a.valor) * (a.periodoCobranca === 'MENSAL' ? 12 : 1));
-      }, 0);
-    }, [assinaturas]);
-
-
-  const acordosMensais = React.useMemo(() => {
-    return assinaturas
-      .filter(a => a.tipo === 'ACORDO' && a.periodoCobranca === 'MENSAL' && (a.parcelaAtual ?? 1) <= (a.parcelasTotal ?? 1))
-      .reduce((acc, a) => {
-        const valorParcela = toNum(a.valor) / (a.parcelasTotal ?? 1);
-        return acc + valorParcela;
-      }, 0);
-  }, [assinaturas]);
-
-  const acordosAnuaisVencendoMes = React.useMemo(() => {
-    return anuaisVencendoMes
-      .filter(a => a.tipo === 'ACORDO' && (a.parcelaAtual ?? 1) <= (a.parcelasTotal ?? 1))
-      .reduce((acc, a) => {
-        const valorParcela = toNum(a.valor) / (a.parcelasTotal ?? 1);
-        return acc + valorParcela;
-      }, 0);
-  }, [anuaisVencendoMes]);
-
-  const totalAcordosMes = acordosMensais + acordosAnuaisVencendoMes;
-
-  // AGORA O PREVISAO MES (atualize o total)
-  const previsaoMes = React.useMemo(() => ({
-    aluguel: totalAluguelMensal,
-    assinaturas: totalAssinMensal + totalAssinAnualMesCorrente,
-    credito: gastosCreditoMes,
-    acordos: totalAcordosMes, // <-- CORRIGIDO: Adicionado acordos
-    total: totalAluguelMensal + totalAssinMensal + totalAssinAnualMesCorrente + gastosCreditoMes + totalAcordosMes
-  }), [totalAluguelMensal, totalAssinMensal, totalAssinAnualMesCorrente, gastosCreditoMes, totalAcordosMes]);
-    // ------------------------------------
-
-    // --- Resumo Anual ---
-    const dadosResumoAnual = React.useMemo(() => {
-      const meses = Array.from({ length: 12 }, (_, i) => ({
-        mes: i,
-        nome: new Date(anoResumo, i, 1).toLocaleString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase(),
-        receitas: 0,
-        gastosDebito: 0,
-        gastosCredito: 0,
-      }));
-
-      receitas.forEach(r => {
-        const d = new Date(r.data + 'T12:00:00');
-        if (d.getFullYear() === anoResumo) {
-          meses[d.getMonth()]!.receitas += toNum(r.valor);
-        }
-      });
-
-      gastos.forEach(g => {
-        const d = new Date(g.data + 'T12:00:00');
-        if (d.getFullYear() === anoResumo) {
-          if (g.tipoPagamento === 'CRÉDITO') {
-            meses[d.getMonth()]!.gastosCredito += toNum(g.valor);
-          } else {
-            meses[d.getMonth()]!.gastosDebito += toNum(g.valor);
-          }
-        }
-      });
-
-      return meses;
-    }, [anoResumo, receitas, gastos]);
-
-    // Listas derivadas para modais
-    const alugueisMensais = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'MENSAL' && a.tipo === 'CONTRATO - ALUGUEL'), [assinaturas]);
-    const acordosMensaisList = React.useMemo(() => assinaturas.filter(a => a.periodoCobranca === 'MENSAL' && a.tipo === 'ACORDO'), [assinaturas]);
-
-    // Lista detalhada de gastos de crédito do mês (gastos + assinaturas mensais no crédito)
-    const creditGastosMesList = React.useMemo(() => {
-      const now = new Date();
-      const gastosList = gastos
-        .filter(g => g.tipoPagamento === 'CRÉDITO' && isSameMonth(g.data))
-        .map(g => ({
-          id: `gasto-${g.id}`,
-          tipo: 'gasto' as const,
-          data: isNaN(new Date(g.data).getTime()) ? '' : g.data,
-          descricao: g.descricao,
-          valor: toNum(g.valor),
-          cartaoId: g.cartaoId,
-          cartaoNome: g.cartaoNome ?? cartoes.find(c => c.id === g.cartaoId)?.nome ?? ''
-        }));
-   
-      const assinList = assinMensais
-        .filter(a => a.tipoPagamento === 'CRÉDITO')
-        .map(a => ({
-          id: `assinatura-${a.id}`,
-          tipo: 'assinatura' as const,
-          data: new Date(now.getFullYear(), now.getMonth(), a.diaCobranca ?? 1).toISOString().slice(0,10),
-          descricao: a.nome + ' (assinatura)',
-          valor: toNum(a.valor),
-          cartaoId: a.cartaoId,
-          cartaoNome: cartoes.find(c => c.id === a.cartaoId)?.nome ?? ''
-        }));
-
-      return [...gastosList, ...assinList].sort((a, b) => (new Date(a.data + "T12:00:00")).getTime() - (new Date(b.data + "T12:00:00")).getTime());
-    }, [gastos, assinMensais, cartoes]);
-
-   // Resumo por cartão (considerando o total comprometido)
-    const creditByCard = React.useMemo(() => {
-      // Esta lógica recalcula o 'usado' com base em todos os gastos e assinaturas,
-      // o que é mais preciso do que o 'disponível' da fatura (que é só do mês)
-      const map = new Map<number, number>();
-      gastos.filter(g => g.tipoPagamento === 'CRÉDITO' && g.cartaoId != null).forEach(g => {
-        const id = g.cartaoId!;
-        map.set(id, (map.get(id) ?? 0) + toNum(g.valor));
-      });
-      assinaturas
-        .filter(a => a.tipoPagamento === 'CRÉDITO' && a.periodoCobranca === 'MENSAL' && a.cartaoId != null)
-        .forEach(a => {
-          const id = a.cartaoId!;
-          map.set(id, (map.get(id) ?? 0) + toNum(a.valor));
-        });
-      // Adiciona anuais de crédito
-      anuaisVencendoMes
-        .filter(a => a.tipoPagamento === 'CRÉDITO' && a.cartaoId != null)
-        .forEach(a => {
-          const id = a.cartaoId!;
-          map.set(id, (map.get(id) ?? 0) + toNum(a.valor));
-        });
-
-      return cartoes.map(c => ({
-        cartao: c,
-        usado: map.get(c.id) ?? 0,
-        disponivel: Math.max(0, toNum(c.limite) - (map.get(c.id) ?? 0)),
-      }));
-    }, [gastos, cartoes, assinaturas, anuaisVencendoMes]);
-
-
-    // Ordenação e filtro da lista de assinaturas mensais
-    const mensaisList = React.useMemo(() => {
-      const q = mensaisQuery.trim().toLowerCase();
-      const base = assinMensais.filter(a => a.nome.toLowerCase().includes(q));
-      const sort = [...base].sort((a, b) => {
-        if (mensaisSort === 'nome') return a.nome.localeCompare(b.nome);
-        if (mensaisSort === 'valor') return toNum(b.valor) - toNum(a.valor); // Mais caro primeiro
-        // vencimento
-        return (a.diaCobranca ?? 0) - (b.diaCobranca ?? 0);
-      });
-      return sort;
-    }, [assinMensais, mensaisQuery, mensaisSort]);
-
-
-    // --- BLOCO DE CÓDIGO CORROMPIDO REMOVIDO DAQUI ---
-
-    // Ações
-    const adicionarGasto = (e: React.FormEvent) => {
-  // ... (restante das funções de ação: adicionarGasto, iniciarEdicaoGasto, etc.) ...
-      e.preventDefault();
-      if (!novoGasto.descricao || !novoGasto.valor) {
-          alert("Descrição e Valor são obrigatórios.");
-          return;
+  const porCategoria = useMemo(() => {
+    const map: Record<string, {valor: number, icon: string}> = {};
+    categorias.forEach(c => map[c.name] = { valor: 0, icon: c.icon });
+    
+    gastos.forEach(g => {
+      if (!g.categoria) return;
+      const categoryData = map[g.categoria];
+      if (categoryData) {
+        categoryData.valor += toNum(g.valor);
+      } else {
+        map[g.categoria] = { valor: toNum(g.valor), icon: 'QuestionMarkCircleIcon' };
       }
-      if (novoGasto.tipoPagamento === 'CRÉDITO' && !novoGasto.cartaoId) {
-        alert('Por favor, selecione um cartão para o gasto de crédito.');
-        return;
-      }
+    });
+    return Object.entries(map).map(([nome, data]) => ({ nome, ...data })).sort((a, b) => b.valor - a.valor);
+  }, [gastos, categorias]);
 
-      const parcelas = novoGasto.tipoPagamento === 'CRÉDITO' ? (novoGasto.parcelasTotal || 1) : 1;
-      const valorParcela = toNum(novoGasto.valor) / parcelas;
-      const parcelaId = parcelas > 1 ? `${Date.now()}` : undefined;
+  const objetivoPrincipal = useMemo(() => objetivos.find(o => o.isPrincipal) || objetivos[0], [objetivos]);
 
-      const novosGastos: Gasto[] = [];
-      const dataInicial = new Date(novoGasto.data + 'T12:00:00'); // Evita problemas de fuso
+  const previsaoMes = useMemo(() => {
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
 
-      for (let i = 0; i < parcelas; i++) {
-        const dataParcela = new Date(dataInicial);
-        dataParcela.setMonth(dataInicial.getMonth() + i);
+    const isDueThisMonth = (a: Assinatura) => 
+        a.periodoCobranca === 'MENSAL' || 
+        (a.periodoCobranca === 'ANUAL' && a.mesCobranca && (a.mesCobranca - 1) === currentMonth);
 
-        const cartaoNome = novoGasto.tipoPagamento === 'CRÉDITO'
-          ? (cartoes.find(c => c.id === novoGasto.cartaoId)?.nome ?? null)
-          : null;
+    const totalAluguelMensal = assinaturas
+      .filter(a => a.tipo === 'CONTRATO - ALUGUEL' && isDueThisMonth(a))
+      .reduce((acc, a) => acc + toNum(a.valor), 0);
+      
+    const totalAssinaturas = assinaturas
+      .filter(a => a.tipo === 'ASSINATURA' && isDueThisMonth(a))
+      .reduce((acc, a) => acc + toNum(a.valor), 0);
 
-        novosGastos.push({
-          ...novoGasto,
-          id: Date.now() + i,
-          valor: String(valorParcela.toFixed(2)),
-          data: dataParcela.toISOString().slice(0, 10),
-          cartaoId: novoGasto.tipoPagamento === 'CRÉDITO' ? novoGasto.cartaoId : null,
-          cartaoNome,
-          parcelaId,
-          parcelaAtual: parcelas > 1 ? i + 1 : undefined,
-          parcelasTotal: parcelas > 1 ? parcelas : undefined,
-        });
-      }
+    const totalAcordosMes = assinaturas
+      .filter(a => a.tipo === 'ACORDO' && isDueThisMonth(a))
+      .reduce((acc, a) => acc + toNum(a.valor), 0);
+      
+    const gastosCreditoMes = gastos
+      .filter(g => {
+        if (g.tipoPagamento !== 'CRÉDITO') return false;
+        const parts = g.data.split('-');
+        if (parts.length < 2 || !parts[0] || !parts[1]) return false;
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10);
 
-      setGastos(g => [...g, ...novosGastos]);
+        if (isNaN(year) || isNaN(month)) return false;
+        return year === currentYear && (month - 1) === currentMonth;
+      })
+      .reduce((acc, g) => acc + toNum(g.valor), 0);
 
-      setNovoGasto({
-        id: 0, descricao: '', valor: '', data: new Date().toISOString().slice(0,10),
-        categoria: 'ALIMENTAÇÃO', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null,
-        parcelasTotal: 1
-      });
-    };
+    const total = totalAluguelMensal + totalAssinaturas + totalAcordosMes + gastosCreditoMes;
 
-    const iniciarEdicaoGasto = (gasto: Gasto) => {
-      setEditingGastoId(gasto.id);
-      setNovoGasto({ ...gasto });
-    };
+    return {
+      aluguel: totalAluguelMensal,
+      assinaturas: totalAssinaturas,
+      credito: gastosCreditoMes,
+      acordos: totalAcordosMes,
+      total: total
+    };
+  }, [assinaturas, gastos]);
 
-    const cancelarEdicaoGasto = () => {
-      setEditingGastoId(null);
-      setNovoGasto({
-        id: 0, descricao: '', valor: '', data: new Date().toISOString().slice(0,10),
-        categoria: 'ALIMENTAÇÃO', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null,
-        parcelasTotal: 1
-      });
-    };
+  const nomeMesAtual = new Date().toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
 
-    const salvarEdicaoGasto = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!window.confirm('Salvar as alterações neste gasto?')) return;
-      setGastos(gastos => gastos.map(g => g.id === editingGastoId ? { ...novoGasto, id: g.id } : g));
-      cancelarEdicaoGasto();
-    };
+  // --- RENDER ---
 
-    const iniciarEdicaoReceita = (receita: Receita) => {
-      setEditingReceitaId(receita.id);
-      setNovaReceita({ ...receita });
-    };
+  const renderContent = () => {
+    if (loading) {
+      return <div className="flex items-center justify-center h-full">Carregando...</div>;
+    }
+    if (tab === 'dashboard') {
+      return (
+        <div className="space-y-6">
+          {/* Section 1: Top Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="md:col-span-8 lg:col-span-5 relative group">
+              <Card className="h-full bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:to-slate-800 text-slate-800 dark:text-white p-6 md:p-8 overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-blue-500/15 dark:group-hover:bg-blue-500/30 transition-all duration-700"></div>
+                <div className="relative z-10 flex flex-col justify-between h-full">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1 text-slate-500 dark:text-white dark:opacity-80"><Wallet size={18} /><span className="text-sm font-medium tracking-wider uppercase">Saldo Atual</span></div>
+                    <h2 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4">{fmt(saldo)}</h2>
+                    
+                    {cartoes.length > 0 && (
+                        <div className="mt-4">
+                            <div className="flex items-center gap-2 mb-1 text-sm text-slate-500 dark:text-indigo-200 uppercase tracking-wider"><CreditCard size={16} /><span>Crédito Disponível</span></div>
+                            <div className="text-lg font-semibold">
+                              <span>{fmt(creditData.disponivel)}</span>
+                              <span className="text-slate-500/80 dark:opacity-70"> / {fmt(creditData.totalLimite)}</span>
+                            </div>
+                            <div className="mt-3 space-y-1 text-xs">
+                              {cartoes.map(card => {
+                                  const gastosDoCartao = creditData.gastosPorCartao[card.id] || 0; // Use pre-calculated value
+                                  const disponivelCard = toNum(card.limite) - gastosDoCartao;
+                                  const limiteCard = toNum(card.limite);
+                                  const colorClass = getBankColorClass(card.nome);
 
-    const cancelarEdicaoReceita = () => {
-      setEditingReceitaId(null);
-      setNovaReceita({ id: 0, descricao: '', valor: '', data: new Date().toISOString().slice(0,10) });
-    };
+                                  return (
+                                      <div key={card.id} className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                                          <span className={`w-2 h-2 rounded-full ${colorClass}`}></span>
+                                          <span className="flex-grow">{card.nome}</span>
+                                          <span className="font-mono text-slate-600 dark:text-slate-300">{fmt(disponivelCard)} / {fmt(limiteCard)}</span>
+                                      </div>
+                                  )
+                              })}
+                            </div>
+                        </div>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mt-8 pt-6 border-t border-slate-200 dark:border-white/10">
+                    <div>
+                      <span className="block text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Receitas</span>
+                      <span className="text-xl font-semibold text-emerald-600 dark:text-emerald-400">{fmt(totalReceitas)}</span>
+                    </div>
+                    <div>
+                      <span className="block text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Despesas</span>
+                      <span className="text-xl font-semibold text-rose-600 dark:text-rose-400">{fmt(totalGastos)}</span>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
 
-    const salvarEdicaoReceita = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!window.confirm('Salvar as alterações nesta receita?')) return;
-      setReceitas(receitas => receitas.map(r => r.id === editingReceitaId ? { ...novaReceita, id: r.id } : r));
-      cancelarEdicaoReceita();
-    };
+            <div className="md:col-span-4 lg:col-span-4 flex flex-col gap-4">
+              <div className="flex justify-between items-center mb-1">
+                <h3 className="font-semibold text-slate-700 dark:text-slate-300">Meus Cartões</h3>
+                <button className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors" onClick={() => setTab('cartoes')}><ArrowUpRight size={18}/></button>
+              </div>
+              {(() => {
+                const principalCard = cartoes.find(c => c.isPrincipal) || cartoes[0];
+                if (!principalCard) {
+                  return <Card className="flex items-center justify-center text-center p-4 h-full"><p className="text-sm text-slate-500">Nenhum cartão cadastrado.</p></Card>;
+                }
+                const gastosDoCartao = creditData.gastosPorCartao[principalCard.id] || 0;
+                return <CreditCardVisual key={principalCard.id} {...principalCard} gastos={gastosDoCartao} />;
+              })()}
+               {cartoes.length > 1 && (
+                <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors" onClick={() => setTab('cartoes')}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-7 rounded bg-gradient-to-r from-slate-700 to-slate-600 shadow-sm"></div>
+                      <span className="font-medium text-sm">Ver outros {cartoes.length - 1} cartões</span>
+                    </div>
+                    <ChevronRight size={16} className="text-slate-400"/>
+                </div>
+              )}
+            </div>
 
-    const removerGasto = (id: number) => {
-      setGastos(g => g.filter(gasto => gasto.id !== id));
-    };
+            <div className="md:col-span-12 lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+               <Card className="p-5 flex flex-col justify-center gap-4 bg-gradient-to-br from-blue-600 to-indigo-700 text-white border-none relative overflow-hidden group cursor-pointer hover:scale-[1.02]" onClick={() => openModal('gasto')}>
+                 <div className="absolute -right-6 -top-6 bg-white/10 w-24 h-24 rounded-full blur-xl group-hover:scale-150 transition-transform"></div>
+                 <div className="flex items-center justify-between z-10">
+                    <div className="p-2 bg-white/20 rounded-xl"><Plus size={24} className="text-white"/></div>
+                    <span className="text-xs font-bold uppercase tracking-widest opacity-70">Ação Rápida</span>
+                 </div>
+                 <div className="z-10">
+                    <h3 className="font-bold text-lg leading-tight">Novo Gasto</h3>
+                    <p className="text-sm opacity-80 mt-1">Adicionar nova transação</p>
+                 </div>
+              </Card>
+              <div className="grid grid-cols-1 gap-4">
+                <Card className="p-4 flex flex-col items-center justify-center text-center h-[95px]">
+                  <div className="text-sm text-slate-500 dark:text-slate-400">
+                    Total previsto para{' '}
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400 [text-shadow:0_0_8px_#4ade80]">
+                      {nomeMesAtual}
+                    </span>
+                  </div>
+                  <div className="text-lg font-bold mt-1">{fmt(previsaoMes.total)}</div>
+                </Card>
+                <Card className="p-4"><div className="flex justify-between items-center h-full"><span className="text-sm font-medium text-slate-500">Gastos (Crédito)</span><span className="font-bold text-base">{fmt(gastosCredito)}</span></div></Card>
+                <Card className="p-4"><div className="flex justify-between items-center h-full"><span className="text-sm font-medium text-slate-500">Gastos (Dinheiro)</span><span className="font-bold text-base">{fmt(gastosDebito)}</span></div></Card>
+              </div>
+            </div>
+          </div>
 
-    const removerReceita = (id: number) => {
-      setReceitas(r => r.filter(receita => receita.id !== id));
-    };
+          {/* Section 2: Lists and Stats */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2"><TrendingDown className="text-rose-500" size={20} />Atividade Recente</h3>
+                  <button className="text-sm text-blue-600 dark:text-blue-400 font-medium hover:underline" onClick={() => setTab('gastos')}>Ver tudo</button>
+                </div>
+                <div className="space-y-4">
+                  {gastos.slice().reverse().slice(0, 3).map((g) => (
+                    <div key={g.id} className="flex items-center justify-between p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-sm group-hover:scale-110 transition-transform duration-300 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300">
+                          <IconComponent iconName={(g.categoria && categorias.find(c => c.name === g.categoria)?.icon) || 'QuestionMarkCircleIcon'} className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-slate-800 dark:text-slate-100">{g.descricao}</h4>
+                          <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                            <span>{new Date(g.data).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'})}</span>
+                            {g.categoria && (
+                              <>
+                                <span>•</span>
+                                <span className="capitalize">{g.categoria.toLowerCase()}</span>
+                              </>
+                            )}
+                            {g.tipoPagamento === 'CRÉDITO' && <Badge>Crédito</Badge>}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="font-bold text-slate-800 dark:text-slate-100">- {fmt(toNum(g.valor))}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
 
-    const iniciarEdicaoAssinatura = (assinatura: Assinatura) => {
-      setEditingAssinaturaId(assinatura.id);
-      setNovaAssinatura({ ...assinatura });
-    };
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card className="p-6">
+                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">Top Categorias</h3>
+                    <div className="space-y-4">
+                      {porCategoria.length > 0 ? porCategoria.slice(0, 4).map(({nome, valor}, idx) => {
+                          const maxVal = porCategoria[0]!.valor;
+                          const percent = maxVal > 0 ? (valor / maxVal) * 100 : 0;
+                          return (
+                            <div key={nome}>
+                                <div className="flex justify-between text-sm mb-1"><span className="capitalize font-medium">{nome.toLowerCase()}</span><span className="text-slate-500">{fmt(valor)}</span></div>
+                                <div className="h-2 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                  <div className={`h-full rounded-full ${['bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500'][idx % 4]}`} style={{ width: `${percent}%` }}></div>
+                                </div>
+                            </div>
+                          )
+                      }) : <p className="text-sm text-slate-500">Sem gastos para exibir categorias.</p>}
+                    </div>
+                  </Card>
+                  
+                  {objetivoPrincipal && (
+                    <Card className="p-6 bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-500/20">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Objetivo Principal</h3>
+                          <Goal size={18} className="text-emerald-500"/>
+                        </div>
+                        <div className="text-center py-4">
+                          <div className="inline-block relative w-32 h-32">
+                              <svg className="w-full h-full transform -rotate-90">
+                                <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-emerald-200 dark:text-emerald-900" />
+                                <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray="351.85" strokeDashoffset={351.85 * (1 - (objetivoPrincipal.valorAtual / toNum(objetivoPrincipal.valorNecessario)))} className="text-emerald-500" strokeLinecap="round" />
+                              </svg>
+                              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{Math.round((objetivoPrincipal.valorAtual / toNum(objetivoPrincipal.valorNecessario)) * 100)}%</span>
+                              </div>
+                          </div>
+                          <h4 className="font-semibold mt-2">{objetivoPrincipal.nome}</h4>
+                          <p className="text-sm text-slate-500">Faltam {fmt(toNum(objetivoPrincipal.valorNecessario) - objetivoPrincipal.valorAtual)} de {fmt(toNum(objetivoPrincipal.valorNecessario))}</p>
+                        </div>
+                    </Card>
+                  )}
+              </div>
+            </div>
 
-    const cancelarEdicaoAssinatura = () => {
-      setEditingAssinaturaId(null);
-      setNovaAssinatura({ id: 0, nome: '', valor: '', diaCobranca: 1, tipo: 'ASSINATURA', categoriaPersonalizada: '', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null, periodoCobranca: 'MENSAL', mesCobranca: new Date().getMonth() + 1, anoAdesao: new Date().getFullYear() });
-    };
-    
-
-    const salvarEdicaoAssinatura = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!window.confirm('Salvar as alterações nesta assinatura?')) return;
-      setAssinaturas(assinaturas => assinaturas.map(a => a.id === editingAssinaturaId ? { ...novaAssinatura, id: a.id } : a));
-      cancelarEdicaoAssinatura();
-    };
-
-  const removerObjetivo = (id: number) => {
-    if (window.confirm('Remover este objetivo?')) {
-      setObjetivos(prev => prev.filter(obj => obj.id !== id));
+            <div className="space-y-6">
+              <Card className="p-6 h-full">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2"><Calendar className="text-indigo-500" size={20}/>Próximas Contas</h3>
+                <div className="relative border-l-2 border-slate-200 dark:border-slate-700 ml-3 space-y-8 pl-6 py-2">
+                  {assinaturas.length > 0 ? assinaturas.sort((a,b) => a.diaCobranca - b.diaCobranca).map((a) => (
+                     <div key={a.id} className="relative">
+                        <div className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 border-white dark:border-slate-800 ${a.pagoEsteMes ? 'bg-emerald-400' : 'bg-slate-300 dark:bg-slate-600 ring-4 ring-slate-100 dark:ring-slate-800'}`}></div>
+                        <div className={`transition-opacity ${a.pagoEsteMes ? 'opacity-50' : 'opacity-100'}`}>
+                           <div className="flex justify-between items-start mb-1">
+                              <h4 className="font-semibold text-sm">{a.nome}</h4>
+                              <span className="text-xs font-bold bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300">Dia {a.diaCobranca}</span>
+                           </div>
+                           <div className="text-lg font-bold text-slate-700 dark:text-slate-200">{fmt(toNum(a.valor))}</div>
+                           {a.pagoEsteMes ? (
+                              <span className="text-xs text-emerald-600 font-medium flex items-center gap-1 mt-1 cursor-pointer" onClick={() => handleTogglePagamentoAssinatura(a.id)}><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div> Pago</span>
+                           ) : (
+                              <button onClick={() => handleTogglePagamentoAssinatura(a.id)} className="text-xs mt-2 px-3 py-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 rounded-lg hover:bg-indigo-100 transition-colors">Marcar como Pago</button>
+                           )}
+                        </div>
+                     </div>
+                  )) : <p className="text-sm text-slate-500">Nenhuma conta recorrente cadastrada.</p>}
+                </div>
+              </Card>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    switch (tab) {
+      case 'gastos':
+        return <Gastos gastos={gastos} openModal={openModal} onDelete={handleDeleteGasto} categorias={categorias} />;
+      case 'receitas':
+        return <Receitas receitas={receitas} openModal={openModal} onDelete={handleDeleteReceita} />;
+      case 'contas-recorrentes':
+        return <ContasRecorrentes assinaturas={assinaturas} openModal={openModal} onDelete={handleDeleteAssinatura} onToggle={handleTogglePagamentoAssinatura} />;
+      case 'objetivos':
+        return <Objetivos objetivos={objetivos} openModal={openModal} onDelete={handleDeleteObjetivo} onUpdateValor={handleUpdateValorObjetivo} onSetPrincipal={handleSetObjetivoPrincipal} />;
+      case 'cartoes':
+        return <Cartoes cartoes={cartoes} gastos={gastos} gastosNoPeriodo={creditData.gastosPorCartao} openModal={openModal} onDelete={handleDeleteCartao} onSetPrincipal={handleSetCartaoPrincipal} />;
+      case 'faturas':
+        return <Faturas gastos={gastos} cartoes={cartoes} />;
+      case 'resumo-anual':
+        return <ResumoAnual gastos={gastos} receitas={receitas} />;
+      case 'configuracoes':
+        return <Configuracoes categories={categorias} openModal={openModal} onDeleteCategoria={handleDeleteCategoria} onSaveCategoria={handleSaveCategoria} />;
+      default:
+        return null;
     }
   };
 
-
-    const adicionarReceita = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!novaReceita.descricao || !novaReceita.valor) {
-          alert("Descrição e Valor são obrigatórios.");
-          return;
-      }
-      setReceitas(r => [...r, { ...novaReceita, id: Date.now() }]);
-      setNovaReceita({ id: 0, descricao: '', valor: '', data: new Date().toISOString().slice(0,10) });
-    };
-
-    const adicionarCartao = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!novoCartao.nome.trim() || !novoCartao.limite) return;
-      // Garante que o nome seja capitalizado para consistência
-      const cartaoFinal = { ...novoCartao, nome: novoCartao.nome.trim().toUpperCase(), id: Date.now() };
-      setCartoes((prev: Cartao[]) => [...prev, cartaoFinal]);
-      setSugestoesCartao([]);
-      
-      setNovoCartao({ nome: '', limite: '', diaVencimento: 1, diaFechamento: 1 });
-    };
-
-    const adicionarAssinatura = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!novaAssinatura.nome || !novaAssinatura.valor) {
-          alert("Nome e Valor são obrigatórios.");
-          return;
-      }
-      setAssinaturas(a => [...a, {
-        ...novaAssinatura,
-        id: Date.now(),
-        cartaoNome: novaAssinatura.tipoPagamento === 'CRÉDITO'
-          ? (cartoes.find(c => c.id === novaAssinatura.cartaoId)?.nome ?? null)
-          : null,
-        cartaoId: novaAssinatura.tipoPagamento === 'CRÉDITO'
-          ? novaAssinatura.cartaoId
-          : null
-      }]);
-      setNovaAssinatura({
-        id: 0, nome: '', valor: '', diaCobranca: 1, tipo: 'ASSINATURA',
-        categoriaPersonalizada: '', tipoPagamento: 'DÉBITO', cartaoId: cartoes[0]?.id ?? null, cartaoNome: null, periodoCobranca: 'MENSAL', mesCobranca: new Date().getMonth() + 1, anoAdesao: new Date().getFullYear()
-      });
-    };
-      // Resetar 'pagoEsteMes' para aluguéis no início de cada mês
-    React.useEffect(() => {
-      const hoje = new Date();
-      const primeiroDiaDoMes = hoje.getDate() === 1;
-
-      if (primeiroDiaDoMes) {
-        const jaResetou = localStorage.getItem('resetAluguelMes') === `${hoje.getFullYear()}-${hoje.getMonth()}`;
-        if (!jaResetou) {
-          setAssinaturas(prev => prev.map(a => a.tipo === 'CONTRATO - ALUGUEL' ? { ...a, pagoEsteMes: false } : a));
-          localStorage.setItem('resetAluguelMes', `${hoje.getFullYear()}-${hoje.getMonth()}`);
-        }
-      }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    const adicionarObjetivo = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!novoObjetivo.nome || !novoObjetivo.valorNecessario) {
-          alert("Nome e Valor Necessário são obrigatórios.");
-          return;
-      }
-      setObjetivos(o => [...o, { ...novoObjetivo, id: Date.now(), valorAtual: novoObjetivo.valorAtual || 0 }]);
-      setNovoObjetivo({ id: 0, nome: '', valorNecessario: '', valorAtual: 0, status: 'EM PROGRESSO' } as unknown as Objetivo);
-    };
-
-    const adicionarValorObjetivo = (id: number) => {
-      const valor = toNum(valorAdicionarObjetivo[id]);
-      if (valor > 0) {
-        atualizarObjetivoValor(id, valor);
-        setValorAdicionarObjetivo(prev => ({ ...prev, [id]: '' }));
-      }
-    };
-  // ... (restante das funções de ação: atualizarObjetivoValor, alterarStatusObjetivo, etc.) ...
-    const atualizarObjetivoValor = (id: number, delta: number) => {
-      setObjetivos(list => list.map(o => o.id === id ? { ...o, valorAtual: Math.max(0, o.valorAtual + delta) } : o));
-    };
-
-    const alterarStatusObjetivo = (id: number, status: StatusObj) => {
-      setObjetivos(list => list.map(o => o.id === id ? { ...o, status } : o));
-    };
-
-    const pagarAluguel = (aluguel: Assinatura) => {
-      if (aluguel.pagoEsteMes) {
-        alert('Este aluguel já foi marcado como pago para o mês atual.');
-        return;
-      }
-      if (!window.confirm(`Confirmar pagamento do aluguel "${aluguel.nome}" de ${fmt(toNum(aluguel.valor))}?`)) {
-        return;
-      }
-
-      // Adicionar o gasto correspondente
-      const novoGastoAluguel: Gasto = {
-        id: Date.now(),
-        descricao: `Pagamento Aluguel: ${aluguel.nome}`,
-        valor: aluguel.valor,
-        categoria: 'MORADIA',
-        data: new Date().toISOString().slice(0, 10),
-        tipoPagamento: aluguel.tipoPagamento,
-        cartaoId: aluguel.cartaoId,
-        cartaoNome: aluguel.cartaoNome,
-      };
-      setGastos(g => [...g, novoGastoAluguel]);
-
-      // Marcar como pago
-      setAssinaturas(prev => prev.map(a => 
-        a.id === aluguel.id ? { ...a, pagoEsteMes: true } : a
-      ));
-    };
-
-    const getCorValor = (valor: number, config: ConfiguracoesType['credito'] | ConfiguracoesType['saldo']) => {
-      const critico = toNum(config.critico);
-      const alerta = toNum(config.alerta);
-      const positivo = toNum(config.positivo);
-      if (valor <= critico) return 'text-red-600 dark:text-red-400';
-      if (valor <= alerta) return 'text-orange-500 dark:text-orange-400';
-      if (valor >= positivo) return 'text-green-600 dark:text-green-400';
-      return 'text-black dark:text-white'; // Cor padrão
-    };
-
-    const nomeMesAtual = new Date().toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
-
-    // --- Lógica para o novo card de Saldo ---
-    const diferencaSaldo = saldo - saldoMesAnterior;
-    const saldoMelhorou = diferencaSaldo >= 0;
-    const percentualVariacaoSaldo = saldoMesAnterior !== 0 ? Math.abs((diferencaSaldo / Math.abs(saldoMesAnterior)) * 100) : 0;
-    const badgeBgSaldo = saldoMelhorou ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400";
-    const diffTextoSaldo = fmt(Math.abs(diferencaSaldo));
-    const corValorSaldo = saldo < 0 ? 'text-rose-500' : 'text-slate-800 dark:text-slate-200';
-
-    
-    const retirarValorObjetivo = (id: number): void => {
-      const valor = toNum(valorAdicionarObjetivo[id]);
-      if (valor > 0) {
-        // Passa o valor como negativo para a função de atualização
-        atualizarObjetivoValor(id, -valor);
-        setValorAdicionarObjetivo(prev => ({ ...prev, [id]: '' }));
-      }
-    };
-
-    // O JSX principal é retornado aqui, adaptado do seu código
-    return (
-      <div className="flex min-h-screen w-full bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-gray-100">
-        <Sidebar
-          tab={tab}
-          setTab={setTab}
-          isSidebarCollapsed={isSidebarCollapsed}
-          setIsSidebarCollapsed={setIsSidebarCollapsed}
-          darkMode={darkMode}
-          toggleDarkMode={toggleDarkMode}
+  return (
+    <div className={`flex h-screen bg-[#F3F4F6] dark:bg-[#0F172A] text-slate-900 dark:text-slate-100 overflow-hidden font-sans transition-colors duration-300 selection:bg-blue-500/30`}>
+      <Toaster richColors position="top-right" />
+      {showModal && modalType && (
+        <Modal
+          type={modalType}
+          closeModal={closeModal}
+          onSaveGasto={handleSaveGasto}
+          onSaveReceita={handleSaveReceita}
+          onSaveAssinatura={handleSaveAssinatura}
+          onSaveCartao={handleSaveCartao}
+          onSaveCategoria={handleSaveCategoria}
+          onSaveObjetivo={handleSaveObjetivo}
+          itemToEdit={itemToEdit}
+          cartoes={cartoes}
+          categorias={categorias}
         />
+      )}
+      
+      {isMobileMenuOpen && (<div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden" onClick={() => setIsMobileMenuOpen(false)} />)}
 
-        {/* Conteúdo Principal */}
-        <main className="flex-1 p-4 md:p-6 overflow-y-auto space-y-6">
-        {/* Renderização da Aba Ativa */}
-        {tab === 'dashboard' && (
-          <div className="animate-fadeInUp space-y-8">
-            {/* Cards do dashboard - Atualizado */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {/* Card de Saldo com variação mensal */}
-            <div className="glass-card glass-card-hover inline-flex w-full flex-col rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm dark:border-slate-700 dark:bg-slate-900/80" style={{ animationDelay: '100ms' }}>
-              <div className="p-4 pb-3 flex items-start justify-between gap-3">
-                <div>
-                  <span className="text-[11px] font-medium tracking-[0.14em] text-slate-500 dark:text-slate-400 uppercase">
-                    Saldo (Dinheiro)
-                  </span>
-                  <div className={`mt-1 text-2xl font-semibold ${corValorSaldo}`}>
-                    {fmt(saldo)}
-                  </div>
-                  {/* Badge de variação percentual */}
-                  <div className={`mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium ${badgeBgSaldo}`}>
-                    <span className="flex h-4 w-4 items-center justify-center rounded-full border border-current text-[10px]">
-                      {saldoMelhorou ? "↑" : "↓"}
-                    </span>
-                    {`${saldoMelhorou ? "+" : "-"}${percentualVariacaoSaldo.toFixed(1)}%`}
-                  </div>
-                </div>
-                {/* Logo pequena no canto superior direito */}
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-100/80 bg-emerald-500/5 dark:border-slate-700/80 dark:bg-emerald-400/10">
-                  <LifeTrackerIconOnly />
+      <aside className={`fixed lg:static inset-y-0 left-0 z-50 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'} ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+        <div className="h-20 flex items-center px-4 border-b border-slate-100 dark:border-slate-800">
+          <div className={`flex items-center gap-3 overflow-hidden ${isSidebarCollapsed ? 'justify-center w-full' : ''}`}>
+            {isSidebarCollapsed ? <LifeTrackerIconOnly /> : <LifeTrackerCompactLogo />}
+          </div>
+        </div>
 
-                </div>
-              </div>
-              {/* Rodapé */}
-              <div className="px-4 py-3 border-t border-slate-100/80 text-xs text-slate-500 dark:text-slate-400 dark:border-slate-800 flex items-center justify-between">
-                <span>{`${saldoMelhorou ? "+" : "-"}${diffTextoSaldo} em relação ao mês anterior`}</span>
-              </div>
-            </div>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden py-6 px-3 space-y-1 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
+          <SidebarItem icon={LayoutDashboard} label="Dashboard" active={tab === 'dashboard'} collapsed={isSidebarCollapsed} onClick={() => changeTab('dashboard')} />
+          
+          <div className={`mt-6 mb-2 px-3 text-xs font-bold text-slate-400 uppercase tracking-wider transition-opacity ${isSidebarCollapsed ? 'opacity-0 h-0' : 'opacity-100'}`}>Transações</div>
+          <SidebarItem icon={TrendingDown} label="Meus Gastos" active={tab === 'gastos'} collapsed={isSidebarCollapsed} onClick={() => changeTab('gastos')} />
+          <SidebarItem icon={TrendingUp} label="Receitas" active={tab === 'receitas'} collapsed={isSidebarCollapsed} onClick={() => changeTab('receitas')} />
+          <SidebarItem icon={Calendar} label="Contas Recorrentes" active={tab === 'contas-recorrentes'} collapsed={isSidebarCollapsed} onClick={() => changeTab('contas-recorrentes')} />
+          
+          <div className={`mt-6 mb-2 px-3 text-xs font-bold text-slate-400 uppercase tracking-wider transition-opacity ${isSidebarCollapsed ? 'opacity-0 h-0' : 'opacity-100'}`}>Gestão</div>
+          <SidebarItem icon={CreditCard} label="Cartões" active={tab === 'cartoes'} collapsed={isSidebarCollapsed} onClick={() => changeTab('cartoes')} />
+          <SidebarItem icon={PieChart} label="Faturas" active={tab === 'faturas'} collapsed={isSidebarCollapsed} onClick={() => changeTab('faturas')} />
+          <SidebarItem icon={Goal} label="Objetivos" active={tab === 'objetivos'} collapsed={isSidebarCollapsed} onClick={() => changeTab('objetivos')} />
+          <SidebarItem icon={ArrowUpRight} label="Resumo Anual" active={tab === 'resumo-anual'} collapsed={isSidebarCollapsed} onClick={() => changeTab('resumo-anual')} />
+        </div>
 
-              <div className="p-4 rounded-2xl glass-card glass-card-hover">
-                <div className="text-sm opacity-60">
-                  Crédito Disponível
-                </div>
-                <div className={`text-xl font-semibold ${getCorValor(creditoDisponivel, configuracoes.credito)}`}>
-                  {fmt(creditoDisponivel)}
-                </div>
-                <div className="text-xs opacity-60 mt-1">Total de {fmt(totalLimite)}</div>
-                {cartoes.length > 0 && (
-                  <ul className="mt-2 space-y-1 text-xs">
-                    {creditByCard.map(({ cartao, disponivel }) => (
-                      <li key={cartao.id} className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full inline-block ${getDadosCartao(cartao.nome).bg}`}></span>
-                        <span className="flex-1 truncate">{cartao.nome}</span>
-                        <span className="font-medium">{fmt(disponivel)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              <div className="p-4 rounded-2xl glass-card glass-card-hover" style={{ animationDelay: '200ms' }}>
-                <div className="text-sm opacity-60">Gastos (Crédito)</div>              
-                <div className="text-xl font-medium">{fmt(gastosCredito + assinaturasCreditoMensal)}</div>
-                {assinaturasCreditoMensal > 0 && (
-                  <div className="text-xs opacity-60">
-                    (inclui {fmt(assinaturasCreditoMensal)} de assinaturas)
-                  </div>
-                )}
-              </div>
-              <div className="p-4 rounded-2xl glass-card glass-card-hover" style={{ animationDelay: '250ms' }}>
-                <div className="text-sm opacity-60">Gastos (Dinheiro)</div>
-                <div className="text-xl font-medium">{fmt(gastosDebito)}</div>
-              </div>
-              <div className="p-4 rounded-2xl glass-card glass-card-hover" style={{ animationDelay: '300ms' }}>
-                <div className="text-sm opacity-60">Gastos (Total)</div>
-                <div className="text-xl font-medium">{fmt(gastosTotal)}</div>
-              </div>
-            </section>
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800">
+          <SidebarItem icon={Settings} label="Configurações" active={tab === 'configuracoes'} collapsed={isSidebarCollapsed} onClick={() => changeTab('configuracoes')} />
+          <button onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} className="w-full mt-2 hidden lg:flex items-center justify-center p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
+            {isSidebarCollapsed ? <ChevronRight size={20} className="flex items-center justify-center" /> : <ChevronRight className="rotate-180 flex items-center justify-center" size={20}/>}
+          </button>
+        </div>
+      </aside>
 
-            {/* Previsão do mês */}
-            <section className="p-4 rounded-2xl glass-card" style={{ animationDelay: '350ms' }}>
-              <h2 className="text-lg font-medium mb-3 text-black dark:text-gray-200">Previsão de Gastos (este mês)</h2>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 dark:bg-slate-700 dark:border-slate-600">
-                  <div className="opacity-60">Aluguel</div>
-                  <div className="text-lg font-semibold">{fmt(previsaoMes.aluguel)}</div>
-                  {alugueisMensais.map(aluguel => (
-                    <div key={aluguel.id} className="mt-1 text-xs flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full inline-block ${aluguel.pagoEsteMes ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                      <span>{aluguel.pagoEsteMes ? 'Pago' : 'Não Pago'}</span>
-                      {!aluguel.pagoEsteMes && (
-                        <button
-                          onClick={() => pagarAluguel(aluguel)}
-                          className="px-2 py-0.5 bg-green-600 text-white rounded hover:bg-green-700 text-xs"
-                        >
-                          Pagar
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 dark:bg-slate-700 dark:border-slate-600">
-                <div className="opacity-60"> Acordos: </div>
-                <div className="text-lg font-semibold">{fmt(totalAcordosMes)}</div>
-                </div>
-                <button type="button" onClick={() => setShowMensaisModal(true)} className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-left cursor-pointer hover:ring-2 hover:ring-black/10 transition dark:bg-slate-700 dark:border-slate-600">
-                  <div className="opacity-60">Assinaturas Mensais</div>
-                  <div className="text-lg font-semibold">{fmt(previsaoMes.assinaturas)}</div>
-                </button>
-                <button type="button" onClick={() => setShowCreditoMesModal(true)} className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-left cursor-pointer hover:ring-2 hover:ring-black/10 transition dark:bg-slate-700 dark:border-slate-600">
-                  <div className="opacity-60">Gastos em Crédito (mês)</div>
-                  <div className="text-lg font-semibold">{fmt(previsaoMes.credito)}</div>
-                </button>
-               <div className="h-[95px] p-3 rounded-xl bg-gray-900 text-white dark:bg-slate-950 md:col-start-2 md:col-span-2 flex flex-col items-center justify-center " >
-                  <div className="opacity-80"> 
-                    Total previsto para{' '}
-                    <span className="font-bold text-emerald-400 [text-shadow:0_0_8px_#4ade80]">
-                      {nomeMesAtual}
-                    </span>
-                  </div>
-                  <div className="text-lg font-semibold">{fmt(previsaoMes.total)}</div>
-                </div>
-              </div>
-            </section>
-  {/* ... (restante do JSX do dashboard: porCategoria, comprasParceladasAtivas, etc.) ... */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Gastos por categoria */}
-              <section className="p-4 rounded-2xl glass-card" style={{ animationDelay: '400ms' }}>
-                <h2 className="text-lg font-medium mb-3">Gastos por categoria</h2>
-                {Object.keys(porCategoria).length === 0 ? (
-                  <p className="text-sm opacity-60">Sem lançamentos</p>
-                ) : (
-                  <ul className="text-sm space-y-1">
-                    {Object.entries(porCategoria).sort((a,b) => b[1] - a[1]).map(([cat, total]) => {
-                    const iconName = getIconForCategory(cat, categories);
-                    return (
-                      <li key={cat} className="flex justify-between items-center">
-                        <span className="flex items-center gap-2">
-                          <IconeCategoria iconName={iconName} className="w-4 h-4 opacity-70" />
-                          {capitalize(cat)}</span>
-                        <span className="font-medium">{fmt(total)}</span>
-                      </li>
-                    );
-                  })}
-                  </ul>
-                )}
-              </section>
-
-              {/* Compras Parceladas Ativas */}
-              <section className="p-4 rounded-2xl glass-card" style={{ animationDelay: '450ms' }}>
-                <h2 className="text-lg font-medium mb-3">Compras Parceladas Ativas</h2>
-                {comprasParceladasAtivas.length === 0 ? (
-                  <p className="text-sm opacity-60">Nenhuma compra parcelada ativa.</p>
-                ) : (
-                  <ul className="text-sm divide-y dark:divide-slate-700">
-                    {comprasParceladasAtivas.map((p, i) => (
-                      <li key={i} className="py-2">
-                        <div className="flex justify-between">
-                          <span className="font-medium">{p.descricao}</span>
-                          <span className="font-semibold">{fmt(p.valorTotal)}</span>
-                        </div>
-                        <div className="text-xs opacity-70">
-                          {p.parcelasPagas} de {p.parcelasTotal} pagas ({fmt(p.valorParcela)}/mês)
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-            </div>
-
-            {/* Assinaturas anuais */}
-            <section className="p-4 rounded-2xl glass-card" style={{ animationDelay: '500ms' }}>
-              <h2 className="text-lg font-medium mb-3">Assinaturas anuais</h2>
-              {anuaisTodos.length === 0 ? (
-                <p className="text-sm opacity-60">Nenhuma assinatura anual.</p>
-              ) : ( // Use the renamed helper
-                <ul className="text-sm divide-y dark:divide-slate-700">
-                  {anuaisTodos.map(a => {
-                    const vencimento = calcularProximoVencimentoAnual(a);
-                    if (!vencimento) return null;
-
-                    return (
-                      <li key={a.id} className="py-2 flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">
-                            {vencimento.ehProximo && <span className="mr-2" title="Vencimento próximo!">⚠️</span>}
-                            {a.nome}
-                          </div>
-                          <div className="opacity-60 text-xs">                          
-                            Vence dia {String(a.diaCobranca).padStart(2,'0')}{a.mesCobranca ? `/${String(a.mesCobranca).padStart(2,'0')}`: ''} • {a.tipoPagamento}
-                            {a.cartaoId ? ` • ${cartoes.find(c => c.id === a.cartaoId)?.nome ?? ''}` : ''}
-                          </div>
-                        </div>
-                        <div className={`font-semibold ${vencimento.ehProximo ? 'text-red-500' : ''}`}>{fmt(toNum(a.valor))} • {vencimento.texto}</div>
-                      
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
-
-            {/* Objetivos */}
-            <section className="p-4 rounded-2xl glass-card" style={{ animationDelay: '550ms' }}>
-              <h2 className="text-lg font-medium mb-3">Objetivos</h2>
-              {objetivos.length === 0 ? (
-                <p className="text-sm opacity-60">Nenhum objetivo cadastrado</p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {objetivos.map(o => {
-                    const necessario = toNum(o.valorNecessario);
-                    const progressoBase = necessario > 0 ? Math.min(100, Math.round((o.valorAtual / necessario) * 100)) : 0;
-                    const progresso = (o.status === 'QUITADO - EM PROGRESSO' || o.status === 'QUITADO - FINALIZADO') ? 100 : progressoBase;
-                    const quitado = o.status.startsWith('QUITADO');
-
-                    return (
-                  <div key={o.id} className={`p-3 rounded-xl border ${quitado ? 'bg-green-50 border-green-200 dark:bg-green-900/50 dark:border-green-700' : 'bg-gray-50 dark:bg-slate-700 dark:border-slate-600'}`}>
-                        <div className="flex items-start justify-between">
-                      <div className="font-medium text-sm text-black dark:text-white">{o.nome}</div>
-                          <div className={`text-xs px-2 py-0.5 rounded-full ${quitado ? 'bg-green-200 text-green-800' : 'bg-gray-200 dark:bg-slate-600'}`}>{o.status}</div>
-                        </div>
-                        <div className="text-xs opacity-70 mt-1">Meta: {fmt(necessario)}</div>
-                        <div className="h-2 bg-gray-200 dark:bg-slate-600 rounded mt-2">
-                          <div className={`h-2 rounded ${quitado ? 'bg-green-500' : 'bg-emerald-500'}`} style={{ width: `${progresso}%` }} />
-                        </div>
-                        <div className="flex items-center justify-between text-xs mt-1">
-                          <div>{fmt(o.valorAtual)}</div>
-                          <div>{progresso}%</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-          </div>
-        )}
-        {tab === 'gastos' && (
-          <Gastos
-            gastos={gastos}
-            categories={categories}
-            cartoes={cartoes}
-            editingGastoId={editingGastoId}
-            novoGasto={novoGasto}
-            setNovoGasto={setNovoGasto}
-            sugestoesDescricao={sugestoesDescricao}
-            setSugestoesDescricao={setSugestoesDescricao}
-            sugestaoDescricaoAtivaIndex={sugestaoDescricaoAtivaIndex}
-            setSugestaoDescricaoAtivaIndex={setSugestaoDescricaoAtivaIndex}
-            adicionarGasto={adicionarGasto}
-            salvarEdicaoGasto={salvarEdicaoGasto}
-            cancelarEdicaoGasto={cancelarEdicaoGasto}
-            iniciarEdicaoGasto={iniciarEdicaoGasto}
-            removerGasto={removerGasto}
-          />
-        )}
-
-        {tab === 'receitas' && (
-          <Receitas
-            receitas={receitas}
-            editingReceitaId={editingReceitaId}
-            novaReceita={novaReceita}
-            setNovaReceita={setNovaReceita}
-            adicionarReceita={adicionarReceita}
-            salvarEdicaoReceita={salvarEdicaoReceita}
-            cancelarEdicaoReceita={cancelarEdicaoReceita}
-            iniciarEdicaoReceita={iniciarEdicaoReceita}
-            removerReceita={removerReceita}
-          />
-        )}
-        {tab === 'contas-recorrentes' && (
-          <ContasRecorrentes
-            assinaturas={assinaturas}
-            cartoes={cartoes}
-            editingAssinaturaId={editingAssinaturaId}
-            novaAssinatura={novaAssinatura}
-            setNovaAssinatura={setNovaAssinatura}
-            adicionarAssinatura={adicionarAssinatura}
-            salvarEdicaoAssinatura={salvarEdicaoAssinatura}
-            cancelarEdicaoAssinatura={cancelarEdicaoAssinatura}
-            iniciarEdicaoAssinatura={iniciarEdicaoAssinatura}
-            removerAssinatura={removerAssinatura}
-            pagarParcelaAcordo={pagarParcelaAcordo}
-            totalAnualAssinaturas={totalAnualAssinaturas}
-          />
-        )}
-        {tab === 'objetivos' && (
-          <Objetivos
-            objetivos={objetivos}
-            novoObjetivo={novoObjetivo}
-            setNovoObjetivo={setNovoObjetivo}
-            adicionarObjetivo={adicionarObjetivo}
-            alterarStatusObjetivo={alterarStatusObjetivo}
-            atualizarObjetivoValor={atualizarObjetivoValor}
-            removerObjetivo={removerObjetivo}
-            valorAdicionarObjetivo={valorAdicionarObjetivo}
-            setValorAdicionarObjetivo={setValorAdicionarObjetivo}
-            adicionarValorObjetivo={adicionarValorObjetivo}
-            retirarValorObjetivo={retirarValorObjetivo}
-          />
-        )}
-
-        {tab === 'cartoes' && (
-          <Cartoes
-            cartoes={cartoes}
-            novoCartao={novoCartao}
-            setNovoCartao={setNovoCartao}
-            adicionarCartao={adicionarCartao}
-            sugestoesCartao={sugestoesCartao}
-            setSugestoesCartao={setSugestoesCartao}
-            sugestaoAtivaIndex={sugestaoAtivaIndex}
-            setSugestaoAtivaIndex={setSugestaoAtivaIndex}
-            editingCardId={editingCardId}
-            editCardDraft={editCardDraft}
-            setEditCardDraft={setEditCardDraft}
-            startEditCard={startEditCard}
-            cancelEditCard={cancelEditCard}
-            saveEditCard={saveEditCard}
-            deleteCard={deleteCard}
-            getDadosCartao={getDadosCartao}
-          />
-        )}
-  
-        {tab === 'resumo-anual' && (
-          <ResumoAnual
-            dadosResumoAnual={dadosResumoAnual}
-            anoResumo={anoResumo}
-            setAnoResumo={setAnoResumo}
-          />
-        )}
-
-        {tab === 'faturas' && (
-          <Faturas
-            faturasFiltradas={faturasFiltradas}
-            buscaFatura={buscaFatura}
-            setBuscaFatura={setBuscaFatura}
-            mesFatura={mesFatura}
-            setMesFatura={setMesFatura}
-            totalFaturasMes={totalFaturasMes}
-            getDadosCartao={getDadosCartao}
-          />
-        )}
-  
-        {tab === 'configuracoes' && (
-          <Configuracoes
-            configuracoes={configuracoes}
-            setConfiguracoes={setConfiguracoes}
-            categories={categories}
-            setCategories={setCategories}
-          />
-        )}
-
-        {/* MODAL: Assinaturas Mensais */}
-        {showMensaisModal && (
-          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center animate-fadeIn" onClick={() => setShowMensaisModal(false)}>
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-2xl m-4 animate-fadeInUp" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium">Assinaturas Mensais</h3>
-                <button onClick={() => setShowMensaisModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">&times;</button>
-              </div>
-              <div className="flex gap-4 mb-4">
-                <input
-                  type="text"
-                  placeholder="Buscar assinatura..."
-                  value={mensaisQuery}
-                  onChange={e => setMensaisQuery(e.target.value)}
-                  className="input-premium flex-1"
-                />
-                <select value={mensaisSort} onChange={e => setMensaisSort(e.target.value as any)} className="input-premium">
-                  <option value="vencimento">Ordenar por Vencimento</option>
-                  <option value="nome">Ordenar por Nome</option>
-                  <option value="valor">Ordenar por Valor</option>
-                </select>
-              </div>
-              <ul className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
-                {mensaisList.map(a => (
-                  <li key={a.id} className="flex justify-between items-center p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50">
-                    <div>
-                      <div className="font-medium">{a.nome}</div>
-                      <div className="text-xs opacity-60">
-                        Dia {a.diaCobranca} • {a.tipoPagamento} {a.cartaoNome ? `(${a.cartaoNome})` : ''}
-                      </div>
-                    </div>
-                    <div className="font-semibold">{fmt(toNum(a.valor))}</div>
-                  </li>
-                ))}
-              </ul>
-              <div className="text-right font-bold mt-4 pt-4 border-t dark:border-slate-700">
-                Total Mensal: {fmt(totalAssinMensal)}
-              </div>
+      <main className="flex-1 flex flex-col h-full relative overflow-hidden">
+        <header className="h-20 flex items-center justify-between px-6 lg:px-8 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-30 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 -ml-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"><Menu size={24} /></button>
+            <div>
+              <h1 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">{tab === 'dashboard' ? 'Visão Geral' : capitalize(tab.replace('-', ' '))}</h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
             </div>
           </div>
-        )}
-
-        {/* MODAL: Gastos de Crédito do Mês */}
-        {showCreditoMesModal && (
-          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center animate-fadeIn" onClick={() => setShowCreditoMesModal(false)}>
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-2xl m-4 animate-fadeInUp" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium">Gastos em Crédito ({nomeMesAtual})</h3>
-                <button onClick={() => setShowCreditoMesModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">&times;</button>
-              </div>
-              <ul className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
-                {creditGastosMesList.map(item => (
-                  <li key={item.id} className="flex justify-between items-center p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50">
-                    <div>
-                      <div className="font-medium">{item.descricao}</div>
-                      <div className="text-xs opacity-60">
-                        {new Date(item.data + 'T12:00:00').toLocaleDateString('pt-BR')} • {item.cartaoNome}
-                      </div>
-                    </div>
-                    <div className="font-semibold">{fmt(item.valor)}</div>
-                  </li>
-                ))}
-              </ul>
-              <div className="text-right font-bold mt-4 pt-4 border-t dark:border-slate-700">
-                Total: {fmt(gastosCreditoMes + assinaturasCreditoMensal)}
-              </div>
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
+              <Search size={16} className="text-slate-400" /><input type="text" placeholder="Buscar..." className="bg-transparent text-sm outline-none w-32 placeholder:text-slate-400" />
             </div>
+            <button onClick={toggleDarkMode} className="p-2.5 rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-yellow-400 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all">
+              {darkMode ? <Sun size={20} fill="currentColor" /> : <Moon size={20} />}
+            </button>
+            <button className="relative p-2.5 rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all">
+              <Bell size={20} /><span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-800"></span>
+            </button>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 border-2 border-white dark:border-slate-700 shadow-md"></div>
           </div>
-        )}
+        </header>
+
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600">
+          <div className="max-w-7xl mx-auto space-y-6">
+            {renderContent()}
+          </div>
+        </div>
       </main>
     </div>
-    );
-  };
-
-  export default LifeTracker;
+  );
+}

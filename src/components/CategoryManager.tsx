@@ -4,10 +4,11 @@ import { IconComponent, iconMap } from './CategoryIcon';
 
 interface CategoryManagerProps {
   categories: Category[];
-  setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
+  onSave: (category: Category) => void;
+  onDelete: (id: string) => void;
 }
 
-const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, setCategories }) => {
+const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onSave, onDelete }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [categoryForm, setCategoryForm] = useState<{ name: string; type: CategoryType; icon: string }>({
@@ -36,15 +37,15 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, setCatego
     if (!categoryForm.name) return;
 
     if (editingCategory) {
-      setCategories(categories.map(cat => cat.id === editingCategory.id ? { ...editingCategory, ...categoryForm } : cat));
+      onSave({ ...editingCategory, ...categoryForm });
     } else {
-      setCategories([...categories, { ...categoryForm, id: Date.now().toString() }]);
+      onSave({ ...categoryForm, id: Date.now().toString() });
     }
     handleCloseModal();
   };
 
   const handleDeleteCategory = (id: string) => {
-    setCategories(categories.filter(cat => cat.id !== id));
+    onDelete(id);
   };
 
   return (

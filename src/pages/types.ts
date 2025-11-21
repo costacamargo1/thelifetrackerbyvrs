@@ -26,13 +26,14 @@ export interface Receita { id: number; descricao: string; valor: string; data: s
 export interface Assinatura {
   id: number; nome: string; valor: string; diaCobranca: number; mesCobranca?: number; anoAdesao?: number; tipo: TipoAssinatura; categoriaPersonalizada?: string; tipoPagamento: TipoPagamento; cartaoId: number | null; cartaoNome?: string | null; periodoCobranca: Periodo; pagoEsteMes?: boolean; parcelasTotal?: number; parcelaAtual?: number;
 }
-export interface Objetivo { id: number; nome: string; valorNecessario: string; valorAtual: number; status: StatusObj; }
+export interface Objetivo { id: number; nome: string; valorNecessario: string; valorAtual: number; status: StatusObj; isPrincipal?: boolean; }
 export interface Cartao { 
   id: number; 
   nome: string; 
   limite: string; 
   diaVencimento: number; 
   diaFechamento: number;
+  isPrincipal?: boolean;
 }
 
 export type CategoryType = 'receita' | 'despesa';
@@ -49,3 +50,5 @@ export interface Configuracoes {
   saldo: { alerta:string; critico: string; positivo: string; };
   categories: Category[];
 }
+
+export type Tab = 'dashboard' | 'gastos' | 'receitas' | 'contas-recorrentes' | 'objetivos' | 'cartoes' | 'dividas' | 'faturas' | 'resumo-anual' | 'configuracoes';

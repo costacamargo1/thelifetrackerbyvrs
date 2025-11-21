@@ -1,113 +1,76 @@
 import React from 'react';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, Plus } from 'lucide-react';
 import { Receita } from './types';
 import { fmt, toNum } from '../../utils/helpers';
 
 interface ReceitasProps {
   receitas: Receita[];
-  editingReceitaId: number | null;
-  novaReceita: Receita;
-  setNovaReceita: React.Dispatch<React.SetStateAction<Receita>>;
-  adicionarReceita: (e: React.FormEvent) => void;
-  salvarEdicaoReceita: (e: React.FormEvent) => void;
-  cancelarEdicaoReceita: () => void;
-  iniciarEdicaoReceita: (receita: Receita) => void;
-  removerReceita: (id: number) => void;
+  openModal: (type: 'receita', item?: Receita) => void;
+  onDelete: (id: number) => void;
 }
 
 const Receitas: React.FC<ReceitasProps> = ({
   receitas,
-  editingReceitaId,
-  novaReceita,
-  setNovaReceita,
-  adicionarReceita,
-  salvarEdicaoReceita,
-  cancelarEdicaoReceita,
-  iniciarEdicaoReceita,
-  removerReceita,
+  openModal,
+  onDelete,
 }) => {
   return (
-    <section className="p-4 rounded-2xl glass-card space-y-4 animate-fadeInUp">
-      <h2 className="text-lg font-medium mb-2">{editingReceitaId ? 'Alterar Receita' : 'Lançar Receita'}</h2>
-      <form
-        className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end"
-        onSubmit={editingReceitaId ? salvarEdicaoReceita : adicionarReceita}
-        key={`receita-form-${editingReceitaId || 'novo'}`}
-      >
-        <div className="md:col-span-5">
-          <label className="block text-xs opacity-70 mb-1">Descrição</label>
-          <input
-            className="input-premium"
-            value={novaReceita.descricao}
-            onChange={(e) => setNovaReceita({ ...novaReceita, descricao: e.target.value })}
-            placeholder="Ex: Salário, Freelance"
-          />
-        </div>
-        <div className="md:col-span-2">
-          <label className="block text-xs opacity-70 mb-1">Valor (R$)</label>
-          <input type="number" step="0.01" min="0" className="input-premium"
-            value={novaReceita.valor}
-            onChange={(e) => setNovaReceita({ ...novaReceita, valor: e.target.value })}
-          />
-        </div>
-        <div className="md:col-span-2">
-          <label className="block text-xs opacity-70 mb-1">Data</label>
-          <input type="date" className="input-premium"
-            value={novaReceita.data}
-            onChange={(e) => setNovaReceita({ ...novaReceita, data: e.target.value })} />
-        </div>
-        <div className="md:col-span-3 flex gap-2 items-center">
-          <button className="w-[100px] px-4 py-3 rounded-sm bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium shadow
-                                  dark:bg-emerald-600 dark:hover:bg-emerald-700">
-            {editingReceitaId ? 'Salvar' : 'Adicionar'}
-          </button>
-          {editingReceitaId && (
-            <button type="button" onClick={cancelarEdicaoReceita} className="px-3 py-3 rounded-lg bg-gray-200 text-sm dark:bg-slate-600">Cancelar</button>
-          )}
-        </div>
-      </form>
+    <section className="space-y-6 animate-fadeInUp">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Minhas Receitas</h2>
+        <button 
+          onClick={() => openModal('receita')}
+          className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-emerald-700 transition-colors"
+        >
+          <Plus size={20} />
+          Nova Receita
+        </button>
+      </div>
 
       <div>
-        <h3 className="text-sm font-medium mb-2">Últimas receitas</h3>
+        <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-4">Últimas receitas</h3>
         {receitas.length === 0 ? (
-          <p className="text-sm opacity-60">Sem lançamentos</p>
+          <div className="text-center py-12 px-6 bg-white dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">Nenhuma receita registrada</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Comece adicionando uma nova receita para ver seus registros aqui.</p>
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {receitas.slice().reverse().map((r, index) => (
-              <div key={r.id} className="p-3 rounded-lg border bg-white hover:shadow-sm transition dark:bg-slate-800 dark:border-slate-700 animate-fadeInUp" style={{ animationDelay: `${index * 25}ms` }}>
-                <div className="flex items-center justify-between gap-3">
+              <div key={r.id} className="p-4 rounded-2xl border bg-white hover:shadow-lg transition-shadow dark:bg-slate-800 dark:border-slate-700/60 animate-fadeInUp" style={{ animationDelay: `${index * 25}ms` }}>
+                <div className="flex items-center justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm truncate">{r.descricao}</div>
-                    <div className="text-xs opacity-60 mt-0.5 dark:text-gray-400">
-                      {new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}
+                    <div className="font-semibold text-base text-slate-800 dark:text-slate-100 truncate">{r.descricao}</div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                      {new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="flex items-center gap-4 flex-shrink-0">
                     <div className="text-right">
-                      <div className="font-semibold text-sm whitespace-nowrap text-green-600 dark:text-green-400">
-                        {fmt(toNum(r.valor))}
+                      <div className="font-bold text-lg text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                        + {fmt(toNum(r.valor))}
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
-                        onClick={() => iniciarEdicaoReceita(r)}
-                        className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded-full transition-colors duration-200 dark:text-blue-400 dark:hover:text-blue-200 dark:hover:bg-blue-900/50"
+                        onClick={() => openModal('receita', r)}
+                        className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors duration-200 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-blue-500/10"
                         title="Editar"
                       >
-                        <Pencil size={16} />
+                        <Pencil size={18} />
                       </button>
                       <button
                         type="button"
                         onClick={() => {
                           if (window.confirm('Tem certeza que deseja remover esta receita?')) {
-                            removerReceita(r.id);
+                            onDelete(r.id);
                           }
                         }}
-                        className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-full transition-colors duration-200 dark:text-red-400 dark:hover:text-red-200 dark:hover:bg-red-900/50"
+                        className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-100 rounded-full transition-colors duration-200 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-rose-500/10"
                         title="Excluir"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   </div>

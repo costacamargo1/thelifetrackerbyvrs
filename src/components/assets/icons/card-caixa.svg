@@ -1,5 +1,4 @@
-﻿<svg xmlns="http://www.w3.org/2000/svg" width="160" height="100" viewBox="0 0 160 100">
-  <rect rx="12" ry="12" width="160" height="100" fill="#004AAD"/>
-  <rect x="10" y="12" width="48" height="32" rx="6" fill="#ffffff22"/>
-  <text x="20" y="70" font-family="Inter, Arial, sans-serif" font-weight="700" font-size="16" fill="#fff">Caixa</text>
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="24" height="24" fill="#005CA9"/>
+    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="8" fill="white">Caixa</text>
 </svg>

@@ -1,130 +1,125 @@
-# Life Tracker
+# Life Tracker by vrs
 
-Projeto React + TypeScript + Tailwind pronto para rodar localmente e fazer deploy na Vercel.
+O **Life Tracker** é uma aplicação web de finanças pessoais, projetada para oferecer uma visão clara e controle total sobre a vida financeira do usuário. Construído com tecnologias web modernas, o painel centraliza o gerenciamento de despesas, receitas, cartões de crédito e metas, tudo em uma interface intuitiva e responsiva.
 
-## Rodar localmente
-```bash
-npm install
-npm run dev
-```
-Abra http://localhost:5173
+A aplicação funciona inteiramente no lado do cliente (client-side), garantindo que todos os dados financeiros permaneçam privados e seguros no navegador do usuário, utilizando o `localStorage` para persistência de dados.
 
-## Build
+![image](https://github.com/user-attachments/assets/141929c8-045c-411d-894a-a08899839131)
+
+## 🚀 Rodando o Projeto
+
+### Requisitos
+- Node.js (v18 ou superior)
+- npm (ou um gerenciador de pacotes compatível)
+
+### Instalação e Execução Local
+1. Clone o repositório:
+   ```bash
+   git clone https://github.com/seu-usuario/thelifetrackerbyvrs.git
+   ```
+2. Navegue até o diretório do projeto:
+   ```bash
+   cd thelifetrackerbyvrs
+   ```
+3. Instale as dependências:
+   ```bash
+   npm install
+   ```
+4. Inicie o servidor de desenvolvimento:
+   ```bash
+   npm run dev
+   ```
+5. Abra [http://localhost:5173](http://localhost:5173) no seu navegador.
+
+### Build para Produção
+Para criar uma versão otimizada para produção:
 ```bash
 npm run build
+```
+Os arquivos finais estarão na pasta `dist/`. Para visualizar o build localmente:
+```bash
 npm run preview
 ```
 
-## Deploy (Vercel)
-- Faça push deste repositório para o GitHub.
-- Na Vercel > Import Project > selecione o repositório.
-- Framework: *Vite* | Build: `npm run build` | Output: `dist`
+---
+
+## ✨ Design e Interface (UI/UX)
+
+A interface do Life Tracker foi projetada para ser limpa, moderna e funcional.
+
+*   **Estilo "Glassmorphism"**: A UI utiliza um efeito de "vidro fosco" (`glass-card`) nos cartões e painéis, criando uma sensação de profundidade e modernidade.
+*   **Tema Claro e Escuro (Dark/Light Mode)**: A aplicação detecta a preferência de tema do sistema operacional do usuário na primeira visita. É possível alternar entre os modos a qualquer momento, e a escolha é salva para visitas futuras.
+*   **Responsividade**: A interface é totalmente responsiva, adaptando-se a desktops, tablets e dispositivos móveis. Em telas menores, a barra de navegação lateral (`Sidebar`) é recolhida por padrão para maximizar o espaço útil.
+*   **Feedback Visual e Animações**: Animações sutis de fade-in (`animate-fadeInUp`) são usadas para carregar elementos de forma suave. Cores dinâmicas nos painéis de Saldo e Crédito (vermelho, laranja, verde) fornecem feedback visual imediato sobre a saúde financeira, com base em limites personalizáveis.
+*   **Ícones**: A aplicação faz uso extensivo de ícones das bibliotecas `lucide-react` e `react-icons`, além de SVGs customizados para as bandeiras dos cartões, tornando a interface mais informativa e visualmente agradável.
 
 ---
 
-## Descrição Detalhada do Projeto: Life Tracker
+## 🛠️ Lógica Técnica e Gerenciamento de Estado
 
-O **Life Tracker** é uma aplicação web completa para gerenciamento de finanças pessoais, construída com tecnologias modernas como **React**, **TypeScript** e **Tailwind CSS**. O projeto foi desenvolvido para ser uma ferramenta centralizada, permitindo ao usuário um controle granular sobre suas receitas, gastos, cartões de crédito, assinaturas e objetivos financeiros, tudo isso com uma interface reativa e com suporte a tema claro e escuro.
+O coração da aplicação reside no componente `LifeTracker.tsx`, que centraliza o estado e a lógica de negócio.
 
-A aplicação é um *Single Page Application (SPA)*, onde a navegação entre as diferentes seções é gerenciada internamente pelo React, sem a necessidade de recarregar a página. Todos os dados são salvos localmente no navegador do usuário através do `localStorage`, garantindo privacidade e funcionamento offline.
+*   **Gerenciamento de Estado (React Hooks)**:
+    *   `useState`: Gerencia o estado local, como a aba ativa (`tab`), os dados dos formulários e o estado dos modais.
+    *   `useEffect`: Utilizado para persistir os dados no `localStorage` sempre que o estado principal (gastos, receitas, etc.) é alterado. Também é usado para carregar os dados na inicialização da aplicação.
+    *   `useMemo`: Otimiza o desempenho calculando valores derivados (como totais, saldos e resumos) apenas quando suas dependências mudam, evitando recálculos desnecessários a cada renderização.
 
-### Estrutura e Tecnologias
+*   **Persistência de Dados (`localStorage`)**: Todos os dados inseridos pelo usuário (gastos, receitas, cartões, etc.) são serializados para JSON e salvos no `localStorage` do navegador. Isso torna a aplicação autônoma (sem necessidade de backend) e garante a privacidade do usuário.
 
-*   **React**: Utilizado para construir a interface de usuário de forma componentizada e reativa. O estado da aplicação é gerenciado através dos hooks `useState`, `useEffect` e `useMemo`.
-*   **TypeScript**: Garante a segurança de tipos em todo o código, prevenindo erros comuns em JavaScript e melhorando a manutenibilidade. As interfaces como `Gasto`, `Receita`, `Cartao`, etc., definidas no início de `LifeTracker.tsx`, são um bom exemplo disso.
-*   **Tailwind CSS**: Framework CSS *utility-first* usado para estilizar toda a aplicação. Ele permite a criação de interfaces complexas e responsivas diretamente no JSX. O modo escuro é implementado com a estratégia de classe (`darkMode: ["class"]` em `tailwind.config.ts`) e as cores são definidas como variáveis CSS em `src/index.css`, permitindo a troca de tema de forma eficiente.
-*   **Vite**: Ferramenta de build moderna que proporciona um ambiente de desenvolvimento extremamente rápido com *Hot Module Replacement (HMR)*.
+*   **Funções Auxiliares (`utils/helpers.tsx`)**: Funções utilitárias, como `fmt` (para formatar valores monetários) e `toNum` (para conversão segura para número), são usadas em toda a aplicação para garantir consistência.
 
 ---
 
-### Funcionalidades Principais (Abas)
+## 📋 Funcionalidades Detalhadas
 
-A navegação principal é feita por um conjunto de botões que alteram o estado `tab`, renderizando a seção correspondente.
+A navegação é organizada em abas, cada uma representando uma funcionalidade chave.
 
-#### 1. Dashboard (Aba Principal)
+### 1. Dashboard
+A tela principal, que oferece um resumo completo da situação financeira.
+*   **Cards Principais**: Saldo em conta, crédito disponível, total de gastos no débito e crédito.
+*   **Previsão do Mês**: Um painel que projeta os gastos fixos do mês corrente, incluindo aluguel, assinaturas e faturas de cartão.
+*   **Pagamento de Aluguel**: Funcionalidade que permite marcar o aluguel como pago, gerando automaticamente uma transação de despesa.
+*   **Resumos Visuais**:
+    *   **Gastos por Categoria**: Lista as despesas agrupadas por categoria.
+    *   **Compras Parceladas**: Mostra o andamento de compras parceladas ativas.
+    *   **Assinaturas Anuais**: Alerta sobre assinaturas anuais com vencimento próximo.
+    *   **Metas Financeiras**: Exibe o progresso de cada objetivo cadastrado.
 
-É a tela inicial e o centro nervoso da aplicação, oferecendo uma visão geral da saúde financeira do usuário.
-
-*   **Cards de Resumo**: Exibe os principais indicadores:
-    *   **Saldo (Dinheiro)**: Calculado como `totalReceitas - gastosDebito - assinDebitoMensal`.
-    *   **Crédito Disponível**: O limite total de todos os cartões menos os gastos e assinaturas no crédito.
-    *   **Gastos (Crédito, Dinheiro e Total)**: Soma dos gastos do mês.
-    *   **Estilo e Interatividade**: Os cards utilizam as classes `glass-card` e `glass-card-hover` (definidas em `src/index.css`) para um efeito de "vidro" com animação ao passar o mouse.
-    *   **Cores Dinâmicas**: Os valores de Saldo e Crédito Disponível mudam de cor (verde, laranja, vermelho) com base em limites definidos pelo usuário na aba "Configurações". A função `getCorValor` em `LifeTracker.tsx` é responsável por essa lógica.
-
-*   **Previsão de Gastos**: Uma seção que projeta os gastos fixos do mês atual, incluindo:
-    *   **Aluguel**: Permite marcar o aluguel como pago, o que gera um gasto automático na aba "Gastos" (função `pagarAluguel`).
-    *   **Acordos e Assinaturas**: Mostra os totais e permite abrir um modal para ver os detalhes.
-
-*   **Gráficos e Listas Adicionais**:
-    *   **Gastos por Categoria**: Uma lista que agrupa todos os gastos por sua categoria.
-    *   **Compras Parceladas Ativas**: Exibe compras que ainda possuem parcelas a vencer.
-    *   **Assinaturas Anuais**: Lista as assinaturas anuais e destaca com um "⚠️" as que estão próximas do vencimento, usando a função `calcularProximoVencimentoAnual`.
-    *   **Objetivos**: Mostra o progresso de cada objetivo cadastrado.
-
-#### 2. Gastos
-
-Seção dedicada ao registro e visualização de todos os gastos.
-
+### 2. Gastos
+Permite o registro detalhado de todas as despesas.
 *   **Formulário Inteligente**:
-    *   **Detecção de Categoria**: Ao digitar a descrição, a função `detectarCategoria` sugere automaticamente uma categoria (ex: "ifood" -> "ALIMENTAÇÃO").
-    *   **Sugestões de Descrição**: Oferece uma lista de sugestões (`SUGESTOES_GLOBAIS`) que pode ser navegada com as setas do teclado e selecionada com Enter, agilizando o preenchimento.
-    *   **Parcelamento**: Para pagamentos no crédito, é possível definir um número de parcelas. A função `adicionarGasto` cria múltiplos registros de gasto, um para cada mês futuro.
+    *   **Sugestão de Descrição**: Ao digitar, sugere descrições comuns para agilizar o preenchimento.
+    *   **Detecção de Categoria**: Preenche a categoria automaticamente com base na descrição (ex: "Uber" → "Transporte").
+    *   **Suporte a Parcelamento**: Ao adicionar um gasto no crédito, é possível dividi-lo em várias parcelas, e o sistema cria os lançamentos futuros automaticamente.
 
-*   **Lista de Gastos**: Exibe os gastos em ordem cronológica inversa, com detalhes como data, categoria, forma de pagamento e parcelas. Cada item possui botões para **Editar** e **Excluir**.
+### 3. Receitas
+Uma seção simples e direta para registrar todas as fontes de renda.
 
-#### 3. Receitas
+### 4. Contas Recorrentes
+Gerenciamento de despesas fixas, como assinaturas, aluguéis e acordos.
+*   **Flexibilidade**: Suporta pagamentos mensais e anuais.
+*   **Tipos de Contas**: Permite diferenciar entre `Assinatura`, `Contrato de Aluguel` e `Acordo` (dívidas parceladas).
 
-Funciona de forma similar à aba de Gastos, mas para registrar entradas de dinheiro como salários, bônus, etc.
+### 5. Objetivos
+Ferramenta para definir e acompanhar metas financeiras.
+*   **Acompanhamento de Progresso**: O usuário pode adicionar ou retirar valores de cada objetivo, e o progresso é exibido visualmente em uma barra.
 
-#### 4. Assinaturas/Contratos
+### 6. Cartões
+Gerenciador de cartões de crédito.
+*   **Cadastro Completo**: Permite salvar informações como nome do cartão, limite, e dias de fechamento e vencimento da fatura.
+*   **Identidade Visual**: Exibe o ícone correspondente a cada banco para fácil identificação.
 
-Permite gerenciar pagamentos recorrentes.
+### 7. Faturas
+Visualizador de faturas de cartão de crédito.
+*   **Navegação por Mês**: Permite consultar o extrato de qualquer mês.
+*   **Detalhes por Cartão**: Agrupa todos os lançamentos (compras e assinaturas) por cartão, exibindo o total de cada fatura.
+*   **Busca Rápida**: Um campo de busca facilita encontrar transações específicas.
 
-*   **Tipos Flexíveis**: Suporta diferentes tipos de recorrência:
-    *   `ASSINATURA`: (ex: Netflix, Spotify).
-    *   `CONTRATO - ALUGUEL`: Um tipo especial com a opção de "Pagar".
-    *   `ACORDO`: Para dívidas parceladas, com controle de parcelas pagas e restantes.
-*   **Cálculo de Vencimento**: O sistema avisa sobre assinaturas com vencimento próximo.
-*   **Gerenciamento de Parcelas**: Para acordos, é possível "Pagar parcela", atualizando o progresso da dívida.
+### 8. Resumo Anual
+Oferece uma visão macro do desempenho financeiro ao longo do ano.
+*   **Gráficos e Tabela**: Apresenta gráficos de barras mensais para receitas e despesas, além de uma tabela detalhada com o saldo de cada mês.
 
-#### 5. Objetivos
-
-Uma ferramenta para acompanhar metas financeiras.
-
-*   **Cadastro de Metas**: O usuário define um nome e um valor necessário.
-*   **Acompanhamento de Progresso**: É possível adicionar ou remover valores do "Valor Atual" e visualizar o progresso em uma barra percentual.
-*   **Status**: Cada objetivo pode ter um status como "EM PROGRESSO" ou "QUITADO - FINALIZADO", o que altera a aparência do card.
-
-#### 6. Cartões
-
-Gerenciamento completo dos cartões de crédito.
-
-*   **Cadastro**: Permite adicionar novos cartões com nome, limite, dia de vencimento e dia de fechamento. O campo de nome possui sugestões (`SUGESTOES_BANCOS`).
-*   **Visualização**: Cada cartão é exibido em um card com seu ícone (ex: `Nubank`, `Itau`), limite e datas. As imagens SVG são importadas no topo do `LifeTracker.tsx`.
-*   **Edição e Remoção**: É possível editar os dados de um cartão ou removê-lo. Ao remover, os gastos antigos associados a ele mantêm o nome do cartão como referência histórica, mas perdem o `cartaoId`.
-
-#### 7. Faturas
-
-Visualizador detalhado das faturas de cartão de crédito para um determinado mês.
-
-*   **Seleção de Mês**: O usuário pode navegar entre os meses para ver faturas passadas ou futuras.
-*   **Agrupamento por Cartão**: A tela exibe colunas separadas para cada cartão, listando todos os lançamentos (gastos e assinaturas) daquele período.
-*   **Busca**: Um campo de busca permite filtrar os lançamentos por descrição, categoria ou valor.
-*   **Totalizadores**: Mostra o total de cada fatura individual e o valor total de todas as faturas do mês.
-
-#### 8. Configurações
-
-Permite ao usuário personalizar o comportamento da aplicação.
-
-*   **Cores do Dashboard**: O usuário pode definir os valores que determinam quando os indicadores de "Saldo" e "Crédito Disponível" ficam laranja (alerta) ou vermelho (crítico), tornando a visualização mais pessoal.
-
-#### 9. Resumo Anual
-
-Oferece uma visão macro do ano financeiro.
-
-*   **Gráficos de Barra**: Exibe gráficos mensais para:
-    *   Receitas
-    *   Gastos em Dinheiro
-    *   Gastos em Crédito
-*   **Seleção de Ano**: O usuário pode alterar o ano para analisar dados históricos.
+### 9. Configurações
+Área para personalizar a experiência do usuário.
+*   **Limites de Alerta**: Permite configurar os valores que definem as cores (alerta e crítico) dos cards de saldo e crédito no dashboard.
+*   **Gerenciador de Categorias**: O usuário pode criar, editar e excluir categorias de despesa e receita.

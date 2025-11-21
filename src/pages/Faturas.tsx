@@ -1,33 +1,82 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Cartao, Gasto } from './types';
 import { fmt, toNum } from '../../utils/helpers';
+import CardIcon from '../components/CardIcon';
 
 interface Fatura {
   cartao: Cartao;
-  lancamentos: (Gasto & { dataObj: Date })[];
+  lancamentos: Gasto[];
   total: number;
   disponivel: number;
 }
 
 interface FaturasProps {
-  faturasFiltradas: Fatura[];
-  buscaFatura: string;
-  setBuscaFatura: React.Dispatch<React.SetStateAction<string>>;
-  mesFatura: Date;
-  setMesFatura: React.Dispatch<React.SetStateAction<Date>>;
-  totalFaturasMes: number;
-  getDadosCartao: (nome: string) => { bg: string; text: string; imagem: string | null };
+  gastos: Gasto[];
+  cartoes: Cartao[];
 }
 
 const Faturas: React.FC<FaturasProps> = ({
-  faturasFiltradas,
-  buscaFatura,
-  setBuscaFatura,
-  mesFatura,
-  setMesFatura,
-  totalFaturasMes,
-  getDadosCartao,
+  gastos,
+  cartoes,
 }) => {
+  const [buscaFatura, setBuscaFatura] = useState('');
+  const [mesFatura, setMesFatura] = useState(() => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - 1); // Set to previous month
+    return date;
+  });
+
+ const faturasFiltradas = useMemo(() => {
+    return cartoes.map(cartao => {
+      const lancamentos = gastos.filter(gasto => {
+        if (gasto.cartaoId !== cartao.id) return false;
+        if (gasto.tipoPagamento !== 'CRÉDITO') return false;
+
+        const mesFaturaAtual = mesFatura.getMonth(); // 0-indexed
+        const anoFaturaAtual = mesFatura.getFullYear();
+        const diaFechamentoCartao = cartao.diaFechamento;
+
+        // O período da fatura vai do dia seguinte ao fechamento do mês anterior
+        // até o dia de fechamento do mês selecionado
+        
+        // Data de início: dia seguinte ao fechamento do mês anterior
+        const inicioFatura = new Date(anoFaturaAtual, mesFaturaAtual - 1, diaFechamentoCartao + 1);
+        inicioFatura.setHours(0, 0, 0, 0);
+        
+        // Data de fim: dia de fechamento do mês selecionado
+        const fimFatura = new Date(anoFaturaAtual, mesFaturaAtual, diaFechamentoCartao);
+        fimFatura.setHours(23, 59, 59, 999);
+
+        // Converter a data do gasto para objeto Date
+        const gastoDate = new Date(gasto.data + 'T12:00:00');
+        
+        // Incluir gastos que estão dentro do período da fatura
+        return gastoDate > inicioFatura && gastoDate <= fimFatura;
+      });
+
+      const lancamentosFiltrados = buscaFatura
+        ? lancamentos.filter(l => l.descricao.toLowerCase().includes(buscaFatura.toLowerCase()))
+        : lancamentos;
+
+      const total = lancamentos.reduce((acc, g) => acc + toNum(g.valor), 0);
+      const limite = toNum(cartao.limite);
+      
+      // 'Disponível Pós-fatura' reflete o limite menos o total da fatura atual
+      const disponivel = limite - total;
+
+      return {
+        cartao,
+        lancamentos: lancamentosFiltrados.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()),
+        total,
+        disponivel,
+      };
+    });
+  }, [cartoes, gastos, mesFatura, buscaFatura]);
+
+  const totalFaturasMes = useMemo(() => {
+    return faturasFiltradas.reduce((acc, fatura) => acc + fatura.total, 0);
+  }, [faturasFiltradas]);
+
   return (
     <section className="space-y-6 animate-fadeInUp">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl glass-card">
@@ -42,9 +91,7 @@ const Faturas: React.FC<FaturasProps> = ({
         {faturasFiltradas.map((f, index) => (
           <div key={f.cartao.id} className="p-4 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700 animate-fadeInUp" style={{ animationDelay: `${index * 50}ms` }}>
             <div className="flex items-center gap-2 mb-4">
-              {getDadosCartao(f.cartao.nome).imagem && (
-                <img src={getDadosCartao(f.cartao.nome).imagem!} alt={f.cartao.nome} className="w-12 h-8 object-cover rounded" />
-              )}
+              <CardIcon cardName={f.cartao.nome} />
               <h3 className="font-medium text-base">{f.cartao.nome}</h3>
             </div>
             <div className="space-y-2 mb-4 max-h-96 overflow-y-auto">

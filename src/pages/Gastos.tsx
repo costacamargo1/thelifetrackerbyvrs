@@ -1,259 +1,99 @@
 import React from 'react';
-import { Pencil, Trash2 } from 'lucide-react';
-import { Gasto, Cartao, TipoPagamento, Category } from './types';
-import { fmt, toNum, detectarCategoria, SUGESTOES_GLOBAIS, SUGESTOES_DESCRICAO, CATEGORIAS_GASTO, capitalize } from '../../utils/helpers';
+import { Pencil, Trash2, Plus } from 'lucide-react';
+import { Gasto, Category } from './types';
+import { fmt, toNum, capitalize } from '../../utils/helpers';
 import { IconComponent } from '../components/CategoryIcon';
 
 interface GastosProps {
   gastos: Gasto[];
-  categories: Category[];
-  cartoes: Cartao[];
-  editingGastoId: number | null;
-  novoGasto: Gasto;
-  setNovoGasto: React.Dispatch<React.SetStateAction<Gasto>>;
-  sugestoesDescricao: string[];
-  setSugestoesDescricao: React.Dispatch<React.SetStateAction<string[]>>;
-  sugestaoDescricaoAtivaIndex: number;
-  setSugestaoDescricaoAtivaIndex: React.Dispatch<React.SetStateAction<number>>;
-  adicionarGasto: (e: React.FormEvent) => void;
-  salvarEdicaoGasto: (e: React.FormEvent) => void;
-  cancelarEdicaoGasto: () => void;
-  iniciarEdicaoGasto: (gasto: Gasto) => void;
-  removerGasto: (id: number) => void;
+  categorias: Category[];
+  openModal: (type: 'gasto', item?: Gasto) => void;
+  onDelete: (id: number) => void;
 }
 
 const Gastos: React.FC<GastosProps> = ({
   gastos,
-  categories,
-  cartoes,
-  editingGastoId,
-  novoGasto,
-  setNovoGasto,
-  sugestoesDescricao,
-  setSugestoesDescricao,
-  sugestaoDescricaoAtivaIndex,
-  setSugestaoDescricaoAtivaIndex,
-  adicionarGasto,
-  salvarEdicaoGasto,
-  cancelarEdicaoGasto,
-  iniciarEdicaoGasto,
-  removerGasto,
+  categorias,
+  openModal,
+  onDelete,
 }) => {
   return (
-    <section className="p-4 rounded-sm glass-card space-y-4 animate-fadeInUp">
-      <h2 className="text-lg font-medium mb-2">{editingGastoId ? 'Alterar Gasto' : 'Lançar Gasto'}</h2>
-      <form className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end"
-        onSubmit={editingGastoId ? salvarEdicaoGasto : adicionarGasto}
-        key={`gasto-form-${editingGastoId || 'novo'}`}>
-        <div className="md:col-span-4 relative">
-          <label className="block text-xs opacity-70 mb-1">Descrição</label>
-          <input
-            className="input-premium"
-            value={novoGasto.descricao}
-            onChange={(e) => {
-              const desc = e.target.value;
-              const catAuto = detectarCategoria(desc);
-              setNovoGasto({ ...novoGasto, descricao: desc, categoria: catAuto });
-
-              if (desc.trim().length >= 2) {
-                const filtradas = SUGESTOES_GLOBAIS
-                  .filter(s => s.toLowerCase().includes(desc.toLowerCase()))
-                  .slice(0, 8);
-                setSugestoesDescricao(filtradas);
-                setSugestaoDescricaoAtivaIndex(filtradas.length > 0 ? 0 : -1);
-              } else {
-                setSugestoesDescricao([]);
-              }
-            }}
-            onBlur={() => setTimeout(() => setSugestoesDescricao([]), 200)}
-            onKeyDown={(e) => {
-              if (sugestoesDescricao.length > 0 && e.key !== 'Tab') {
-                if (e.key === 'ArrowDown') {
-                  e.preventDefault();
-                  setSugestaoDescricaoAtivaIndex(prev => (prev + 1) % sugestoesDescricao.length);
-                } else if (e.key === 'ArrowUp') {
-                  e.preventDefault();
-                  setSugestaoDescricaoAtivaIndex(prev => (prev - 1 + sugestoesDescricao.length) % sugestoesDescricao.length);
-                } else if (e.key === 'Enter' && sugestaoDescricaoAtivaIndex > -1) {
-                  e.preventDefault();
-                  const sugestaoSelecionada = sugestoesDescricao[sugestaoDescricaoAtivaIndex];
-                  if (sugestaoSelecionada) {
-                    const catAuto = detectarCategoria(sugestaoSelecionada);
-                    setNovoGasto({ ...novoGasto, descricao: sugestaoSelecionada, categoria: catAuto });
-                    setSugestoesDescricao([]);
-                  }
-                } else if (e.key === 'Escape') {
-                  setSugestoesDescricao([]);
-                }
-              }
-            }}
-            onFocus={() => {
-              if (!novoGasto.descricao.trim() && sugestoesDescricao.length === 0) {
-                const sugestoesCategoria = SUGESTOES_DESCRICAO[novoGasto.categoria] || [];
-                setSugestoesDescricao(sugestoesCategoria.slice(0, 8));
-                setSugestaoDescricaoAtivaIndex(0);
-              }
-            }}
-            placeholder="Ex: Supermercado, Uber, Netflix..."
-          />
-          {sugestoesDescricao.length > 0 && (
-            <ul className="absolute z-10 w-full bg-white border rounded-lg mt-1 shadow-lg max-h-60 overflow-y-auto dark:bg-slate-700 dark:border-slate-600">
-              {sugestoesDescricao.map((s, index) => (
-                <li
-                  key={s}
-                  className={`p-2 cursor-pointer text-sm ${sugestaoDescricaoAtivaIndex === index ? 'bg-blue-100 text-blue-800 border-l-2 border-blue-500 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-400' : 'hover:bg-gray-100 dark:hover:bg-slate-600'
-                    }`}
-                  onMouseDown={() => {
-                    if (s) {
-                      const catAuto = detectarCategoria(s);
-                      setNovoGasto({ ...novoGasto, descricao: s, categoria: catAuto });
-                      setSugestoesDescricao([]);
-                    }
-                  }}
-                  onMouseEnter={() => setSugestaoDescricaoAtivaIndex(index)}
-                >
-                  {s}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <div className="md:col-span-2">
-          <label className="block text-xs opacity-70 mb-1">Valor (R$)</label>
-          <input
-            type="number" step="0.01" min="0" className="input-premium w-full"
-            value={novoGasto.valor}
-            onChange={(e) => setNovoGasto({ ...novoGasto, valor: e.target.value })}
-          />
-        </div>
-        <div className="md:col-span-2">
-          <label className="block text-xs opacity-70 mb-1">Pagamento</label>
-          <select
-            className="input-premium"
-            value={novoGasto.tipoPagamento}
-            onChange={(e) => {
-              const tipo = e.target.value as TipoPagamento;
-              setNovoGasto({ ...novoGasto, tipoPagamento: tipo, cartaoId: tipo === 'CRÉDITO' ? (novoGasto.cartaoId || cartoes[0]?.id || null) : null });
-            }}
-          >
-            <option value="DÉBITO">DÉBITO (PIX/Dinheiro/à vista)</option>
-            <option value="CRÉDITO">CRÉDITO (cartão)</option>
-          </select>
-        </div>
-        {novoGasto.tipoPagamento === 'CRÉDITO' && (
-          <div className="md:col-span-2">
-            <label className="block text-xs opacity-70 mb-1">Cartão</label>
-            <select
-              required className="input-premium"
-              value={novoGasto.cartaoId ?? ''}
-              onChange={(e) => setNovoGasto({ ...novoGasto, cartaoId: e.target.value ? Number(e.target.value) : null })}
-            >
-              <option value="">Selecione...</option>
-              {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-            </select>
-          </div>
-        )}
-        {novoGasto.tipoPagamento === 'CRÉDITO' && (
-          <div>
-            <label className="block text-xs opacity-70 mb-1">Parcelas</label>
-            <input
-              type="number" min="1" max="24"
-              disabled={!!editingGastoId}
-              className="input-premium disabled:opacity-50"
-              value={novoGasto.parcelasTotal || 1}
-              onChange={(e) => setNovoGasto({ ...novoGasto, parcelasTotal: Number(e.target.value) || 1 })}
-            />
-          </div>
-        )}
-        <div className="md:col-span-2">
-          <label className="block text-xs opacity-70 mb-1">Categoria</label>
-          <select
-            className="input-premium"
-            value={novoGasto.categoria}
-            onChange={(e) => setNovoGasto({ ...novoGasto, categoria: e.target.value })}>
-            {categories.filter(c => c.type === 'despesa').map(c => (
-              <option key={c.id} value={c.name}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-        <div className="md:col-span-2">
-          <label className="block text-xs opacity-70 mb-1">Data</label>
-          <input
-            type="date"
-            className="input-premium"
-            value={novoGasto.data}
-            onChange={(e) => setNovoGasto({ ...novoGasto, data: e.target.value })}
-          />
-        </div>
-        <div className="flex gap-2 items-center">
-          <button className="w-[200px] px-4 py-2.5 rounded-sm bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium shadow
-                                  dark:bg-emerald-600 dark:hover:bg-emerald-700">
-            {editingGastoId ? 'Salvar' : 'Adicionar'}
-          </button>
-          {editingGastoId && (
-            <button type="button" onClick={cancelarEdicaoGasto} className="px-3 py-2.5 rounded-lg bg-gray-200 text-sm dark:bg-slate-600">Cancelar</button>
-          )}
-        </div>
-      </form>
+    <section className="space-y-6 animate-fadeInUp">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Meus Gastos</h2>
+        <button 
+          onClick={() => openModal('gasto')}
+          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-700 transition-colors"
+        >
+          <Plus size={20} />
+          Novo Gasto
+        </button>
+      </div>
 
       <div>
-        <h3 className="text-sm font-medium mb-2">Últimos gastos</h3>
+        <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-4">Últimos gastos</h3>
         {gastos.length === 0 ? (
-          <p className="text-sm opacity-60">Sem lançamentos</p>
+          <div className="text-center py-12 px-6 bg-white dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">Nenhum gasto registrado</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Comece adicionando um novo gasto para ver seus registros aqui.</p>
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {gastos.slice().reverse().map((g, index) => {
-              const category = categories.find(c => c.name === g.categoria);
+              const category = categorias.find(c => c.name === g.categoria);
               const iconName = category?.icon || 'QuestionMarkCircleIcon';
+              const cartaoNome = g.cartaoNome || '';
 
-              return (<div key={g.id} className="p-3 rounded-lg border bg-white hover:shadow-sm transition dark:bg-slate-800 dark:border-slate-700 animate-fadeInUp" style={{ animationDelay: `${index * 25}ms` }}>
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <IconComponent iconName={iconName} className="w-6 h-6 text-gray-400 flex-shrink-0" />
+              return (<div key={g.id} className="p-4 rounded-2xl border bg-white hover:shadow-lg transition-shadow dark:bg-slate-800 dark:border-slate-700/60 animate-fadeInUp" style={{ animationDelay: `${index * 25}ms` }}>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-slate-100 dark:bg-slate-700/80">
+                      <IconComponent iconName={iconName} className="w-6 h-6 text-slate-500 dark:text-slate-300" />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm truncate">{g.descricao}</span>
+                        <span className="font-semibold text-base text-slate-800 dark:text-slate-100 truncate">{g.descricao}</span>
                         {g.parcelasTotal && g.parcelasTotal > 1 && (
-                          <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded flex-shrink-0 dark:bg-blue-900 dark:text-blue-300">
+                          <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full flex-shrink-0 dark:bg-blue-500/10 dark:text-blue-400 font-medium">
                             {g.parcelaAtual}/{g.parcelasTotal}
                           </span>
                         )}
                       </div>
-                      <div className="text-xs opacity-60 mt-0.5 flex items-center gap-2 flex-wrap dark:text-gray-400">
-                        <span>{new Date(g.data + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
-                        <span>•</span>
-                        <span>{g.categoria}</span>
-                        <span>•</span>
-                        <span>{g.tipoPagamento}{g.cartaoNome && ` - ${g.cartaoNome}`}</span>
+                      <div className="text-sm text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2 flex-wrap">
+                        <span>{new Date(g.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                        <span className="text-slate-300 dark:text-slate-600">•</span>
+                        <span className="capitalize">{g.categoria?.toLowerCase()}</span>
+                        <span className="text-slate-300 dark:text-slate-600">•</span>
+                        <span>{g.tipoPagamento}{cartaoNome && ` - ${cartaoNome}`}</span>
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
                     <div className="text-right">
-                      <div className="font-semibold text-sm whitespace-nowrap">
-                        {fmt(toNum(g.valor))}
+                      <div className="font-bold text-lg text-slate-800 dark:text-slate-100 whitespace-nowrap">
+                        - {fmt(toNum(g.valor))}
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
-                        onClick={() => iniciarEdicaoGasto(g)}
-                        className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded-full transition-colors duration-200 dark:text-blue-400 dark:hover:text-blue-200 dark:hover:bg-blue-900/50"
+                        onClick={() => openModal('gasto', g)}
+                        className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors duration-200 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-blue-500/10"
                         title="Editar"
                       >
-                        <Pencil size={16} />
+                        <Pencil size={18} />
                       </button>
                       <button
                         type="button"
                         onClick={() => {
                           if (window.confirm('Tem certeza que deseja remover este gasto?')) {
-                            removerGasto(g.id);
+                            onDelete(g.id);
                           }
                         }}
-                        className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-full transition-colors duration-200 dark:text-red-400 dark:hover:text-red-200 dark:hover:bg-red-900/50"
+                        className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-100 rounded-full transition-colors duration-200 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-rose-500/10"
                         title="Excluir"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   </div>

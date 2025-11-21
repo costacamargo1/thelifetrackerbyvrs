@@ -3,8 +3,8 @@ import React from "react";
 export default function LifeTrackerIconOnly() {
   return (
     <svg
-      width="22"
-      height="22"
+      width="44"
+      height="44"
       viewBox="0 0 40 40"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
