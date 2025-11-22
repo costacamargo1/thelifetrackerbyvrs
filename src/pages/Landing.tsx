@@ -1,18 +1,19 @@
 import React, { useState } from "react";
 import LifeTrackerCompactLogo from "../components/LifeTrackerCompactLogo";
 
-// 🔥 Import do Auth
+// Auth
 import { useAuth } from "../hooks/useAuth";
 import AuthModal from "../AuthModal";
 
 export default function Landing() {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // 🔥 Puxa função para abrir o modal
-  const { openAuthModal } = useAuth();
+  // Agora também pegamos user
+  const { user, openAuthModal } = useAuth();
 
   return (
     <div className="font-sans bg-white text-slate-800">
+
       {/* HEADER */}
       <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-sm border-b border-slate-200">
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -25,33 +26,49 @@ export default function Landing() {
 
             {/* Navegação Desktop */}
             <nav className="hidden md:flex space-x-8">
-              <a href="#features" className="font-medium text-slate-600 hover:text-primary-500 transition-all transform hover:-translate-y-0.5">
+              <a href="#features" className="font-medium text-slate-600 hover:text-primary-500 transition-all hover:-translate-y-0.5">
                 Recursos
               </a>
-              <a href="#how-it-works" className="font-medium text-slate-600 hover:text-primary-500 transition-all transform hover:-translate-y-0.5">
+              <a href="#how-it-works" className="font-medium text-slate-600 hover:text-primary-500 transition-all hover:-translate-y-0.5">
                 Como Funciona
               </a>
-              <a href="#pricing" className="font-medium text-slate-600 hover:text-primary-500 transition-all transform hover:-translate-y-0.5">
+              <a href="#pricing" className="font-medium text-slate-600 hover:text-primary-500 transition-all hover:-translate-y-0.5">
                 Preços
               </a>
             </nav>
 
             {/* Botões Desktop */}
             <div className="hidden md:flex items-center space-x-4">
-              {/* 🔥 Ajustado */}
-              <button
-                onClick={openAuthModal}
-                className="font-medium text-slate-600 hover:text-primary-500 transition-all transform hover:-translate-y-0.5"
-              >
-                Entrar
-              </button>
+              {user ? (
+                <>
+                  <span className="font-medium text-slate-700">
+                    Olá, {user.user_metadata?.full_name || user.email}
+                  </span>
 
-              <button
-                onClick={openAuthModal}
-                className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-white bg-primary-500 hover:bg-primary-600 transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
-              >
-                Começar Gratuitamente
-              </button>
+                  <a
+                    href="/painel"
+                    className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-white bg-primary-500 hover:bg-primary-600 shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
+                  >
+                    Acessar LifeTracker
+                  </a>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={openAuthModal}
+                    className="font-medium text-slate-600 hover:text-primary-500 transition-all hover:-translate-y-0.5"
+                  >
+                    Entrar
+                  </button>
+
+                  <button
+                    onClick={openAuthModal}
+                    className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-white bg-primary-500 hover:bg-primary-600 shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
+                  >
+                    Começar Gratuitamente
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Botão Mobile */}
@@ -86,28 +103,39 @@ export default function Landing() {
                 Preços
               </a>
 
-              {/* 🔥 Ajustado */}
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  openAuthModal();
-                }}
-                className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:bg-slate-50 w-full text-left"
-              >
-                Entrar
-              </button>
-            </div>
+              {/* Mobile - se logado */}
+              {user ? (
+                <>
+                  <span className="block px-3 py-2 rounded-md text-base font-medium text-slate-700">
+                    Olá, {user.user_metadata?.full_name || user.email}
+                  </span>
 
-            {/* 🔥 Ajustado */}
-            <button
-              onClick={() => {
-                setMenuOpen(false);
-                openAuthModal();
-              }}
-              className="block w-full px-5 py-3 text-center font-medium text-white bg-primary-500 hover:bg-primary-600"
-            >
-              Começar Gratuitamente
-            </button>
+                  <a
+                    href="/painel"
+                    onClick={() => setMenuOpen(false)}
+                    className="mt-3 block w-full px-5 py-3 text-center font-medium text-white bg-primary-500 hover:bg-primary-600"
+                  >
+                    Acessar LifeTracker
+                  </a>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => { setMenuOpen(false); openAuthModal(); }}
+                    className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:bg-slate-50 w-full text-left"
+                  >
+                    Entrar
+                  </button>
+
+                  <button
+                    onClick={() => { setMenuOpen(false); openAuthModal(); }}
+                    className="block w-full px-5 py-3 text-center font-medium text-white bg-primary-500 hover:bg-primary-600"
+                  >
+                    Começar Gratuitamente
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         )}
       </header>
@@ -131,20 +159,32 @@ export default function Landing() {
 
                 <div className="mt-10 flex flex-col sm:flex-row sm:justify-center md:justify-start space-y-4 sm:space-y-0 sm:space-x-4">
 
-                  {/* 🔥 Ajustado */}
-                  <button
-                    onClick={openAuthModal}
-                    className="inline-flex items-center justify-center px-8 py-3 rounded-lg text-white bg-primary-500 hover:bg-primary-600 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                  >
-                    Começar Gratuitamente
-                  </button>
+                  {!user ? (
+                    <>
+                      <button
+                        onClick={openAuthModal}
+                        className="inline-flex items-center justify-center px-8 py-3 rounded-lg text-white bg-primary-500 hover:bg-primary-600 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                      >
+                        Começar Gratuitamente
+                      </button>
 
-                  <a
-                    href="#features"
-                    className="inline-flex items-center justify-center px-8 py-3 border border-slate-300 rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                  >
-                    Ver Demo
-                  </a>
+                      <a
+                        href="#features"
+                        className="inline-flex items-center justify-center px-8 py-3 border border-slate-300 rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                      >
+                        Ver Demo
+                      </a>
+                    </>
+                  ) : (
+                    <>
+                      <a
+                        href="/painel"
+                        className="inline-flex items-center justify-center px-8 py-3 rounded-lg text-white bg-primary-500 hover:bg-primary-600 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                      >
+                        Acessar LifeTracker
+                      </a>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -167,11 +207,7 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* FEATURES */}
-        {/* (SEÇÃO COMPLETA MANTIDA 100% IGUAL) */}
-
-        {/* HOW IT WORKS */}
-        {/* (MANTIDO IGUAL) */}
+        {/* FEATURES (sem alteração) */}
 
         {/* PRICING */}
         <section id="pricing" className="py-20 bg-slate-50">
@@ -181,6 +217,7 @@ export default function Landing() {
             </h2>
 
             <div className="mt-16 max-w-lg mx-auto bg-white p-8 rounded-2xl shadow-lg border border-primary-500 ring-2 ring-primary-500">
+
               <h3 className="text-2xl font-semibold text-primary-600">
                 Plano Fundador (100% Gratuito)
               </h3>
@@ -211,13 +248,21 @@ export default function Landing() {
                 ))}
               </ul>
 
-              {/* 🔥 Ajustado */}
-              <button
-                onClick={openAuthModal}
-                className="mt-10 block w-full px-6 py-4 text-lg rounded-lg text-white bg-primary-500 hover:bg-primary-600 shadow-lg transform hover:-translate-y-0.5"
-              >
-                Garantir meu Acesso Gratuito
-              </button>
+              {!user ? (
+                <button
+                  onClick={openAuthModal}
+                  className="mt-10 block w-full px-6 py-4 text-lg rounded-lg text-white bg-primary-500 hover:bg-primary-600 shadow-lg transform hover:-translate-y-0.5"
+                >
+                  Garantir meu Acesso Gratuito
+                </button>
+              ) : (
+                <a
+                  href="/painel"
+                  className="mt-10 block w-full px-6 py-4 text-lg rounded-lg text-white bg-primary-500 hover:bg-primary-600 shadow-lg transform hover:-translate-y-0.5"
+                >
+                  Acessar LifeTracker
+                </a>
+              )}
             </div>
           </div>
         </section>
@@ -229,23 +274,30 @@ export default function Landing() {
               Pronto para transformar sua vida financeira?
             </h2>
 
-            {/* 🔥 Ajustado */}
-            <button
-              onClick={openAuthModal}
-              className="mt-10 inline-flex items-center justify-center px-10 py-4 text-lg rounded-lg text-white bg-primary-500 hover:bg-primary-600 transition shadow-lg"
-            >
-              Começar Gratuitamente Agora
-            </button>
+            {!user ? (
+              <button
+                onClick={openAuthModal}
+                className="mt-10 inline-flex items-center justify-center px-10 py-4 text-lg rounded-lg text-white bg-primary-500 hover:bg-primary-600 shadow-lg"
+              >
+                Começar Gratuitamente Agora
+              </button>
+            ) : (
+              <a
+                href="/painel"
+                className="mt-10 inline-flex items-center justify-center px-10 py-4 text-lg rounded-lg text-white bg-primary-500 hover:bg-primary-600 shadow-lg"
+              >
+                Acessar LifeTracker
+              </a>
+            )}
           </div>
         </section>
       </main>
 
-      {/* FOOTER (mantido igual) */}
+      {/* FOOTER */}
       <footer className="bg-slate-900 text-slate-400">
-        {/* ... todo footer original aqui ... */}
+        {/* resto igual */}
       </footer>
 
-      {/* 🔥 MODAL DE LOGIN INSERIDO AQUI */}
       <AuthModal />
     </div>
   );
