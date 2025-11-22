@@ -43,7 +43,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
-    // Pega sessão atual
     supabase.auth
       .getSession()
       .then(({ data }) => {
@@ -52,7 +51,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .finally(() => setLoading(false));
 
-    // Escuta mudanças de auth
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, newSession) => {
@@ -75,6 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthModalOpen(false);
   };
 
+  // LOGIN EMAIL
   const signInWithEmail = async (email: string, password: string) => {
     try {
       setAuthLoading(true);
@@ -92,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // CADASTRO EMAIL
   const signUpWithEmail = async (
     name: string,
     email: string,
@@ -100,16 +100,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setAuthLoading(true);
       setAuthError(null);
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: { full_name: name },
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: `${window.location.origin}/painel`,
         },
       });
+
       if (error) throw error;
-      // Mantém o modal aberto mas informa que mandou e-mail, ou fecha:
+
       setIsAuthModalOpen(false);
     } catch (err: any) {
       setAuthError(err.message ?? 'Erro ao cadastrar');
@@ -118,20 +120,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // LOGIN SOCIAL
   const signInWithProvider = async (
     provider: 'google' | 'github' | 'apple'
   ) => {
     try {
       setAuthLoading(true);
       setAuthError(null);
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: `${window.location.origin}/painel`,
         },
       });
+
       if (error) throw error;
-      // redireciona para o provedor, o resto o Supabase cuida
     } catch (err: any) {
       setAuthError(err.message ?? 'Erro no login social');
     } finally {
@@ -168,4 +172,3 @@ export function useAuth() {
   }
   return context;
 }
-
