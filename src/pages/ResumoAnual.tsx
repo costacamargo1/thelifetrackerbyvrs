@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { fmt } from '../../utils/helpers';
-import { useGastos } from '../hooks/useGastos';
-import { useReceitas } from '../hooks/useReceitas';
+import { Gasto, Receita } from './types';
+import { fmt, toNum } from '../../utils/helpers';
 
 type DadosResumo = {
   mes: number;
@@ -11,9 +10,14 @@ type DadosResumo = {
   gastosCredito: number;
 };
 
+interface ResumoAnualProps {
+  gastos: Gasto[];
+  receitas: Receita[];
+}
+
 const BarChart = ({ title, data, dataKey, colorClass }: { title: string; data: DadosResumo[]; dataKey: keyof DadosResumo; colorClass: string }) => {
   const values = data.map(d => d[dataKey] as number);
-  const maxValue = Math.max(...values, 1);
+  const maxValue = Math.max(...values, 1); // Avoid division by zero, ensure a baseline
   const allZero = values.every(v => v === 0);
 
   return (
@@ -50,14 +54,8 @@ const BarChart = ({ title, data, dataKey, colorClass }: { title: string; data: D
   );
 };
 
-const ResumoAnual: React.FC = () => {
-  const { gastos, loading: gastosLoading, error: gastosError } = useGastos();
-  const { receitas, loading: receitasLoading, error: receitasError } = useReceitas();
-  
+const ResumoAnual: React.FC<ResumoAnualProps> = ({ gastos, receitas }) => {
   const [anoResumo, setAnoResumo] = useState(new Date().getFullYear());
-
-  const loading = gastosLoading || receitasLoading;
-  const error = gastosError || receitasError;
 
   const dadosResumoAnual = useMemo(() => {
     const dados: DadosResumo[] = Array.from({ length: 12 }, (_, i) => ({
@@ -73,7 +71,7 @@ const ResumoAnual: React.FC = () => {
       if (!isNaN(data.getTime()) && data.getFullYear() === anoResumo) {
         const month = data.getMonth();
         if (dados[month]) {
-          dados[month].receitas += r.valor;
+          dados[month].receitas += toNum(r.valor);
         }
       }
     });
@@ -83,10 +81,10 @@ const ResumoAnual: React.FC = () => {
       if (!isNaN(data.getTime()) && data.getFullYear() === anoResumo) {
         const month = data.getMonth();
         if (dados[month]) {
-          if (g.metodo_pagamento === 'CRÉDITO') {
-            dados[month].gastosCredito += g.valor;
+          if (g.tipoPagamento === 'CRÉDITO') {
+            dados[month].gastosCredito += toNum(g.valor);
           } else {
-            dados[month].gastosDebito += g.valor;
+            dados[month].gastosDebito += toNum(g.valor);
           }
         }
       }
@@ -107,16 +105,13 @@ const ResumoAnual: React.FC = () => {
 
   const saldoTotalAnual = totais.receitas - totais.gastosDebito;
 
-  if (loading) return <div>Carregando resumo anual...</div>;
-  if (error) return <div>Ocorreu um erro: {error.message}</div>;
-
   return (
     <section className="space-y-6 animate-fadeInUp">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Resumo Anual</h2>
         <div className="flex items-center gap-2">
           <span className="text-sm text-slate-500 dark:text-slate-400">Ano:</span>
-          <input type="number" value={anoResumo} onChange={e => setAnoResumo(Number(e.target.value))} className="p-2 w-28 rounded-lg bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600" />
+          <input type="number" value={anoResumo} onChange={e => setAnoResumo(Number(e.target.value))} className="input-premium p-2 w-28" />
         </div>
       </div>
       <div className="space-y-6">

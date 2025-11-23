@@ -1,7 +1,5 @@
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import LifeTracker from './LifeTracker';
-import { useAuth } from './hooks/useAuth';
 
 class ErrorBoundary extends React.Component<
   React.PropsWithChildren,
@@ -20,10 +18,13 @@ class ErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: 24, textAlign: 'center' }}>
+        <div style={{ padding: 24 }}>
           <h2>Opa, algo quebrou no LifeTracker.</h2>
           <p style={{ marginTop: 8 }}>
-            Verifique o console para mais detalhes.
+            Detalhe: {String(this.state.err?.message || this.state.err)}
+          </p>
+          <p style={{ marginTop: 8, opacity: 0.7 }}>
+            Veja o Console (F12 &gt; Console) para mais informações.
           </p>
         </div>
       );
@@ -33,26 +34,56 @@ class ErrorBoundary extends React.Component<
 }
 
 export default function App() {
-  const { user, session, loading } = useAuth();
-  const navigate = useNavigate();
+  const [darkMode, setDarkMode] = useState(false);
 
+  // -------------------------------
+  // DETECTA TEMA AUTOMÁTICO DO SISTEMA PARA NÃO CEGAR O USUÁRIO COM UMA POPFLASH DO PROFESSOR FALLEN
+  // -------------------------------
   useEffect(() => {
-    // Se o carregamento terminou e não há usuário/sessão, redireciona para a landing page.
-    if (!loading && !session) {
-      navigate('/');
-    }
-  }, [user, session, loading, navigate]);
+    const stored = localStorage.getItem("theme");
 
-  // Enquanto o estado de autenticação está sendo verificado, mostra um loader.
-  if (loading || !session) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-slate-900">
-        <p className="text-slate-500 dark:text-slate-400">Carregando...</p>
-      </div>
-    );
-  }
-  
-  // Se o usuário está autenticado, renderiza a aplicação principal.
+    if (stored === "dark") {
+      document.documentElement.classList.add("dark");
+      setDarkMode(true);
+      return;
+    }
+
+    if (stored === "light") {
+      document.documentElement.classList.remove("dark");
+      setDarkMode(false);
+      return;
+    }
+
+    // Sem preferência → usa tema do sistema
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+    if (prefersDark) {
+      document.documentElement.classList.add("dark");
+      setDarkMode(true);
+    } else {
+      document.documentElement.classList.remove("dark");
+      setDarkMode(false);
+    }
+  }, []);
+
+  // -------------------------------
+  // BOTÃO PRA TROCAR O TEMA PADRÃO FIFA
+  // -------------------------------
+  const toggleDarkMode = () => {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+
+    if (newMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  };
+
+  // -------------------------------
+
   return (
     <div className="min-h-screen">
       <ErrorBoundary>

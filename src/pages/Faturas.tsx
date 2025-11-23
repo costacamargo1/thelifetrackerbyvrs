@@ -1,110 +1,134 @@
-import React, { useState, useEffect } from 'react';
-import { useCartoes } from '../hooks/useCartoes';
-import { useFaturas, useFaturaTransacoes } from '../hooks/useFaturas';
-import { fmt } from '../../utils/helpers';
+import React, { useState, useMemo } from 'react';
+import { Cartao, Gasto } from './types';
+import { fmt, toNum } from '../../utils/helpers';
 import CardIcon from '../components/CardIcon';
-import { Fatura } from './types';
 
-const Faturas: React.FC = () => {
-  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
-  const [selectedFatura, setSelectedFatura] = useState<Fatura | null>(null);
+interface Fatura {
+  cartao: Cartao;
+  lancamentos: Gasto[];
+  total: number;
+  disponivel: number;
+}
 
-  const { cartoes, loading: cartoesLoading, error: cartoesError } = useCartoes();
-  const { faturas, loading: faturasLoading, error: faturasError } = useFaturas(selectedCardId || undefined);
-  const { transacoes, loading: transacoesLoading, error: transacoesError } = useFaturaTransacoes(selectedFatura?.id || undefined);
+interface FaturasProps {
+  gastos: Gasto[];
+  cartoes: Cartao[];
+}
 
-  useEffect(() => {
-    if (cartoes && cartoes.length > 0 && !selectedCardId) {
-      const firstCard = cartoes[0];
-      if (firstCard) {
-        setSelectedCardId(firstCard.id);
-      }
-    }
-  }, [cartoes, selectedCardId]);
+const Faturas: React.FC<FaturasProps> = ({
+  gastos,
+  cartoes,
+}) => {
+  const [buscaFatura, setBuscaFatura] = useState('');
+  const [mesFatura, setMesFatura] = useState(() => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - 1); // Set to previous month
+    return date;
+  });
 
-  const handleCardChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedCardId(e.target.value);
-    setSelectedFatura(null); // Reset fatura selection
-  };
-  
-  const totalFaturas = faturas.reduce((acc, f) => acc + f.valor_total, 0);
+ const faturasFiltradas = useMemo(() => {
+    return cartoes.map(cartao => {
+      const lancamentos = gastos.filter(gasto => {
+        if (gasto.cartaoId !== cartao.id) return false;
+        if (gasto.tipoPagamento !== 'CRÉDITO') return false;
+
+        const mesFaturaAtual = mesFatura.getMonth(); // 0-indexed
+        const anoFaturaAtual = mesFatura.getFullYear();
+        const diaFechamentoCartao = cartao.diaFechamento;
+
+        // O período da fatura vai do dia seguinte ao fechamento do mês anterior
+        // até o dia de fechamento do mês selecionado
+        
+        // Data de início: dia seguinte ao fechamento do mês anterior
+        const inicioFatura = new Date(anoFaturaAtual, mesFaturaAtual - 1, diaFechamentoCartao + 1);
+        inicioFatura.setHours(0, 0, 0, 0);
+        
+        // Data de fim: dia de fechamento do mês selecionado
+        const fimFatura = new Date(anoFaturaAtual, mesFaturaAtual, diaFechamentoCartao);
+        fimFatura.setHours(23, 59, 59, 999);
+
+        // Converter a data do gasto para objeto Date
+        const gastoDate = new Date(gasto.data + 'T12:00:00');
+        
+        // Incluir gastos que estão dentro do período da fatura
+        return gastoDate > inicioFatura && gastoDate <= fimFatura;
+      });
+
+      const lancamentosFiltrados = buscaFatura
+        ? lancamentos.filter(l => l.descricao.toLowerCase().includes(buscaFatura.toLowerCase()))
+        : lancamentos;
+
+      const total = lancamentos.reduce((acc, g) => acc + toNum(g.valor), 0);
+      const limite = toNum(cartao.limite);
+      
+      // 'Disponível Pós-fatura' reflete o limite menos o total da fatura atual
+      const disponivel = limite - total;
+
+      return {
+        cartao,
+        lancamentos: lancamentosFiltrados.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()),
+        total,
+        disponivel,
+      };
+    });
+  }, [cartoes, gastos, mesFatura, buscaFatura]);
+
+  const totalFaturasMes = useMemo(() => {
+    return faturasFiltradas.reduce((acc, fatura) => acc + fatura.total, 0);
+  }, [faturasFiltradas]);
 
   return (
     <section className="space-y-6 animate-fadeInUp">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Faturas dos Cartões</h2>
-        {cartoesLoading ? <p>Carregando cartões...</p> : (
-            <select 
-                onChange={handleCardChange} 
-                value={selectedCardId || ''}
-                className="w-full sm:w-auto px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-            >
-            <option value="" disabled>Selecione um cartão</option>
-            {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-          </select>
-        )}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl glass-card">
+        <h2 className="text-lg font-medium text-black dark:text-gray-200">Faturas dos Cartões</h2>
+        <div className="flex items-center gap-4 w-full sm:w-auto">
+          <input type="text" placeholder="Buscar lançamento..." value={buscaFatura} onChange={e => setBuscaFatura(e.target.value)} className="input-premium w-full sm:w-48" />
+          <input type="month" value={mesFatura.toISOString().slice(0, 7)} onChange={e => setMesFatura(new Date(e.target.value + '-01T12:00:00'))} className="input-premium" />
+        </div>
       </div>
 
-      {cartoesError && <p className="text-red-500">Erro ao carregar cartões.</p>}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Coluna de Faturas */}
-        <div className="lg:col-span-1 space-y-4">
-            <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Faturas</h3>
-            {faturasLoading && <p>Carregando faturas...</p>}
-            {faturasError && <p className="text-red-500">Erro ao carregar faturas.</p>}
-            <div className="space-y-2">
-                {faturas.map(f => (
-                    <div 
-                        key={f.id} 
-                        onClick={() => setSelectedFatura(f)}
-                        className={`p-3 rounded-lg cursor-pointer transition-colors ${selectedFatura?.id === f.id ? 'bg-blue-100 dark:bg-blue-900/50' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
-                    >
-                        <div className="flex justify-between items-center">
-                            <span className="font-medium">
-                                {new Date(f.ano, f.mes -1).toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
-                            </span>
-                            <span className={`font-bold ${f.paga ? 'text-emerald-500' : 'text-rose-500'}`}>{fmt(f.valor_total)}</span>
-                        </div>
-                         {f.paga && <span className="text-xs text-emerald-600">Fatura Paga</span>}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {faturasFiltradas.map((f, index) => (
+          <div key={f.cartao.id} className="p-4 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700 animate-fadeInUp" style={{ animationDelay: `${index * 50}ms` }}>
+            <div className="flex items-center gap-2 mb-4">
+              <CardIcon cardName={f.cartao.nome} />
+              <h3 className="font-medium text-base">{f.cartao.nome}</h3>
+            </div>
+            <div className="space-y-2 mb-4 max-h-96 overflow-y-auto">
+              {f.lancamentos.length === 0 ? (
+                <p className="text-sm text-center opacity-60 py-4">Nenhum lançamento para este mês.</p>
+              ) : (
+                f.lancamentos.map(g => (
+                  <div key={g.id} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                    <div>
+                      <div className="truncate max-w-[200px] sm:max-w-xs">{g.descricao}</div>
+                      <div className="text-xs opacity-60">{new Date(g.data + 'T12:00:00').toLocaleDateString('pt-BR')}</div>
                     </div>
-                ))}
+                    <div className="font-medium whitespace-nowrap">{fmt(toNum(g.valor))}</div>
+                  </div>
+                ))
+              )}
             </div>
-             <div className="mt-4 border-t dark:border-slate-700 pt-2 text-right">
-                <span className="font-semibold">Total: {fmt(totalFaturas)}</span>
+            <div className="border-t pt-2 dark:border-slate-700">
+              <div className="flex justify-between text-sm font-medium">
+                <span>Total da Fatura</span>
+                <span className="text-red-600 dark:text-red-400">{fmt(f.total)}</span>
+              </div>
+              <div className="flex justify-between text-xs mt-1">
+                <span className="opacity-70">Limite Total</span>
+                <span>{fmt(toNum(f.cartao.limite))}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="opacity-70">Disponível Pós-fatura</span>
+                <span className="text-green-600 dark:text-green-400">{fmt(f.disponivel)}</span>
+              </div>
             </div>
-        </div>
+          </div>
+        ))}
+      </div>
 
-        {/* Coluna de Lançamentos */}
-        <div className="lg:col-span-2">
-            <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-4">Lançamentos da Fatura</h3>
-            <div className="p-4 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700 min-h-[400px]">
-                {transacoesLoading && <p>Carregando lançamentos...</p>}
-                {transacoesError && <p className="text-red-500">Erro ao carregar lançamentos.</p>}
-                {!selectedFatura && <div className="text-center pt-10 text-slate-500">Selecione uma fatura para ver os detalhes.</div>}
-                
-                {selectedFatura && transacoes.length > 0 && (
-                    <div className="space-y-2">
-                    {transacoes.map(t => (
-                        <div key={t.id} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700/50">
-                            <div>
-                                <div className="truncate max-w-[200px] sm:max-w-xs">{t.descricao}</div>
-                                <div className="text-xs opacity-60">
-                                    {new Date(t.data + 'T12:00:00').toLocaleDateString('pt-BR')}
-                                    {t.parcelas > 1 && ` (Parc. ${t.parcela_atual}/${t.parcelas})`}
-                                </div>
-                            </div>
-                            <div className="font-medium whitespace-nowrap">{fmt(t.valor)}</div>
-                        </div>
-                    ))}
-                     </div>
-                )}
-
-                 {selectedFatura && !transacoesLoading && transacoes.length === 0 && (
-                     <div className="text-center pt-10 text-slate-500">Nenhum lançamento para esta fatura.</div>
-                 )}
-            </div>
-        </div>
+      <div className="p-4 rounded-xl bg-gray-50 dark:bg-slate-700 text-right font-medium text-sm">
+        Total das faturas no mês: {fmt(totalFaturasMes)}
       </div>
     </section>
   );

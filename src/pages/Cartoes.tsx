@@ -1,54 +1,26 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Pencil, Trash2, Plus, Star } from 'lucide-react';
-import { Cartao } from './types';
+import { Cartao, Gasto } from './types';
 import CreditCardVisual from '../components/CreditCardVisual';
-import { fmt } from '../../utils/helpers';
-import { useCartoes } from '../hooks/useCartoes';
-import { useGastos } from '../hooks/useGastos';
-import { toast } from 'sonner';
+import { fmt, toNum } from '../../utils/helpers';
 
 interface CartoesProps {
+  cartoes: Cartao[];
+  gastos: Gasto[];
+  gastosNoPeriodo: { [cardId: number]: number }; // New prop
   openModal: (type: 'cartao', item?: Cartao) => void;
+  onDelete: (id: number) => void;
+  onSetPrincipal: (id: number) => void;
 }
 
-const Cartoes: React.FC<CartoesProps> = ({ openModal }) => {
-  const { cartoes, loading: cartoesLoading, error: cartoesError, deleteCartao, updateCartao } = useCartoes();
-  const { gastos, loading: gastosLoading, error: gastosError } = useGastos();
-
-  const loading = cartoesLoading || gastosLoading;
-  const error = cartoesError || gastosError;
-
-  const gastosNoPeriodo = useMemo(() => {
-    const gastosPorCartao: { [cardId: string]: number } = {};
-    cartoes.forEach(cartao => {
-      gastosPorCartao[cartao.id] = 0;
-    });
-    gastos.forEach(gasto => {
-      if (gasto.metodo_pagamento === 'CRÉDITO' && gasto.cartaoId) {
-        gastosPorCartao[gasto.cartaoId] = (gastosPorCartao[gasto.cartaoId] || 0) + gasto.valor;
-      }
-    });
-    return gastosPorCartao;
-  }, [gastos, cartoes]);
-  
-  const handleSetPrincipal = async (id: string) => {
-    const currentPrincipal = cartoes.find(c => c.is_principal);
-    try {
-      const promises = [];
-      if (currentPrincipal && currentPrincipal.id !== id) {
-        promises.push(updateCartao(currentPrincipal.id, { is_principal: false }));
-      }
-      promises.push(updateCartao(id, { is_principal: true }));
-      await Promise.all(promises);
-      toast.success('Cartão principal definido!');
-    } catch (err) {
-      toast.error('Erro ao definir cartão principal.');
-    }
-  };
-
-  if (loading) return <div>Carregando cartões...</div>;
-  if (error) return <div>Ocorreu um erro: {error.message}</div>;
-
+const Cartoes: React.FC<CartoesProps> = ({
+  cartoes,
+  // Remove `gastos` from destructuring as it's no longer directly used for `gastosDoCartao` calculation here
+  gastosNoPeriodo, // Use the new prop
+  openModal,
+  onDelete,
+  onSetPrincipal,
+}) => {
   return (
     <section className="space-y-6 animate-fadeInUp">
       <div className="flex items-center justify-between">
@@ -69,8 +41,9 @@ const Cartoes: React.FC<CartoesProps> = ({ openModal }) => {
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Adicione um novo cartão de crédito para começar.</p>
           </div>
         ) : cartoes.map((c, index) => {
+            // Use the pre-calculated value from gastosNoPeriodo
             const gastosDoCartao = gastosNoPeriodo[c.id] || 0;
-            const limiteNum = c.limite;
+            const limiteNum = toNum(c.limite);
             const disponivel = limiteNum - gastosDoCartao;
             const disponivelPercent = limiteNum > 0 ? Math.max(0, Math.min(100, (disponivel / limiteNum) * 100)) : 0;
             const gastoPercent = limiteNum > 0 ? Math.max(0, Math.min(100, (gastosDoCartao / limiteNum) * 100)) : 0;
@@ -79,7 +52,7 @@ const Cartoes: React.FC<CartoesProps> = ({ openModal }) => {
               <div key={c.id} className="space-y-4 animate-fadeInUp" style={{ animationDelay: `${index * 50}ms` }}>
                 <div className="relative">
                   <CreditCardVisual {...c} gastos={gastosDoCartao} />
-                  {c.is_principal && (
+                  {c.isPrincipal && (
                     <div className="absolute top-3 right-3 bg-yellow-400 p-1.5 rounded-full shadow-lg">
                       <Star size={16} className="text-white fill-current" />
                     </div>
@@ -115,8 +88,8 @@ const Cartoes: React.FC<CartoesProps> = ({ openModal }) => {
                     <input 
                       type="checkbox"
                       id={`principal-card-${c.id}`}
-                      checked={c.is_principal || false}
-                      onChange={() => handleSetPrincipal(c.id)}
+                      checked={c.isPrincipal || false}
+                      onChange={() => onSetPrincipal(c.id)}
                       className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-700"
                     />
                     <label htmlFor={`principal-card-${c.id}`} className="text-xs font-medium text-slate-600 dark:text-slate-300 cursor-pointer">Principal</label>
@@ -134,7 +107,7 @@ const Cartoes: React.FC<CartoesProps> = ({ openModal }) => {
                       type="button"
                       onClick={() => {
                         if (window.confirm('Tem certeza que deseja remover este cartão?')) {
-                          deleteCartao(c.id);
+                          onDelete(c.id);
                         }
                       }}
                       className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-100 rounded-full transition-colors duration-200 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-rose-500/10"

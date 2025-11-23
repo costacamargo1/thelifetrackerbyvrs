@@ -1,24 +1,24 @@
 import React, { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { useCategorias } from '../hooks/useCategorias';
-import { toast } from 'sonner';
+import { Category } from '../pages/types';
 
-const CategoryManager: React.FC = () => {
-  const { categorias, loading, error, addCategoria, deleteCategoria } = useCategorias();
+interface CategoryManagerProps {
+  categories: Category[];
+  onSave: (category: Omit<Category, 'id'>) => void;
+  onDelete: (id: string) => void;
+}
+
+const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onSave, onDelete }) => {
   const [newCategoryName, setNewCategoryName] = useState('');
 
-  const handleAddCategory = async () => {
+  const handleAddCategory = () => {
     if (newCategoryName.trim() === '') {
-      toast.error('O nome da categoria não pode estar vazio.');
+      alert('O nome da categoria não pode estar vazio.');
       return;
     }
-    try {
-      await addCategoria({ nome: newCategoryName.trim(), tipo: 'gasto', icone: 'QuestionMarkCircleIcon' });
-      setNewCategoryName('');
-      toast.success('Categoria adicionada!');
-    } catch (err) {
-      toast.error('Erro ao adicionar categoria.');
-    }
+    // Chama a função onSave do componente pai para adicionar a categoria, com valores padrão para type e icon
+    onSave({ name: newCategoryName.trim(), type: 'despesa', icon: 'QuestionMarkCircleIcon' });
+    setNewCategoryName(''); // Limpa o input
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -31,6 +31,7 @@ const CategoryManager: React.FC = () => {
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">Gerenciar Categorias</h3>
       
+      {/* Formulário para adicionar nova categoria */}
       <div className="flex items-center gap-2">
         <input
           type="text"
@@ -49,34 +50,30 @@ const CategoryManager: React.FC = () => {
         </button>
       </div>
 
-      {loading && <p className="text-sm text-slate-500">Carregando categorias...</p>}
-      {error && <p className="text-sm text-red-500">Erro ao carregar categorias.</p>}
-      
+      {/* Lista de categorias existentes */}
       <div className="space-y-2 pt-4">
-        {!loading && !error && (
-          categorias.length > 0 ? (
-            categorias.map((cat) => (
-              <div
-                key={cat.id}
-                className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg"
+        {categories.length > 0 ? (
+          categories.map((cat) => (
+            <div
+              key={cat.id}
+              className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg"
+            >
+              <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{cat.name}</span>
+              <button
+                onClick={() => {
+                  if (window.confirm(`Tem certeza que deseja remover a categoria "${cat.name}"?`)) {
+                    onDelete(cat.id);
+                  }
+                }}
+                className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-500/10 rounded-full transition-colors"
+                title="Excluir categoria"
               >
-                <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{cat.nome}</span>
-                <button
-                  onClick={() => {
-                    if (window.confirm(`Tem certeza que deseja remover a categoria "${cat.nome}"?`)) {
-                      deleteCategoria(cat.id);
-                    }
-                  }}
-                  className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-500/10 rounded-full transition-colors"
-                  title="Excluir categoria"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-center text-slate-500 dark:text-slate-400 py-4">Nenhuma categoria personalizada cadastrada.</p>
-          )
+                <Trash2 size={16} />
+              </button>
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-center text-slate-500 dark:text-slate-400 py-4">Nenhuma categoria cadastrada.</p>
         )}
       </div>
     </div>
