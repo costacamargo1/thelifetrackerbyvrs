@@ -1,22 +1,40 @@
 import React from 'react';
 import { Pencil, Trash2, Plus } from 'lucide-react';
-import { Gasto, Category } from './types';
-import { fmt, toNum, addMonths } from '../../utils/helpers';
+import { Gasto, Categoria } from './types';
+import { fmt } from '../../utils/helpers';
 import { IconComponent } from '../components/CategoryIcon';
+import { useGastos } from '../hooks/useGastos';
 
 interface GastosProps {
-  gastos: Gasto[];
-  categorias: Category[];
+  categorias: Categoria[];
   openModal: (type: 'gasto', item?: Gasto) => void;
-  onDelete: (id: number) => void;
 }
 
 const Gastos: React.FC<GastosProps> = ({
-  gastos,
   categorias,
   openModal,
-  onDelete,
 }) => {
+  const { gastos, loading, error, deleteGasto } = useGastos();
+
+  if (loading) {
+    return (
+      <section className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Meus Gastos</h2>
+          <button className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-700 transition-colors" disabled>
+            <Plus size={20} />
+            Novo Gasto
+          </button>
+        </div>
+        <div>Carregando gastos...</div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return <div>Ocorreu um erro ao carregar os gastos: {error.message}</div>
+  }
+
   const parcelamentosAtivos = gastos.filter(g => g.parcelasTotal && g.parcelasTotal > 1);
 
   return (
@@ -43,9 +61,9 @@ const Gastos: React.FC<GastosProps> = ({
             </div>
           ) : (
             <div className="space-y-3">
-              {gastos.slice().reverse().map((g, index) => {
-                const category = categorias.find(c => c.name === g.categoria);
-                const iconName = category?.icon || 'QuestionMarkCircleIcon';
+              {gastos.map((g, index) => {
+                const category = categorias.find(c => c.nome === g.categoria);
+                const iconName = category?.icone || 'QuestionMarkCircleIcon';
                 const cartaoNome = g.cartaoNome || '';
 
                 return (<div key={g.id} className="p-4 rounded-2xl border bg-white hover:shadow-lg transition-shadow dark:bg-slate-800 dark:border-slate-700/60 animate-fadeInUp" style={{ animationDelay: `${index * 25}ms` }}>
@@ -68,14 +86,14 @@ const Gastos: React.FC<GastosProps> = ({
                           <span className="text-slate-300 dark:text-slate-600">•</span>
                           <span className="capitalize">{g.categoria?.toLowerCase()}</span>
                           <span className="text-slate-300 dark:text-slate-600">•</span>
-                          <span>{g.tipoPagamento}{cartaoNome && ` - ${cartaoNome}`}</span>
+                          <span>{g.metodo_pagamento}{cartaoNome && ` - ${cartaoNome}`}</span>
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
                       <div className="text-right">
                         <div className="font-bold text-lg text-slate-800 dark:text-slate-100 whitespace-nowrap">
-                          - {fmt(toNum(g.valor))}
+                          - {fmt(g.valor)}
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
@@ -91,7 +109,7 @@ const Gastos: React.FC<GastosProps> = ({
                           type="button"
                           onClick={() => {
                             if (window.confirm('Tem certeza que deseja remover este gasto?')) {
-                              onDelete(g.id);
+                              deleteGasto(g.id);
                             }
                           }}
                           className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-100 rounded-full transition-colors duration-200 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-rose-500/10"
@@ -115,7 +133,8 @@ const Gastos: React.FC<GastosProps> = ({
             <div className="space-y-3">
               {parcelamentosAtivos.map((g) => {
                 const remainingMonths = (g.parcelasTotal || 0) - (g.parcelaAtual || 0);
-                const endDate = addMonths(new Date(g.data + 'T12:00:00'), remainingMonths);
+                const endDate = new Date(g.data);
+                endDate.setMonth(endDate.getMonth() + remainingMonths);
                 const endDateFormatted = endDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
                 return (
@@ -130,7 +149,7 @@ const Gastos: React.FC<GastosProps> = ({
                         </span>
                       </div>
                       <div className="text-right font-medium text-slate-700 dark:text-slate-200">
-                        {fmt(toNum(g.valor))}
+                        {fmt(g.valor)}
                       </div>
                       <div className="col-span-4 text-xs text-slate-500 dark:text-slate-400 mt-1">
                         Finaliza em: <span className="font-medium">{endDateFormatted}</span>

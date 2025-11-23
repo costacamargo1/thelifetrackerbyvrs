@@ -1,19 +1,26 @@
 import React from 'react';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import { Receita } from './types';
-import { fmt, toNum } from '../../utils/helpers';
+import { fmt } from '../../utils/helpers';
+import { useReceitas } from '../hooks/useReceitas';
 
 interface ReceitasProps {
-  receitas: Receita[];
   openModal: (type: 'receita', item?: Receita) => void;
-  onDelete: (id: number) => void;
 }
 
 const Receitas: React.FC<ReceitasProps> = ({
-  receitas,
   openModal,
-  onDelete,
 }) => {
+  const { receitas, loading, error, deleteReceita } = useReceitas();
+
+  if (loading) {
+    return <div>Carregando receitas...</div>;
+  }
+
+  if (error) {
+    return <div>Ocorreu um erro ao carregar as receitas: {error.message}</div>
+  }
+
   return (
     <section className="space-y-6 animate-fadeInUp">
       <div className="flex items-center justify-between">
@@ -36,19 +43,21 @@ const Receitas: React.FC<ReceitasProps> = ({
           </div>
         ) : (
           <div className="space-y-3">
-            {receitas.slice().reverse().map((r, index) => (
+            {receitas.map((r, index) => (
               <div key={r.id} className="p-4 rounded-2xl border bg-white hover:shadow-lg transition-shadow dark:bg-slate-800 dark:border-slate-700/60 animate-fadeInUp" style={{ animationDelay: `${index * 25}ms` }}>
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-base text-slate-800 dark:text-slate-100 truncate">{r.descricao}</div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                      {new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    <div className="text-sm text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2">
+                      <span>{new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                      <span className="text-slate-300 dark:text-slate-600">•</span>
+                      <span className="capitalize">{r.categoria?.toLowerCase()}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-4 flex-shrink-0">
                     <div className="text-right">
                       <div className="font-bold text-lg text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
-                        + {fmt(toNum(r.valor))}
+                        + {fmt(r.valor)}
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
@@ -64,7 +73,7 @@ const Receitas: React.FC<ReceitasProps> = ({
                         type="button"
                         onClick={() => {
                           if (window.confirm('Tem certeza que deseja remover esta receita?')) {
-                            onDelete(r.id);
+                            deleteReceita(r.id);
                           }
                         }}
                         className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-100 rounded-full transition-colors duration-200 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-rose-500/10"
