@@ -9,7 +9,7 @@ export default function Landing() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Agora também pegamos user
-  const { user, openAuthModal } = useAuth();
+  const { user, openAuthModal, signOut } = useAuth();
 
   return (
     <div className="font-sans bg-white text-slate-800">
@@ -44,6 +44,12 @@ export default function Landing() {
                   <span className="font-medium text-slate-700">
                     Olá, {user.user_metadata?.full_name || user.email}
                   </span>
+                  <button
+                    onClick={signOut}
+                    className="font-medium text-slate-600 hover:text-primary-500 transition-all hover:-translate-y-0.5"
+                  >
+                    Sair
+                  </button>
 
                   <a
                     href="/painel"
@@ -117,6 +123,12 @@ export default function Landing() {
                   >
                     Acessar LifeTracker
                   </a>
+                  <button
+                    onClick={signOut}
+                    className="mt-3 block w-full px-5 py-3 text-center font-medium text-white bg-red-500 hover:bg-red-600"
+                  >
+                    Sair
+                  </button>
                 </>
               ) : (
                 <>

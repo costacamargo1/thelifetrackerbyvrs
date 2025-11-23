@@ -1,5 +1,5 @@
 // src/components/AuthModal.tsx
-import React, { useState, FormEvent } from 'react';
+import React, { useState, FormEvent, useEffect } from 'react';
 import {
   X,
   Mail,
@@ -10,6 +10,7 @@ import {
   Chrome,
 } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 const tabs = [
   { id: 'login', label: 'Entrar' },
@@ -20,6 +21,7 @@ type TabId = (typeof tabs)[number]['id'];
 
 export default function AuthModal() {
   const {
+    user,
     isAuthModalOpen,
     closeAuthModal,
     signInWithEmail,
@@ -29,11 +31,19 @@ export default function AuthModal() {
     authError,
   } = useAuth();
 
+  const navigate = useNavigate();
+
   const [activeTab, setActiveTab] = useState<TabId>('login');
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      navigate('/painel');
+    }
+  }, [user, navigate]);
 
   if (!isAuthModalOpen) return null;
 
