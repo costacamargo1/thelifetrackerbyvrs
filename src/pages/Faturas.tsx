@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCartoes } from '../hooks/useCartoes';
 import { useFaturas, useFaturaTransacoes } from '../hooks/useFaturas';
 import { fmt } from '../../utils/helpers';
@@ -13,12 +13,11 @@ const Faturas: React.FC = () => {
   const { faturas, loading: faturasLoading, error: faturasError } = useFaturas(selectedCardId || undefined);
   const { transacoes, loading: transacoesLoading, error: transacoesError } = useFaturaTransacoes(selectedFatura?.id || undefined);
 
-  // Define a default card selection
-  useState(() => {
+  useEffect(() => {
     if (cartoes.length > 0 && !selectedCardId) {
       setSelectedCardId(cartoes[0].id);
     }
-  });
+  }, [cartoes, selectedCardId]);
 
   const handleCardChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedCardId(e.target.value);

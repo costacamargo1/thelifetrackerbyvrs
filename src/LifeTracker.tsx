@@ -153,7 +153,7 @@ export default function LifeTracker() {
     return Object.entries(map).map(([nome, data]) => ({ nome, ...data })).sort((a, b) => b.valor - a.valor);
   }, [gastos, categorias]);
   
-  const objetivoPrincipal = useMemo(() => objetivos[0], [objetivos]);
+  const objetivoPrincipal = useMemo(() => objetivos.length > 0 ? objetivos[0] : null, [objetivos]);
   const nomeMesAtual = new Date().toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
   const getBankColorClass = (n: string) => { /* implementation unchanged */ return 'bg-slate-600'; };
 
@@ -175,7 +175,14 @@ export default function LifeTracker() {
             </Card></div>
             <div className="md:col-span-4 lg:col-span-4 flex flex-col gap-4">
               <div className="flex justify-between items-center mb-1"><h3 className="font-semibold text-slate-700 dark:text-slate-300">Meus Cartões</h3><button className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg" onClick={() => setTab('cartoes')}><ArrowUpRight size={18}/></button></div>
-              {cartoes[0] ? <CreditCardVisual {...cartoes[0]} gastos={creditData.gastosPorCartao[cartoes[0].id] || 0} /> : <Card className="flex items-center justify-center text-center p-4 h-full"><p className="text-sm text-slate-500">Nenhum cartão cadastrado.</p></Card>}
+              {(() => {
+                const principal = cartoes[0];
+                if (!principal) {
+                  return <Card className="flex items-center justify-center text-center p-4 h-full"><p className="text-sm text-slate-500">Nenhum cartão cadastrado.</p></Card>;
+                }
+                const gastosDoCartao = creditData.gastosPorCartao[principal.id] || 0;
+                return <CreditCardVisual {...principal} gastos={gastosDoCartao} />;
+              })()}
             </div>
             <div className="md:col-span-12 lg:col-span-3"><Card className="p-5 flex flex-col justify-center gap-4 bg-gradient-to-br from-blue-600 to-indigo-700 text-white" onClick={() => openModal('gasto')}>
               <div className="flex items-center justify-between z-10"><div className="p-2 bg-white/20 rounded-xl"><Plus size={24}/></div><span className="text-xs font-bold uppercase">Ação Rápida</span></div>
@@ -206,7 +213,7 @@ export default function LifeTracker() {
       case 'cartoes': return <Cartoes openModal={openModal} />;
       case 'faturas': return <Faturas />;
       case 'resumo-anual': return <ResumoAnual />;
-      case 'configuracoes': return <Configuracoes openModal={openModal} />;
+      case 'configuracoes': return <Configuracoes />;
       default: return null;
     }
   };

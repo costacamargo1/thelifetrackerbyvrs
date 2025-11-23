@@ -54,8 +54,8 @@ const CategoryManager: React.FC = () => {
       
       <div className="space-y-2 pt-4">
         {!loading && !error && (
-          categories.length > 0 ? (
-            categories.map((cat) => (
+          categorias.length > 0 ? (
+            categorias.map((cat) => (
               <div
                 key={cat.id}
                 className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg"

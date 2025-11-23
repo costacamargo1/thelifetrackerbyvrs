@@ -1,7 +1,7 @@
 import React from 'react';
 import { fmt, toNum } from '../../utils/helpers';
 
-const CreditCardVisual = ({ nome, limite, gastos }: { nome: string, limite: string, gastos: number }) => {
+const CreditCardVisual = ({ nome, limite, gastos }: { nome: string, limite: number, gastos: number }) => {
     const getStyle = (n: string) => {
       const lower = n.toLowerCase();
       if (lower.includes('nubank')) return 'from-purple-700 to-purple-800 text-white';
@@ -16,7 +16,7 @@ const CreditCardVisual = ({ nome, limite, gastos }: { nome: string, limite: stri
       return 'from-slate-700 via-slate-600 to-slate-800 text-white';
     };
   
-    const limiteNum = toNum(limite);
+    const limiteNum = limite;
     const disponivel = limiteNum - gastos;
     const availablePercent = limiteNum > 0 ? Math.max(0, Math.min(100, (disponivel / limiteNum) * 100)) : 0;
   
