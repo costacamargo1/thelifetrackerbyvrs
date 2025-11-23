@@ -146,10 +146,19 @@ export default function LifeTracker() {
 
   const porCategoria = useMemo(() => {
     const map: Record<string, { valor: number, icon: string }> = {};
-    categorias.filter(c => c.tipo === 'gasto').forEach(c => map[c.nome] = { valor: 0, icon: c.icone });
-    gastos.forEach(g => {
-      if (g.categoria && map[g.categoria]) map[g.categoria].valor += g.valor;
-    });
+    if (categorias) {
+        categorias.filter(c => c.tipo === 'gasto').forEach(c => map[c.nome] = { valor: 0, icon: c.icone });
+    }
+    if (gastos) {
+        gastos.forEach(g => {
+          if (g.categoria && map.hasOwnProperty(g.categoria)) {
+            const entry = map[g.categoria];
+            if (entry) {
+                entry.valor += g.valor;
+            }
+          }
+        });
+    }
     return Object.entries(map).map(([nome, data]) => ({ nome, ...data })).sort((a, b) => b.valor - a.valor);
   }, [gastos, categorias]);
   

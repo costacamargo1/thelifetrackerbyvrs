@@ -14,8 +14,11 @@ const Faturas: React.FC = () => {
   const { transacoes, loading: transacoesLoading, error: transacoesError } = useFaturaTransacoes(selectedFatura?.id || undefined);
 
   useEffect(() => {
-    if (cartoes.length > 0 && !selectedCardId) {
-      setSelectedCardId(cartoes[0].id);
+    if (cartoes && cartoes.length > 0 && !selectedCardId) {
+      const firstCard = cartoes[0];
+      if (firstCard) {
+        setSelectedCardId(firstCard.id);
+      }
     }
   }, [cartoes, selectedCardId]);
 
