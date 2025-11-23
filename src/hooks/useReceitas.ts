@@ -61,10 +61,11 @@ export function useReceitas() {
   const updateReceita = async (id: string, updates: Partial<Receita>) => {
     if (!user) throw new Error("Usuário não autenticado.");
 
+    const numericId = Number(id);
     const { data, error } = await supabase
       .from('receitas')
       .update(updates)
-      .eq('id', id)
+      .eq('id', numericId)
       .eq('user_id', user.id)
       .select();
 
@@ -74,7 +75,7 @@ export function useReceitas() {
     }
     
     if (data) {
-      setReceitas(prev => prev.map(r => (r.id === id ? data[0] : r)));
+      setReceitas(prev => prev.map(r => (r.id === numericId ? data[0] : r)));
     }
     return data ? data[0] : null;
   };
@@ -82,10 +83,11 @@ export function useReceitas() {
   const deleteReceita = async (id: string) => {
     if (!user) throw new Error("Usuário não autenticado.");
 
+    const numericId = Number(id);
     const { error } = await supabase
       .from('receitas')
       .delete()
-      .eq('id', id)
+      .eq('id', numericId)
       .eq('user_id', user.id);
 
     if (error) {
@@ -93,7 +95,7 @@ export function useReceitas() {
       throw error;
     }
 
-    setReceitas(prev => prev.filter(r => r.id !== id));
+    setReceitas(prev => prev.filter(r => r.id !== numericId));
   };
 
   return { receitas, loading, error, addReceita, updateReceita, deleteReceita, refetch: fetchReceitas };

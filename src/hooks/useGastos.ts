@@ -61,10 +61,11 @@ export function useGastos() {
   const updateGasto = async (id: string, updates: Partial<Gasto>) => {
     if (!user) throw new Error("Usuário não autenticado.");
 
+    const numericId = Number(id);
     const { data, error } = await supabase
       .from('gastos')
       .update(updates)
-      .eq('id', id)
+      .eq('id', numericId)
       .eq('user_id', user.id)
       .select();
 
@@ -74,7 +75,7 @@ export function useGastos() {
     }
     
     if (data) {
-      setGastos(prev => prev.map(g => (g.id === id ? data[0] : g)));
+      setGastos(prev => prev.map(g => (g.id === numericId ? data[0] : g)));
     }
     return data ? data[0] : null;
   };
@@ -82,10 +83,11 @@ export function useGastos() {
   const deleteGasto = async (id: string) => {
     if (!user) throw new Error("Usuário não autenticado.");
 
+    const numericId = Number(id);
     const { error } = await supabase
       .from('gastos')
       .delete()
-      .eq('id', id)
+      .eq('id', numericId)
       .eq('user_id', user.id);
 
     if (error) {
@@ -93,7 +95,7 @@ export function useGastos() {
       throw error;
     }
 
-    setGastos(prev => prev.filter(g => g.id !== id));
+    setGastos(prev => prev.filter(g => g.id !== numericId));
   };
 
   return { gastos, loading, error, addGasto, updateGasto, deleteGasto, refetch: fetchGastos };

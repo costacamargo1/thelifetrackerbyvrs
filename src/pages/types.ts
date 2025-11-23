@@ -46,9 +46,36 @@ export interface Category {
 }
 
 export interface Configuracoes {
+  user_id: string;
+  created_at: string;
+  tema: 'light' | 'dark';
+  moeda: string;
+  primeiro_acesso: boolean;
   credito: { alerta: string; critico: string; positivo: string; };
   saldo: { alerta:string; critico: string; positivo: string; };
   categories: Category[];
 }
 
 export type Tab = 'dashboard' | 'gastos' | 'receitas' | 'contas-recorrentes' | 'objetivos' | 'cartoes' | 'dividas' | 'faturas' | 'resumo-anual' | 'configuracoes';
+
+export interface Fatura {
+  id: number;
+  user_id: string;
+  cartao_id: number;
+  mes: number;
+  ano: number;
+  total: string;
+  status: string;
+}
+
+export interface FaturaTransacao {
+  id: number;
+  user_id: string;
+  fatura_id: number;
+  gasto_id: number;
+  data: string;
+  descricao: string;
+  valor: string;
+  categoria: string;
+}
+

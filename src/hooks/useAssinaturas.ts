@@ -61,10 +61,11 @@ export function useAssinaturas() {
   const updateAssinatura = async (id: string, updates: Partial<Assinatura>) => {
     if (!user) throw new Error("Usuário não autenticado.");
 
+    const numericId = Number(id);
     const { data, error } = await supabase
       .from('assinaturas')
       .update(updates)
-      .eq('id', id)
+      .eq('id', numericId)
       .eq('user_id', user.id)
       .select();
 
@@ -74,7 +75,7 @@ export function useAssinaturas() {
     }
     
     if (data) {
-      setAssinaturas(prev => prev.map(a => (a.id === id ? data[0] : a)));
+      setAssinaturas(prev => prev.map(a => (a.id === numericId ? data[0] : a)));
     }
     return data ? data[0] : null;
   };
@@ -82,10 +83,11 @@ export function useAssinaturas() {
   const deleteAssinatura = async (id: string) => {
     if (!user) throw new Error("Usuário não autenticado.");
 
+    const numericId = Number(id);
     const { error } = await supabase
       .from('assinaturas')
       .delete()
-      .eq('id', id)
+      .eq('id', numericId)
       .eq('user_id', user.id);
 
     if (error) {
@@ -93,7 +95,7 @@ export function useAssinaturas() {
       throw error;
     }
 
-    setAssinaturas(prev => prev.filter(a => a.id !== id));
+    setAssinaturas(prev => prev.filter(a => a.id !== numericId));
   };
 
   return { assinaturas, loading, error, addAssinatura, updateAssinatura, deleteAssinatura, refetch: fetchAssinaturas };

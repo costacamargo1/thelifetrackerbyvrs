@@ -61,10 +61,11 @@ export function useObjetivos() {
   const updateObjetivo = async (id: string, updates: Partial<Objetivo>) => {
     if (!user) throw new Error("Usuário não autenticado.");
 
+    const numericId = Number(id);
     const { data, error } = await supabase
       .from('objetivos')
       .update(updates)
-      .eq('id', id)
+      .eq('id', numericId)
       .eq('user_id', user.id)
       .select();
 
@@ -74,7 +75,7 @@ export function useObjetivos() {
     }
     
     if (data) {
-      setObjetivos(prev => prev.map(o => (o.id === id ? data[0] : o)));
+      setObjetivos(prev => prev.map(o => (o.id === numericId ? data[0] : o)));
     }
     return data ? data[0] : null;
   };
@@ -82,10 +83,11 @@ export function useObjetivos() {
   const deleteObjetivo = async (id: string) => {
     if (!user) throw new Error("Usuário não autenticado.");
 
+    const numericId = Number(id);
     const { error } = await supabase
       .from('objetivos')
       .delete()
-      .eq('id', id)
+      .eq('id', numericId)
       .eq('user_id', user.id);
 
     if (error) {
@@ -93,7 +95,7 @@ export function useObjetivos() {
       throw error;
     }
 
-    setObjetivos(prev => prev.filter(o => o.id !== id));
+    setObjetivos(prev => prev.filter(o => o.id !== numericId));
   };
 
   return { objetivos, loading, error, addObjetivo, updateObjetivo, deleteObjetivo, refetch: fetchObjetivos };

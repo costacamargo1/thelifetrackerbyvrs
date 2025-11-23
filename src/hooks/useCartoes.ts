@@ -61,10 +61,11 @@ export function useCartoes() {
   const updateCartao = async (id: string, updates: Partial<Cartao>) => {
     if (!user) throw new Error("Usuário não autenticado.");
 
+    const numericId = Number(id);
     const { data, error } = await supabase
       .from('cartoes')
       .update(updates)
-      .eq('id', id)
+      .eq('id', numericId)
       .eq('user_id', user.id)
       .select();
 
@@ -74,7 +75,7 @@ export function useCartoes() {
     }
     
     if (data) {
-      setCartoes(prev => prev.map(c => (c.id === id ? data[0] : c)));
+      setCartoes(prev => prev.map(c => (c.id === numericId ? data[0] : c)));
     }
     return data ? data[0] : null;
   };
@@ -82,10 +83,11 @@ export function useCartoes() {
   const deleteCartao = async (id: string) => {
     if (!user) throw new Error("Usuário não autenticado.");
 
+    const numericId = Number(id);
     const { error } = await supabase
       .from('cartoes')
       .delete()
-      .eq('id', id)
+      .eq('id', numericId)
       .eq('user_id', user.id);
 
     if (error) {
@@ -93,7 +95,7 @@ export function useCartoes() {
       throw error;
     }
 
-    setCartoes(prev => prev.filter(c => c.id !== id));
+    setCartoes(prev => prev.filter(c => c.id !== numericId));
   };
 
   return { cartoes, loading, error, addCartao, updateCartao, deleteCartao, refetch: fetchCartoes };

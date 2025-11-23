@@ -7,6 +7,9 @@ const defaultConfig: Omit<Configuracoes, 'user_id' | 'created_at'> = {
   tema: 'light',
   moeda: 'BRL',
   primeiro_acesso: true,
+  credito: { alerta: '70', critico: '90', positivo: '50' },
+  saldo: { alerta: '1000', critico: '500', positivo: '5000' },
+  categories: [],
 };
 
 export function useConfiguracoes() {

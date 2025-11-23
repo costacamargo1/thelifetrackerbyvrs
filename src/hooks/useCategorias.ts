@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../auth/supabaseClient';
 import { useAuth } from './useAuth';
-import { Categoria } from '../pages/types';
+import { Category } from '../pages/types';
 
 export function useCategorias() {
   const { user } = useAuth();
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [categorias, setCategorias] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -39,7 +39,7 @@ export function useCategorias() {
     fetchCategorias();
   }, [fetchCategorias]);
 
-  const addCategoria = async (categoria: Omit<Categoria, 'id' | 'user_id' | 'created_at'>) => {
+  const addCategoria = async (categoria: Omit<Category, 'id' | 'user_id' | 'created_at'>) => {
     if (!user) throw new Error("Usuário não autenticado.");
 
     const { data, error } = await supabase
@@ -58,7 +58,7 @@ export function useCategorias() {
     return data ? data[0] : null;
   };
 
-  const updateCategoria = async (id: string, updates: Partial<Categoria>) => {
+  const updateCategoria = async (id: string, updates: Partial<Category>) => {
     if (!user) throw new Error("Usuário não autenticado.");
 
     const { data, error } = await supabase
